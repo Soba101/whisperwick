@@ -1,0 +1,25 @@
+# Murder of the Mayor: the flagship test scenario.
+# Week 1 only uses the map and the villagers. Secrets and evidence are used from week 2.
+
+name: murder_of_the_mayor
+seed: 42
+start: { day: 1, hour: 8 }
+
+# Locations are nodes in a graph. "links" are the places you can walk to directly.
+locations:
+  - { id: loc_inn,        name: The Inn,      links: [loc_market, loc_temple] }
+  - { id: loc_market,     name: Market,       links: [loc_inn, loc_town_hall, loc_temple] }
+  - { id: loc_temple,     name: Temple,       links: [loc_inn, loc_market] }
+  - { id: loc_town_hall,  name: Town Hall,    links: [loc_market] }
+
+npcs:
+  - { id: npc_alice,  name: Alice,  occupation: innkeeper,  location: loc_inn }
+  - { id: npc_bob,    name: Bob,    occupation: blacksmith, location: loc_market }
+  - { id: npc_sarah,  name: Sarah,  occupation: priest,     location: loc_temple }
+  - { id: npc_victor, name: Victor, occupation: merchant,   location: loc_market }
+  - { id: npc_hal,    name: Hal,    occupation: guard,      location: loc_town_hall }
+
+# Ground truth. Only the engine sees this. Villagers must learn it through events.
+secrets:
+  murderer: npc_victor
+  victim: npc_mayor

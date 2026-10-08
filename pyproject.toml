@@ -1,0 +1,39 @@
+# Project settings for Whisperwick.
+# We use uv: `uv sync` installs everything, `uv run <cmd>` runs inside the venv.
+
+[project]
+name = "whisperwick"
+version = "0.1.0"
+description = "A village of LLM agents with their own beliefs, inside an authoritative world engine."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.8",  # typed data models for events, NPCs, scenarios
+    "pyyaml>=6.0",    # reads scenario files
+    "typer>=0.12",    # command-line interface
+    "openai>=1.40",   # client for any OpenAI-compatible server, e.g. local vLLM (used from week 2)
+]
+
+[project.scripts]
+# Lets you type `uv run whisperwick ...` instead of `python -m whisperwick.cli`.
+whisperwick = "whisperwick.cli:app"
+
+[dependency-groups]
+# Tools only needed while developing.
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",  # linter + formatter
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = common errors, I = import order, UP = modern syntax, B = likely bugs.
+select = ["E", "F", "I", "UP", "B"]

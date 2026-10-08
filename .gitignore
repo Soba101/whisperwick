@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+
+# Local data: event logs and simulation output get big fast
+data/*
+!data/.gitkeep
+*.db
+logs/
+
+# Model weights never go in git
+*.gguf
+*.safetensors
+models/
+
+# macOS
+.DS_Store
