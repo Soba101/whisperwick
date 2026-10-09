@@ -29,6 +29,8 @@ class NPC(BaseModel):
     name: str
     occupation: str
     location: str  # id of the location they are in right now
+    # A dead NPC stays in the world as a body, but never acts, hears or is spoken to.
+    alive: bool = True
 
 
 class World:
@@ -69,8 +71,18 @@ class World:
                 raise ValueError(f"{npc.id} starts in unknown location {npc.location}")
 
     def npcs_at(self, location_id: str) -> list[str]:
-        """IDs of everyone at a location, sorted so results are deterministic."""
-        return sorted(n.id for n in self.npcs.values() if n.location == location_id)
+        """IDs of the LIVING at a location, sorted so results are deterministic.
+
+        The dead are left out on purpose: they cannot witness, be talked to, or be seen
+        as "people". Use bodies_at() to find them.
+        """
+        return sorted(n.id for n in self.npcs.values() if n.alive and n.location == location_id)
+
+    def bodies_at(self, location_id: str) -> list[str]:
+        """IDs of the dead at a location, sorted."""
+        return sorted(
+            n.id for n in self.npcs.values() if not n.alive and n.location == location_id
+        )
 
     # ---- The one door agents use -------------------------------------------
 
@@ -90,6 +102,9 @@ class World:
             return reject(f"malformed intent ({where}: {first['msg']})")
         if intent.actor not in self.npcs:
             return reject(f"unknown npc {intent.actor}")
+        # The dead cannot act. Checked before the handler so no action can slip through.
+        if not self.npcs[intent.actor].alive:
+            return reject(f"{intent.actor} is dead")
         handler = HANDLERS.get(intent.action)
         if handler is None:
             return reject(f"unknown action {intent.action}")

@@ -77,6 +77,10 @@ def do_talk(world, intent: Intent) -> ActionResult:
         return reject(f"unknown npc {intent.target}")
     if listener.id == npc.id:
         return reject("cannot talk to yourself")
+    # The dead are still in world.npcs, so the location check alone would let you
+    # talk to a body. Refuse with a clear reason.
+    if not listener.alive:
+        return reject(f"{listener.id} is dead")
     if listener.location != npc.location:
         return reject(f"{listener.id} is not here")
     message = (intent.message or "").strip()
@@ -108,6 +112,8 @@ def do_look(world, intent: Intent) -> ActionResult:
         "location": here,
         "people": [n for n in world.npcs_at(here) if n != intent.actor],
         "exits": sorted(world.locations[here].links),
+        # Dead NPCs are not "people". They show up here, so a body can be found.
+        "bodies": world.bodies_at(here),
     }
     return ActionResult(True, observation=observation)
 

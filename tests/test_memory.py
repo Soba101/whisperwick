@@ -117,3 +117,13 @@ def test_reflect_returns_none_on_failure():
     assert memory.reflect(stream, "Bob", FakeClient([]), tick=60) is None  # model error
     assert memory.reflect(stream, "Bob", FakeClient([{"oops": 1}]), tick=60) is None
     assert stream.memories == []
+
+
+def test_seed_evidence_adds_important_evidence_in_sorted_npc_order():
+    memories = Memories()
+    evidence = {"npc_bob": ["saw Victor"], "npc_alice": ["mud on his boots", "a strong drink"]}
+    memory.seed_evidence(memories, evidence, tick=480)
+    assert list(memories) == ["npc_alice", "npc_bob"]  # made in sorted order
+    first = memories["npc_alice"].memories[0]
+    assert (first.tick, first.importance, first.kind) == (480, 9, "evidence")
+    assert [m.text for m in memories["npc_alice"].memories] == evidence["npc_alice"]

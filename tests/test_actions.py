@@ -17,7 +17,8 @@ REJECTED = [
     ("no such place", {"actor": "npc_alice", "action": "move", "target": "loc_moon"}, "unknown location"),
     ("move without target", {"actor": "npc_alice", "action": "move"}, "unknown location"),
     ("no such npc acts", {"actor": "npc_ghost", "action": "look"}, "unknown npc"),
-    ("dead mayor acts", {"actor": "npc_mayor", "action": "look"}, "unknown npc"),
+    ("dead mayor acts", {"actor": "npc_mayor", "action": "look"}, "is dead"),
+    ("talk to the dead", {"actor": "npc_hal", "action": "talk", "target": "npc_mayor", "message": "hi"}, "is dead"),
     ("no such action", {"actor": "npc_alice", "action": "fly"}, "unknown action"),
     ("talk to absent npc", {"actor": "npc_alice", "action": "talk", "target": "npc_bob", "message": "hi"}, "not here"),
     ("talk to nobody", {"actor": "npc_bob", "action": "talk", "target": "npc_ghost", "message": "hi"}, "unknown npc"),
@@ -63,6 +64,7 @@ def test_look_shows_the_room_and_changes_nothing():
         "location": "loc_market",
         "people": ["npc_victor"],
         "exits": ["loc_inn", "loc_temple", "loc_town_hall"],
+        "bodies": [],
     }
     assert world.state_hash() == before
 
@@ -88,3 +90,19 @@ def test_step_survives_junk_in_the_batch():
     )
     assert len(results) == 5
     assert sum(r.ok for r in results) == 1  # only Bob's look is valid
+
+
+def test_look_shows_the_body_but_not_as_a_person():
+    world = fresh_world()
+    result = world.act({"actor": "npc_hal", "action": "look"})
+    assert result.observation["people"] == []  # the mayor is dead, so not a person
+    assert result.observation["bodies"] == ["npc_mayor"]
+
+
+def test_mayor_is_never_a_witness():
+    world = fresh_world()
+    # Hal walks out of the Town Hall. The body must not be listed as seeing it.
+    event = world.move("npc_hal", "loc_market").event
+    assert "npc_mayor" not in event.witnesses
+    assert world.npcs_at("loc_town_hall") == []
+    assert world.bodies_at("loc_town_hall") == ["npc_mayor"]

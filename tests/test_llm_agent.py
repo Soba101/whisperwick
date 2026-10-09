@@ -122,3 +122,10 @@ def test_memory_lines_use_people_and_place_as_query():
     stream.add(0, "Victor owes me coins", 5)
     stream.add(0, "the weather was mild", 5)
     assert llm_agent.memory_lines(stream, 0, world, "npc_bob", k=1) == ["Victor owes me coins"]
+
+
+def test_prompt_shows_bodies_here():
+    # Hal starts in the Town Hall with the mayor's body. The prompt must say so.
+    world = fresh_world()
+    text = llm_agent.build_messages(world, "npc_hal")[0]["content"]
+    assert "Lying dead here: npc_mayor" in text

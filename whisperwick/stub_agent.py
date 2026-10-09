@@ -43,5 +43,8 @@ def choose(world: World, npc_id: str) -> Intent | None:
 
 def intents_for_tick(world: World) -> list[Intent]:
     """Every NPC's choice for this tick, in a fixed (sorted) order."""
-    chosen = (choose(world, npc_id) for npc_id in sorted(world.npcs))
+    # Skip the dead BEFORE choose(): choose() draws from world.rng, and a dead NPC
+    # must not use up random numbers, or every living NPC's choices would shift.
+    living = (n for n in sorted(world.npcs) if world.npcs[n].alive)
+    chosen = (choose(world, npc_id) for npc_id in living)
     return [i for i in chosen if i is not None]

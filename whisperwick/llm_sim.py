@@ -16,11 +16,17 @@ def run_llm(
     minutes: int,
     memories: Memories | None = None,
     stats: dict | None = None,
+    evidence: dict[str, list[str]] | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
     stats = stats if stats is not None else {}
-    scheduler = Scheduler(world.npcs)
+    # Only the living are scheduled or reflect. The dead never get a model call.
+    living = sorted(n for n in world.npcs if world.npcs[n].alive)
+    scheduler = Scheduler(living)
+    # Private starting knowledge goes in before the first turn.
+    if evidence:
+        memory.seed_evidence(memories, evidence, world.clock.tick)
     for _ in range(minutes):
         tick = world.clock.tick
         # NPCs act one by one, not all at once. A later NPC sees what an earlier one did
@@ -39,7 +45,7 @@ def run_llm(
         world.clock.advance()
         # When the clock reaches bedtime, each NPC sums up its day, in sorted order.
         if world.clock.tick % MINUTES_PER_DAY == SLEEP_START * 60:
-            for npc in sorted(world.npcs):
+            for npc in living:
                 if memory.reflect(memories[npc], world.npcs[npc].name, client, world.clock.tick):
                     stats["reflections"] = stats.get("reflections", 0) + 1
     return memories, stats

@@ -64,6 +64,12 @@ def build_messages(
         + (", ".join(f"{p} ({world.npcs[p].name}, {world.npcs[p].occupation})" for p in people)
            or "nobody"),
     ]  # fmt: skip
+    # A body is not a person you can talk to, but you can see it. Say so plainly.
+    bodies = world.bodies_at(here.id)
+    if bodies:
+        lines.append(
+            "Lying dead here: " + ", ".join(f"{b} ({world.npcs[b].name})" for b in bodies)
+        )
     if memories:
         lines.append("You remember:")
         lines += [f"- {m}" for m in memories]

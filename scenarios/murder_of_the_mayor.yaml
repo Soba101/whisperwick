@@ -1,5 +1,6 @@
 # Murder of the Mayor: the flagship test scenario.
-# Week 1 only uses the map and the villagers. Secrets and evidence are used from week 2.
+# Week 1 only used the map and the villagers. Secrets and evidence are used from week 2.
+# The mayor is already dead when the story starts: a body in the Town Hall.
 
 name: murder_of_the_mayor
 seed: 42
@@ -18,8 +19,25 @@ npcs:
   - { id: npc_sarah,  name: Sarah,  occupation: priest,     location: loc_temple }
   - { id: npc_victor, name: Victor, occupation: merchant,   location: loc_market }
   - { id: npc_hal,    name: Hal,    occupation: guard,      location: loc_town_hall }
+  # Dead from the start. He never acts, and the engine never schedules him.
+  - { id: npc_mayor,  name: Mayor Aldric, occupation: mayor, location: loc_town_hall, alive: false }
 
 # Ground truth. Only the engine sees this. Villagers must learn it through events.
 secrets:
   murderer: npc_victor
   victim: npc_mayor
+
+# Private starting memories. Each NPC knows only its own lines. Only Victor knows
+# he is guilty: everyone else must work it out from events and from talking.
+# No murder event is logged: the truth stays in secrets above.
+evidence:
+  npc_hal:
+    - "At dawn I found Mayor Aldric (npc_mayor) dead in the Town Hall. He had been stabbed. The door was not forced."
+  npc_bob:
+    - "Late last night I saw Victor (npc_victor) hurrying away from the Town Hall."
+  npc_alice:
+    - "Victor (npc_victor) came back to the inn after midnight with mud on his boots and asked for a strong drink."
+  npc_sarah:
+    - "Yesterday Mayor Aldric told me he was about to expose a merchant who had been cheating the village."
+  npc_victor:
+    - "Last night I killed Mayor Aldric in the Town Hall, because he was about to expose my cheating. I don't think anyone saw me. I must not be found out."

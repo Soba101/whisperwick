@@ -60,3 +60,11 @@ def test_nobody_is_due_at_night_and_wakeups_are_dropped():
     s.notice(talk(Clock.at(1, 23).tick))  # night: dropped
     morning = Clock.at(2, 6, 0).tick
     assert s.due(morning) == ["npc_alice", "npc_bob", "npc_carol"]  # routine, not a stale wake
+
+
+def test_scheduler_only_schedules_the_ids_it_is_given():
+    """The run loop hands it living NPCs only, so a dead one is never due or woken."""
+    s = Scheduler(["npc_alice", "npc_bob"])  # npc_mayor is dead, so not passed in
+    s.notice(talk(NOON, to="npc_mayor", witnesses=["npc_mayor"]))
+    assert s.due(NOON) == ["npc_alice", "npc_bob"]
+    assert "npc_mayor" not in s.woken

@@ -42,3 +42,15 @@ def test_same_seed_same_events():
     run(b, minutes=24 * 60)
     assert a.log.all() == b.log.all()
     assert len(a.log.all()) > 0  # make sure the test is not trivially passing
+
+
+def test_stub_never_picks_the_dead_mayor():
+    # The unchanged golden snapshot events prove the rng stream was not disturbed.
+    from whisperwick.stub_agent import intents_for_tick
+
+    world = fresh_world()
+    for _ in range(300):
+        intents = intents_for_tick(world)
+        for intent in intents:
+            assert intent.actor != "npc_mayor" and intent.target != "npc_mayor"
+        world.step(intents)

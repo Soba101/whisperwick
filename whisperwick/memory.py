@@ -122,7 +122,22 @@ class Memories(UserDict):
         people = ", ".join(observation["people"]) or "nobody"
         when = Clock(tick).label().capitalize()
         line = f"{when} at {observation['location']}: you looked around and saw {people}"
-        self[npc_id].add(tick, line, 1)
+        # Seeing a body matters far more than seeing who is around.
+        # .get() keeps older observations (made before bodies existed) working.
+        bodies = observation.get("bodies") or []
+        if bodies:
+            line += f". Dead here: {', '.join(bodies)}"
+        self[npc_id].add(tick, line, 7 if bodies else 1)
+
+
+def seed_evidence(memories: Memories, evidence: dict[str, list[str]], tick: int) -> None:
+    """Give each NPC its private starting memories. Very important (9), kind "evidence".
+
+    Sorted by npc id so the order of memories is the same every run.
+    """
+    for npc_id in sorted(evidence):
+        for line in evidence[npc_id]:
+            memories[npc_id].add(tick, line, 9, "evidence")
 
 
 REFLECTION_SCHEMA = {

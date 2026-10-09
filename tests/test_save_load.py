@@ -28,3 +28,11 @@ def test_save_then_load_matches_uninterrupted_run():
     run_ticks(resumed, second)
 
     assert resumed.state_hash() == straight.state_hash()
+
+
+def test_alive_survives_save_and_load():
+    world = fresh_world()
+    loaded = World.from_dict(json.loads(json.dumps(world.to_dict())))
+    assert loaded.npcs["npc_mayor"].alive is False
+    assert loaded.npcs["npc_bob"].alive is True
+    assert loaded.state_hash() == world.state_hash()

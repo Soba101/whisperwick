@@ -205,30 +205,42 @@
   ],
   "npcs": [
     {
+      "alive": true,
       "id": "npc_alice",
       "location": "loc_temple",
       "name": "Alice",
       "occupation": "innkeeper"
     },
     {
+      "alive": true,
       "id": "npc_bob",
       "location": "loc_market",
       "name": "Bob",
       "occupation": "blacksmith"
     },
     {
+      "alive": true,
       "id": "npc_hal",
       "location": "loc_inn",
       "name": "Hal",
       "occupation": "guard"
     },
     {
+      "alive": false,
+      "id": "npc_mayor",
+      "location": "loc_town_hall",
+      "name": "Mayor Aldric",
+      "occupation": "mayor"
+    },
+    {
+      "alive": true,
       "id": "npc_sarah",
       "location": "loc_market",
       "name": "Sarah",
       "occupation": "priest"
     },
     {
+      "alive": true,
       "id": "npc_victor",
       "location": "loc_temple",
       "name": "Victor",
