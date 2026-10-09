@@ -8,6 +8,7 @@ from collections.abc import Callable
 from whisperwick import llm_agent, memory
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
+from whisperwick.player import PLAYER_ID
 from whisperwick.scheduler import SLEEP_START, Scheduler
 from whisperwick.world import World
 
@@ -27,7 +28,8 @@ def run_llm(
     memories = memories if memories is not None else Memories()
     stats = stats if stats is not None else {}
     # Only the living are scheduled or reflect. The dead never get a model call.
-    living = sorted(n for n in world.npcs if world.npcs[n].alive)
+    # The player is left out too: no model calls, no memory stream, no reflection.
+    living = sorted(n for n in world.npcs if world.npcs[n].alive and n != PLAYER_ID)
     scheduler = Scheduler(living)
     # Private starting knowledge goes in before the first turn.
     if evidence:
@@ -46,7 +48,7 @@ def run_llm(
                 memories.observe(result.event, world)
                 scheduler.notice(result.event)
             if result.observation:
-                memories.observe_look(npc, result.observation, tick)
+                memories.observe_look(npc, result.observation, tick, world)
         world.clock.advance()
         # When the clock reaches bedtime, each NPC sums up its day, in sorted order.
         if world.clock.tick % MINUTES_PER_DAY == SLEEP_START * 60:

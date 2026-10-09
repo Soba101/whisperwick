@@ -32,7 +32,7 @@ def test_witnesses_are_people_at_either_end():
     world = fresh_world()
     # Bob and Victor start at the market. Alice walks in from the inn.
     event = world.move("npc_alice", "loc_market").event
-    assert event.witnesses == ["npc_bob", "npc_victor"]
+    assert event.witnesses == ["npc_bob", "npc_victor", "player"]
 
 
 def test_same_seed_same_events():

@@ -19,6 +19,10 @@ npcs:
   - { id: npc_sarah,  name: Sarah,  occupation: priest,     location: loc_temple }
   - { id: npc_victor, name: Victor, occupation: merchant,   location: loc_market }
   - { id: npc_hal,    name: Hal,    occupation: guard,      location: loc_town_hall }
+  # The player: a normal NPC record, so the engine needs no special case.
+  # World.act treats its intents like anyone's, and villagers witness and remember it.
+  # Code agents never drive it (see whisperwick/player.py).
+  - { id: player, name: Wren, occupation: newcomer, location: loc_market }
   # Dead from the start. He never acts, and the engine never schedules him.
   - { id: npc_mayor,  name: Mayor Aldric, occupation: mayor, location: loc_town_hall, alive: false }
 

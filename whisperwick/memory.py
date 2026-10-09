@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import LLMError
+from whisperwick.memory_text import describe, importance_of, name_of  # noqa: F401 (re-exported)
+from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
 # Each game minute makes a memory a little less recent.
@@ -65,42 +67,6 @@ class MemoryStream:
         return [memory for _, memory in best]
 
 
-def name_of(world: World, npc_id: str) -> str:
-    """Display name plus id, e.g. 'Bob (npc_bob)'. The id is what the model must use."""
-    npc = world.npcs.get(npc_id)
-    return f"{npc.name} ({npc_id})" if npc else npc_id
-
-
-def describe(event: Event, world: World, viewer_id: str) -> str:
-    """One short line about an event, as the viewer would remember it."""
-    when = Clock(event.tick).label().capitalize()
-    prefix = f"{when} at {event.location}:"
-    me = event.actor == viewer_id
-    who = "You" if me else name_of(world, event.actor)
-    if event.type == "talk":
-        to = event.data["to"]
-        target = "you" if to == viewer_id else name_of(world, to)
-        return f'{prefix} {who} said to {target}: "{event.data["message"]}"'
-    if event.type == "move":
-        if me:
-            return f"{prefix} You walked to {event.data['to']}"
-        # A witness who is now at the destination saw them arrive. Others saw them leave.
-        if world.npcs[viewer_id].location == event.data["to"]:
-            return f"{prefix} {who} arrived from {event.data['from']}"
-        return f"{prefix} {who} left for {event.data['to']}"
-    return f"{prefix} {who} did {event.type}"
-
-
-def importance_of(event: Event, viewer_id: str) -> int:
-    """Importance by rule, no model call. 1 = trivial, 10 = life changing."""
-    if event.type == "talk":
-        return 6 if event.data["to"] == viewer_id else 4  # addressed to me vs overheard
-    if event.type == "move":
-        return 2
-    # The murder setup will add higher-importance kinds (a body, an accusation) later.
-    return 3
-
-
 class Memories(UserDict):
     """One MemoryStream per NPC id, made on first use."""
 
@@ -115,11 +81,18 @@ class Memories(UserDict):
         describe() reads where each witness is *now* to word a move as arrive or leave.
         """
         for npc_id in sorted({*event.witnesses, event.actor}):
+            # The player is a human, not a code agent: no memory stream for them.
+            if npc_id == PLAYER_ID:
+                continue
             line = describe(event, world, npc_id)
             self[npc_id].add(event.tick, line, importance_of(event, npc_id))
 
-    def observe_look(self, npc_id: str, observation: dict, tick: int) -> None:
+    def observe_look(
+        self, npc_id: str, observation: dict, tick: int, world: World | None = None
+    ) -> None:
         """Remember what a look showed. Cheap and low importance (1)."""
+        if npc_id == PLAYER_ID:
+            return  # the player has no memory stream
         people = ", ".join(observation["people"]) or "nobody"
         when = Clock(tick).label().capitalize()
         line = f"{when} at {observation['location']}: you looked around and saw {people}"
@@ -128,7 +101,16 @@ class Memories(UserDict):
         bodies = observation.get("bodies") or []
         if bodies:
             line += f". Dead here: {', '.join(bodies)}"
-        self[npc_id].add(tick, line, 7 if bodies else 1)
+        importance = 7 if bodies else 1
+        # Items on the ground matter a little more (a knife by a body is a clue).
+        # The observation holds ids; the world gives the names for the memory text.
+        items = observation.get("items") or []
+        if items:
+            names = [f"{world.items[i].name} ({i})" if world and i in world.items else i
+                     for i in items]  # fmt: skip
+            line += f". On the ground: {', '.join(names)}"
+            importance = max(importance, 5)
+        self[npc_id].add(tick, line, importance)
 
 
 def seed_evidence(memories: Memories, evidence: dict[str, list[str]], tick: int) -> None:

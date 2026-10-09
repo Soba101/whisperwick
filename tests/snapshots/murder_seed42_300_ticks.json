@@ -12,7 +12,8 @@
       "type": "move",
       "witnesses": [
         "npc_sarah",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -26,7 +27,8 @@
       "tick": 480,
       "type": "move",
       "witnesses": [
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -42,7 +44,8 @@
       "witnesses": [
         "npc_hal",
         "npc_sarah",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -58,7 +61,8 @@
       "witnesses": [
         "npc_alice",
         "npc_bob",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -105,7 +109,8 @@
         "npc_alice",
         "npc_bob",
         "npc_hal",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -134,7 +139,8 @@
       "type": "talk",
       "witnesses": [
         "npc_sarah",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -149,7 +155,8 @@
       "type": "talk",
       "witnesses": [
         "npc_bob",
-        "npc_victor"
+        "npc_victor",
+        "player"
       ]
     },
     {
@@ -165,7 +172,8 @@
       "witnesses": [
         "npc_alice",
         "npc_bob",
-        "npc_sarah"
+        "npc_sarah",
+        "player"
       ]
     }
   ],
@@ -261,6 +269,13 @@
       "location": "loc_temple",
       "name": "Victor",
       "occupation": "merchant"
+    },
+    {
+      "alive": true,
+      "id": "player",
+      "location": "loc_market",
+      "name": "Wren",
+      "occupation": "newcomer"
     }
   ],
   "tick": 780

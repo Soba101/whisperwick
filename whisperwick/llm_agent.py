@@ -13,7 +13,7 @@ from whisperwick.llm_client import LLMError
 from whisperwick.memory import MemoryStream
 from whisperwick.world import World
 
-ACTIONS = ["move", "talk", "look"]
+ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show"]
 
 
 def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
@@ -24,11 +24,24 @@ def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
     return exits, people
 
 
+def usable_items(world: World, npc_id: str) -> list[str]:
+    """Ids of items on the ground here plus items this NPC holds. Sorted, no repeats."""
+    here = world.npcs[npc_id].location
+    return sorted({*world.items_at(here), *world.items_held(npc_id)})
+
+
+def item_lines(world: World, ids: list[str]) -> str:
+    """'id (name: description)' for each item, or 'nothing'."""
+    return (", ".join(f"{i} ({world.items[i].name}: {world.items[i].description})" for i in ids)
+            or "nothing")  # fmt: skip
+
+
 def intent_schema(world: World, npc_id: str) -> dict:
     """JSON schema for this one turn.
 
     Target can only be a real exit or a person here, so the model cannot
     write a display name like "Victor" in place of "npc_victor".
+    Item can only be an item lying here or one this NPC holds, so no invented objects.
     """
     exits, people = exits_and_people(world, npc_id)
     return {
@@ -36,9 +49,10 @@ def intent_schema(world: World, npc_id: str) -> dict:
         "properties": {
             "action": {"enum": ACTIONS},
             "target": {"enum": [*exits, *people, None]},
+            "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
         },
-        "required": ["action", "target", "message"],
+        "required": ["action", "target", "item", "message"],
         "additionalProperties": False,
     }
 
@@ -58,13 +72,17 @@ def build_messages(
         # Spell out what each action needs. The schema alone cannot say
         # "move takes an exit, talk takes a person".
         "Actions: move (target = an exit id), talk (target = a person id, plus a message),"
-        " look (target = null).",
+        " look (target = null),"
+        " take/drop (item = an item id), give (item + target = a person id),"
+        " show (item, target = a person id, or null for everyone here).",
         f"Time: {world.clock.label()}.",
         f"You are at {here.id} ({here.name}).",
         "Exits: " + ", ".join(f"{e} ({world.locations[e].name})" for e in exits),
         "People here: "
         + (", ".join(f"{p} ({world.npcs[p].name}, {world.npcs[p].occupation})" for p in people)
            or "nobody"),
+        "Items on the ground here: " + item_lines(world, world.items_at(here.id)),
+        "You carry: " + item_lines(world, world.items_held(npc_id)),
     ]  # fmt: skip
     # A body is not a person you can talk to, but you can see it. Say so plainly.
     bodies = world.bodies_at(here.id)

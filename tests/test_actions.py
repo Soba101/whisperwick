@@ -52,7 +52,7 @@ def test_legal_talk_is_heard_by_everyone_in_the_room():
     )
     assert result.ok
     assert result.event.data == {"to": "npc_victor", "message": "Morning."}
-    assert result.event.witnesses == ["npc_victor"]  # only Victor is at the market with Bob
+    assert result.event.witnesses == ["npc_victor", "player"]  # the market: Victor and the player
 
 
 def test_look_shows_the_room_and_changes_nothing():
@@ -62,7 +62,7 @@ def test_look_shows_the_room_and_changes_nothing():
     assert result.ok
     assert result.observation == {
         "location": "loc_market",
-        "people": ["npc_victor"],
+        "people": ["npc_victor", "player"],
         "exits": ["loc_inn", "loc_temple", "loc_town_hall"],
         "bodies": [],
         "items": [],  # Victor's boots are held, so not on the ground

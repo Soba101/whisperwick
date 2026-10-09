@@ -17,11 +17,11 @@ def test_schema_targets_are_exits_plus_people_here():
     # Bob is at the market with Victor. Exits from the market: inn, town hall, temple.
     schema = llm_agent.intent_schema(world, "npc_bob")
     assert schema_targets(schema) == {
-        "loc_inn", "loc_town_hall", "loc_temple", "npc_victor", None,
+        "loc_inn", "loc_town_hall", "loc_temple", "npc_victor", "player", None,
     }  # fmt: skip
-    assert schema["properties"]["action"]["enum"] == ["move", "talk", "look"]
+    assert schema["properties"]["action"]["enum"] == llm_agent.ACTIONS
     assert schema["properties"]["message"]["maxLength"] == MAX_MESSAGE_CHARS
-    assert schema["required"] == ["action", "target", "message"]
+    assert schema["required"] == ["action", "target", "item", "message"]
     assert schema["additionalProperties"] is False
     assert "actor" not in schema["properties"]
 

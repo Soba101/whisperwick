@@ -30,7 +30,7 @@ def test_two_hours_make_one_call_per_npc_per_hour():
     run_llm(world, client, 120, stats=stats)
     # Start is 08:00. Everyone decides at 08:00 and again at 09:00.
     # The dead mayor gets no turns, so count only the living.
-    living = [n for n in world.npcs.values() if n.alive]
+    living = [n for n in world.npcs.values() if n.alive and n.id != "player"]
     assert client.intent_calls == 2 * len(living) == stats["calls"]
     assert world.clock.label() == "day 1 10:00"
 
@@ -62,7 +62,7 @@ def test_a_full_day_reflects_once_per_npc():
     world = fresh_world()
     client, stats = LookClient(), {}
     memories, _ = run_llm(world, client, MINUTES_PER_DAY, stats=stats)
-    living = [n for n in world.npcs if world.npcs[n].alive]
+    living = [n for n in world.npcs if world.npcs[n].alive and n != "player"]
     assert client.reflect_calls == stats["reflections"] == len(living)
     for npc in living:
         # Later morning looks come after it, so look for it anywhere in the stream.

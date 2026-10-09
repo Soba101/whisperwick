@@ -7,6 +7,7 @@ Never put a real LLM call here: the checks must stay fast and repeatable.
 """
 
 from whisperwick.actions import Intent
+from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
 # How often each NPC gets a chance to act, in game minutes.
@@ -45,6 +46,7 @@ def intents_for_tick(world: World) -> list[Intent]:
     """Every NPC's choice for this tick, in a fixed (sorted) order."""
     # Skip the dead BEFORE choose(): choose() draws from world.rng, and a dead NPC
     # must not use up random numbers, or every living NPC's choices would shift.
-    living = (n for n in sorted(world.npcs) if world.npcs[n].alive)
+    # The player is skipped for the same reason: a human decides for them, not the rng.
+    living = (n for n in sorted(world.npcs) if world.npcs[n].alive and n != PLAYER_ID)
     chosen = (choose(world, npc_id) for npc_id in living)
     return [i for i in chosen if i is not None]

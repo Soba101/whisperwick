@@ -62,7 +62,7 @@ def test_events_have_witnesses_and_item_details():
     r = w.act(intent("npc_victor", "give", item="item_boots", target="npc_bob"))
     e = r.event
     assert e.type == "give" and e.actor == "npc_victor" and e.location == "loc_market"
-    assert e.witnesses == ["npc_bob"]  # living people here, never the actor
+    assert e.witnesses == ["npc_bob", "player"]  # living people here, never the actor
     assert e.data["item"] == "item_boots" and e.data["to"] == "npc_bob"
     assert e.data["item_name"] == "muddy boots"
     assert "caked" in e.data["item_description"]

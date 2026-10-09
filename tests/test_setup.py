@@ -70,5 +70,6 @@ def test_real_scenario_has_a_dead_mayor_and_evidence():
     scenario = load_scenario(SCENARIO)
     world = build_world(scenario)
     assert world.npcs["npc_mayor"].alive is False
-    living = sorted(n.id for n in scenario.npcs if n.alive)
-    assert sorted(scenario.evidence) == living  # everyone alive has a private memory
+    living = sorted(n.id for n in scenario.npcs if n.alive and n.id != "player")
+    # Every living villager has a private memory. The player is human: none for them.
+    assert sorted(scenario.evidence) == living

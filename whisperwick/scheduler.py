@@ -21,12 +21,13 @@ class Scheduler:
         self.woken: set[str] = set()
 
     def notice(self, event: Event) -> None:
-        """Wake whoever an event is about: the talk target and every witness.
+        """Wake whoever an event is about: the talk, give or show target and every witness.
 
         The actor is skipped: it just acted, so it does not need a new turn for that.
         """
         affected = set(event.witnesses)
-        if event.type == "talk":
+        # A show with no target is for everyone here, so "to" can be None: skip it then.
+        if event.type in ("talk", "give", "show") and event.data.get("to"):
             affected.add(event.data["to"])
         affected.discard(event.actor)
         # Ignore ids we do not schedule. A stray id must never create a turn.
