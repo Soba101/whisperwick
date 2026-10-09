@@ -44,6 +44,13 @@ uv run whisperwick play --script players/blame_hal.yaml   # a scripted player
 
 Both need a model server (see `.env.example`). Type `help` in the game for commands.
 
+After each run every villager is interviewed (who killed the mayor?), saved in the sidecar JSON.
+Compare runs side by side (suspects, where items ended up, key events), no model needed:
+
+```bash
+uv run whisperwick compare data/run-a.db data/run-b.db
+```
+
 ## How an agent acts
 
 Agents never touch the world directly. They send an intent, and the engine decides:

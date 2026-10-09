@@ -23,10 +23,10 @@ def read_events(db_path: str | Path) -> list[Event]:
 
 
 def names_from(scenario: Scenario | None) -> dict[str, str]:
-    """id -> display name for every NPC and place. Empty means: show the ids."""
+    """id -> display name for every NPC, place and item. Empty means: show the ids."""
     if scenario is None:
         return {}
-    return {x.id: x.name for x in [*scenario.npcs, *scenario.locations]}
+    return {x.id: x.name for x in [*scenario.npcs, *scenario.locations, *scenario.items]}
 
 
 def show(names: dict[str, str], thing_id: str) -> str:

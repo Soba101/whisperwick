@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from whisperwick import llm_run, settings, story
+from whisperwick import compare_command, llm_run, run_report, settings, story
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import OllamaClient
@@ -77,7 +77,12 @@ def run_with_llm(
     memories, stats = run_llm(
         world, client, minutes, stats=stats, evidence=sc.evidence, on_hour=on_hour, player=player
     )
+    # Read-only interview and final item places. Both go in the sidecar only.
+    extra = run_report.after_run(world, memories, client, stats)
     typer.echo(f"\n{llm_run.stats_line(stats)}")
+    typer.echo("Interview (who killed the mayor?):")
+    names = {i: n.name for i, n in world.npcs.items()}
+    typer.echo("\n".join(run_report.summary_lines(extra["interview"], names)))
     if player:
         typer.echo(f"Player steps rejected: {len(stats['player_rejected'])}")
     typer.echo(f"Events: {db}")
@@ -85,6 +90,7 @@ def run_with_llm(
     # Minutes actually played: a quit can end the run early.
     played = world.clock.tick - start_tick
     data = llm_run.sidecar_data(scenario, model, played, stats, sc.secrets, memories, player_name)
+    data.update(extra)
     llm_run.write_sidecar(path, data)
     typer.echo(f"Sidecar: {path}")
 
@@ -157,3 +163,15 @@ def story_command(
     sc_path = Path(data["scenario"]) if data else None
     sc = load_scenario(sc_path) if sc_path and sc_path.is_file() else None
     typer.echo(story.format_story(story.read_events(db), story.names_from(sc), data))
+
+
+@app.command("compare")
+def compare_command_(
+    dbs: Annotated[list[Path], typer.Argument(help="Two or more event logs from llm runs.")],
+) -> None:
+    """Compare runs side by side: suspects, items, key events. No model is called."""
+    try:
+        typer.echo(compare_command.compare_runs(dbs))
+    except FileNotFoundError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
