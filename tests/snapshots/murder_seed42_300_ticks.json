@@ -1,0 +1,239 @@
+{
+  "events": [
+    {
+      "actor": "npc_bob",
+      "data": {
+        "from": "loc_market",
+        "to": "loc_temple"
+      },
+      "id": 1,
+      "location": "loc_temple",
+      "tick": 480,
+      "type": "move",
+      "witnesses": [
+        "npc_sarah",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_hal",
+      "data": {
+        "from": "loc_town_hall",
+        "to": "loc_market"
+      },
+      "id": 2,
+      "location": "loc_market",
+      "tick": 480,
+      "type": "move",
+      "witnesses": [
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_bob",
+      "data": {
+        "from": "loc_temple",
+        "to": "loc_market"
+      },
+      "id": 3,
+      "location": "loc_market",
+      "tick": 540,
+      "type": "move",
+      "witnesses": [
+        "npc_hal",
+        "npc_sarah",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_hal",
+      "data": {
+        "from": "loc_market",
+        "to": "loc_inn"
+      },
+      "id": 4,
+      "location": "loc_inn",
+      "tick": 540,
+      "type": "move",
+      "witnesses": [
+        "npc_alice",
+        "npc_bob",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_sarah",
+      "data": {
+        "from": "loc_temple",
+        "to": "loc_inn"
+      },
+      "id": 5,
+      "location": "loc_inn",
+      "tick": 540,
+      "type": "move",
+      "witnesses": [
+        "npc_alice",
+        "npc_hal"
+      ]
+    },
+    {
+      "actor": "npc_hal",
+      "data": {
+        "message": "Have you seen the mayor?",
+        "to": "npc_sarah"
+      },
+      "id": 6,
+      "location": "loc_inn",
+      "tick": 600,
+      "type": "talk",
+      "witnesses": [
+        "npc_alice",
+        "npc_sarah"
+      ]
+    },
+    {
+      "actor": "npc_sarah",
+      "data": {
+        "from": "loc_inn",
+        "to": "loc_market"
+      },
+      "id": 7,
+      "location": "loc_market",
+      "tick": 600,
+      "type": "move",
+      "witnesses": [
+        "npc_alice",
+        "npc_bob",
+        "npc_hal",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_alice",
+      "data": {
+        "from": "loc_inn",
+        "to": "loc_temple"
+      },
+      "id": 8,
+      "location": "loc_temple",
+      "tick": 660,
+      "type": "move",
+      "witnesses": [
+        "npc_hal"
+      ]
+    },
+    {
+      "actor": "npc_bob",
+      "data": {
+        "message": "Good morning.",
+        "to": "npc_sarah"
+      },
+      "id": 9,
+      "location": "loc_market",
+      "tick": 660,
+      "type": "talk",
+      "witnesses": [
+        "npc_sarah",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_sarah",
+      "data": {
+        "message": "Busy day?",
+        "to": "npc_bob"
+      },
+      "id": 10,
+      "location": "loc_market",
+      "tick": 660,
+      "type": "talk",
+      "witnesses": [
+        "npc_bob",
+        "npc_victor"
+      ]
+    },
+    {
+      "actor": "npc_victor",
+      "data": {
+        "from": "loc_market",
+        "to": "loc_temple"
+      },
+      "id": 11,
+      "location": "loc_temple",
+      "tick": 660,
+      "type": "move",
+      "witnesses": [
+        "npc_alice",
+        "npc_bob",
+        "npc_sarah"
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "id": "loc_inn",
+      "links": [
+        "loc_market",
+        "loc_temple"
+      ],
+      "name": "The Inn"
+    },
+    {
+      "id": "loc_market",
+      "links": [
+        "loc_inn",
+        "loc_town_hall",
+        "loc_temple"
+      ],
+      "name": "Market"
+    },
+    {
+      "id": "loc_temple",
+      "links": [
+        "loc_inn",
+        "loc_market"
+      ],
+      "name": "Temple"
+    },
+    {
+      "id": "loc_town_hall",
+      "links": [
+        "loc_market"
+      ],
+      "name": "Town Hall"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_alice",
+      "location": "loc_temple",
+      "name": "Alice",
+      "occupation": "innkeeper"
+    },
+    {
+      "id": "npc_bob",
+      "location": "loc_market",
+      "name": "Bob",
+      "occupation": "blacksmith"
+    },
+    {
+      "id": "npc_hal",
+      "location": "loc_inn",
+      "name": "Hal",
+      "occupation": "guard"
+    },
+    {
+      "id": "npc_sarah",
+      "location": "loc_market",
+      "name": "Sarah",
+      "occupation": "priest"
+    },
+    {
+      "id": "npc_victor",
+      "location": "loc_temple",
+      "name": "Victor",
+      "occupation": "merchant"
+    }
+  ],
+  "tick": 780
+}

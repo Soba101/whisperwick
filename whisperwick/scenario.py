@@ -26,9 +26,13 @@ def load_scenario(path: str | Path) -> Scenario:
         return Scenario.model_validate(yaml.safe_load(f))
 
 
-def build_world(scenario: Scenario, db_path: str = ":memory:") -> World:
-    """Turn a scenario into a World with a fresh clock and event log."""
+def build_world(scenario: Scenario, db_path: str = ":memory:", seed: int | None = None) -> World:
+    """Turn a scenario into a World with a fresh clock and event log.
+
+    The seed defaults to the scenario's own seed.
+    """
     clock = Clock.at(scenario.start["day"], scenario.start["hour"])
     # Copy the NPCs so running a world never changes the scenario object.
     npcs = [npc.model_copy() for npc in scenario.npcs]
-    return World(scenario.locations, npcs, clock, EventLog(db_path))
+    seed = scenario.seed if seed is None else seed
+    return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed)

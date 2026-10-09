@@ -6,12 +6,22 @@ from typing import Annotated
 import typer
 
 from whisperwick.clock import Clock
+from whisperwick.events import Event
 from whisperwick.scenario import build_world, load_scenario
 from whisperwick.sim import run as run_sim
 
 app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.")
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
+
+
+def describe(e: Event) -> str:
+    """One readable line per event type. Add a branch when adding an action."""
+    if e.type == "move":
+        return f"{e.actor} walks {e.data['from']} -> {e.data['to']}"
+    if e.type == "talk":
+        return f'{e.actor} to {e.data["to"]}: "{e.data["message"]}"'
+    return f"{e.actor} {e.type} {e.data}"
 
 
 @app.callback()
@@ -31,13 +41,10 @@ def run(
 ) -> None:
     """Run a scenario and print every event."""
     sc = load_scenario(scenario)
-    world = build_world(sc, db)
-    run_sim(world, minutes=hours * 60, seed=sc.seed if seed is None else seed)
+    world = build_world(sc, db, seed=seed)
+    run_sim(world, minutes=hours * 60)
 
-    # Week 1 only has "move" events. Generalise this print once more types exist.
     for e in world.log.all():
-        when = Clock(e.tick).label()
         seen = ", ".join(e.witnesses) or "nobody"
-        move = f"{e.data['from']} -> {e.data['to']}"
-        typer.echo(f"{when}  {e.actor} {e.type} {move}  (seen by {seen})")
+        typer.echo(f"{Clock(e.tick).label()}  {describe(e)}  (seen by {seen})")
     typer.echo(f"\n{len(world.log.all())} events.")

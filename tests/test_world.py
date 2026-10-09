@@ -38,7 +38,7 @@ def test_witnesses_are_people_at_either_end():
 def test_same_seed_same_events():
     """Week 1 exit check: a seeded run replays identically."""
     a, b = fresh_world(), fresh_world()
-    run(a, minutes=24 * 60, seed=7)
-    run(b, minutes=24 * 60, seed=7)
+    run(a, minutes=24 * 60)
+    run(b, minutes=24 * 60)
     assert a.log.all() == b.log.all()
     assert len(a.log.all()) > 0  # make sure the test is not trivially passing

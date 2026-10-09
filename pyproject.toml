@@ -37,3 +37,7 @@ target-version = "py312"
 [tool.ruff.lint]
 # E/F = common errors, I = import order, UP = modern syntax, B = likely bugs.
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# The legality table is easier to read with one case per line.
+"tests/test_actions.py" = ["E501"]

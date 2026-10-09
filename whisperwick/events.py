@@ -41,6 +41,10 @@ class EventLog:
                 witnesses TEXT NOT NULL   -- JSON list of NPC ids
             )"""
         )
+        # Never mix two runs in one file: the old events would become "history"
+        # of the new run. Use a new file per run instead.
+        if self.db.execute("SELECT COUNT(*) FROM events").fetchone()[0]:
+            raise ValueError(f"{path} already has events; use a new file for each run")
 
     def append(self, event: Event) -> Event:
         """Store an event and return it with its new id."""
