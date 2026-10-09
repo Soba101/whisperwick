@@ -4,7 +4,9 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 3 — player + real objects.** Gate 1 passed. See [docs/week3-plan.md](docs/week3-plan.md).
+> Status: **Week 4 done — villagers think for themselves.** Each villager has a personality, forms its own beliefs
+> and trust, and cites the memories behind them. A player's lie can be traced (`whisperwick trace`).
+> See [docs/week4-plan.md](docs/week4-plan.md). Week 5 (consequences and endings) is next.
 
 ## The question
 
