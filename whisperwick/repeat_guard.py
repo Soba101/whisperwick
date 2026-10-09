@@ -45,10 +45,10 @@ def is_repeat(old: Record, new: Record) -> bool:
     if new.action in ("show", "give"):  # same item to the same audience (None = everyone here)
         return old.item == new.item and old.target == new.target
     if new.action == "talk":
+        # Only the exact same words count. The same claim in new words is harmless:
+        # beliefs ignore a claim the hearer already got from this teller.
         if old.target != new.target:
             return False
-        if new.claim is not None and old.claim == new.claim:
-            return True
         return normalise(old.message) == normalise(new.message)
     return False  # moving, looking and taking can be repeated freely
 
@@ -94,13 +94,6 @@ def repeat_reason(world, history: ActionHistory, intent: Intent) -> str | None:
         what = f"showed {item} to {who}"
     elif old.action == "give":
         what = f"gave {item} to {who}"
-    elif old.claim and intent.claim and old.claim == (intent.claim.kind, intent.claim.subject):
-        subject = world.npcs[old.claim[1]]
-        what = f"told {who} that {subject.name} ({subject.id}) is {_kind_word(old.claim[0])}"
     else:
         what = f"said that to {who}"
     return f"you already {what} at {when}; do something new"
-
-
-def _kind_word(kind: str) -> str:
-    return "the killer" if kind == "killer" else "innocent"

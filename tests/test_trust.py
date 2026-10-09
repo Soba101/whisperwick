@@ -61,13 +61,26 @@ def test_players_lie_costs_the_player_trust():
     assert s.trust.get("npc_bob", "player") == pytest.approx(0.15)
 
 
-def test_rumour_about_yourself_changes_trust_not_belief():
+def test_rumour_about_yourself_changes_nothing():
     s = BeliefState.from_scenario(SC)
-    # Victor knows he did it (1.0, saw). Told "Victor is innocent" he is not swayed...
+    # Victor knows he did it (1.0, saw). Told "Victor is innocent" he is not swayed,
+    # gets no new source, and his trust in the teller does not move.
+    before = s.to_dict()["trust"]
     s.apply(talk("npc_alice", "innocent", "npc_victor", ["npc_victor"]))
+    s.apply(talk("npc_hal", "killer", "npc_victor", ["npc_victor"], eid=2))
     assert s.confidence("npc_victor", "npc_victor") == 1.0
-    # ...and a rumour that clashes with his own knowledge still costs trust.
-    assert s.trust.get("npc_victor", "npc_alice") == pytest.approx(0.35)
+    assert s.trust.get("npc_victor", "npc_alice") == 0.5
+    assert s.to_dict()["trust"] == before
+    assert s.sources == BeliefState.from_scenario(SC).sources
+    assert s.heard == set()
+
+
+def test_repeated_claim_does_not_move_trust():
+    s = BeliefState.from_scenario(SC)
+    s.apply(talk("npc_alice", "killer", "npc_hal", ["npc_bob"]))  # Bob firmly saw Victor
+    once = s.trust.get("npc_bob", "npc_alice")
+    s.apply(talk("npc_alice", "killer", "npc_hal", ["npc_bob"], eid=2))
+    assert s.trust.get("npc_bob", "npc_alice") == once
 
 
 def test_trust_is_clamped_and_round_trips():

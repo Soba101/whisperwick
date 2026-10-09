@@ -79,23 +79,27 @@ def test_same_message_is_rejected_even_with_different_case_and_spaces():
     assert r.observation is not None and stats["repeats"] == 1
 
 
-def test_same_claim_with_new_words_is_still_a_repeat():
+def test_same_claim_with_new_words_is_not_a_repeat():
+    # Beliefs ignore a claim already heard from the same teller, so the guard lets it through.
     w = fresh_world()
     h, stats = ActionHistory(), {}
     claim = ("killer", "npc_hal")
     assert llm_agent.act(w, "npc_bob", FakeClient([talk("a", claim)]), stats=stats, history=h).ok
     w.clock.advance(1)
-    # Retry with a different claim succeeds: the guard only blocks the same one.
-    r = llm_agent.act(
-        w, "npc_bob", FakeClient([talk("b", claim), talk("c", ("innocent", "npc_hal"))]),
-        stats=stats, history=h,
-    )  # fmt: skip
-    assert r.ok and stats["repeats"] == 1 and stats["rejected"] == 1
-    reason = llm_agent.repeat_reason(
-        w, h, Intent(actor="npc_bob", action="talk", target="npc_victor", message="d",
-                     claim=Claim(kind="innocent", subject="npc_hal")),
-    )  # fmt: skip
-    assert "told Victor (npc_victor) that Hal (npc_hal) is innocent" in reason
+    assert llm_agent.act(w, "npc_bob", FakeClient([talk("b", claim)]), stats=stats, history=h).ok
+    assert "repeats" not in stats
+
+
+def test_same_claim_same_words_is_still_a_repeat():
+    w = fresh_world()
+    h = ActionHistory()
+    claim = ("killer", "npc_hal")
+    assert llm_agent.act(w, "npc_bob", FakeClient([talk("same", claim)]), history=h).ok
+    w.clock.advance(1)
+    again = Intent(actor="npc_bob", action="talk", target="npc_victor", message="Same",
+                   claim=Claim(kind="killer", subject="npc_hal"))  # fmt: skip
+    reason = llm_agent.repeat_reason(w, h, again)
+    assert reason is not None and "said that to Victor (npc_victor)" in reason
 
 
 def test_guard_is_per_actor():

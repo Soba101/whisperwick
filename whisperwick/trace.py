@@ -32,7 +32,10 @@ def node(src: Source, state: BeliefState, subject: str, path: tuple, depth: int)
         return out
     # What did the teller know *before* telling? (compared by event id)
     before = state.sources_before(src.by, subject, src.event_id)
-    if not before:
+    if not before and src.by == subject:
+        # Someone talking about themselves ("Hal is innocent") is not a lie with no source.
+        out["sources"] = [{"kind": "self", "by": src.by, "sources": []}]
+    elif not before:
         # Nothing behind it: the teller made it up. This is where a lie starts.
         out["sources"] = [{"kind": "own", "by": src.by, "sources": []}]
     else:
@@ -83,6 +86,8 @@ def label(names: dict[str, str], who: str) -> str:
 
 def source_lines(n: dict, names: dict[str, str], indent: int) -> list[str]:
     pad = " " * indent
+    if n["kind"] == "self":
+        return [f"{pad}{story.show(names, n['by'])} was speaking about themselves"]
     if n["kind"] == "own":
         return [f"{pad}{story.show(names, n['by'])} had no source: made up (a guess or a lie)"]
     where = f"event {n['event_id']}, {n['when']}" if n["event_id"] is not None else "at the start"

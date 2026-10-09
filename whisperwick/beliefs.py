@@ -37,6 +37,8 @@ class BeliefState:
         # holder -> subject -> confidence / sources
         self.conf: dict[str, dict[str, float]] = {}
         self.sources: dict[str, dict[str, list[Source]]] = {}
+        # (hearer, teller, kind, subject) already heard: hearing it again adds nothing.
+        self.heard: set[tuple[str, str, str, str]] = set()
 
     @classmethod
     def from_scenario(cls, scenario) -> "BeliefState":
@@ -102,16 +104,24 @@ class BeliefState:
         kind, x = claim["kind"], claim["subject"]
         # The player has no beliefs, and you do not hear yourself.
         for h in sorted(set(event.witnesses) - {speaker, PLAYER_ID}):
+            # Rumours about myself: I know whether I did it, so nothing changes at all
+            # (not even trust, or I would learn to trust whoever accused me correctly).
+            if x == h:
+                continue
+            # The same claim from the same teller tells me nothing new. Without this,
+            # a teller repeating one claim could push a hearer to near-certainty.
+            key = (h, speaker, kind, x)
+            if key in self.heard:
+                continue
+            self.heard.add(key)
             t = self.trust.get(h, speaker)  # trust BEFORE this event
             # Judge the claim against what I saw before it changed my mind.
             firm = self._firm_saw(h)
-            # Rumours about myself: I know whether I did it, so no belief change.
-            if x != h:
-                c = self.confidence(h, x)
-                c = c + t * TELL_WEIGHT * (1 - c) if kind == "killer" else c - c * t * TELL_WEIGHT
-                self._set(h, x, c)
-                note = "said killer" if kind == "killer" else "said innocent"
-                self._add(h, x, Source("told", speaker, event.id, event.tick, note))
+            c = self.confidence(h, x)
+            c = c + t * TELL_WEIGHT * (1 - c) if kind == "killer" else c - c * t * TELL_WEIGHT
+            self._set(h, x, c)
+            note = "said killer" if kind == "killer" else "said innocent"
+            self._add(h, x, Source("told", speaker, event.id, event.tick, note))
             # Trust update: does the claim clash with, or match, what I saw myself?
             if kind == "killer" and firm - {x}:
                 self.trust.change(h, speaker, -TRUST_DROP)
@@ -143,6 +153,7 @@ class BeliefState:
                 h: {s: [asdict(x) for x in srcs] for s, srcs in sorted(subs.items())}
                 for h, subs in sorted(self.sources.items())
             },
+            "heard": [list(k) for k in sorted(self.heard)],
         }
 
     @classmethod
@@ -153,6 +164,8 @@ class BeliefState:
             h: {s: [Source(**x) for x in srcs] for s, srcs in subs.items()}
             for h, subs in d["sources"].items()
         }
+        # Old files have no "heard" key.
+        state.heard = {tuple(k) for k in d.get("heard", [])}
         return state
 
 

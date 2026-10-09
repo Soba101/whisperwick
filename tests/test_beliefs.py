@@ -6,6 +6,7 @@ import pytest
 from helpers import SCENARIO, fresh_world
 
 from whisperwick.beliefs import BeliefState, replay
+from whisperwick.events import Event
 from whisperwick.scenario import check_references, load_scenario
 
 SC = load_scenario(SCENARIO)
@@ -138,6 +139,49 @@ def test_same_tick_relay_still_shows_bobs_source_before_his_relay():
     assert [x.event_id for x in s.sources_before("npc_bob", "npc_hal", e2.id)] == [e1.id]
     # Before the lie itself, Bob knew nothing about Hal.
     assert s.sources_before("npc_bob", "npc_hal", e1.id) == []
+
+
+def tell(teller, hearer, kind, subject, eid):
+    """A talk event built by hand, so the speakers need not be in the same place."""
+    return Event(
+        id=eid, tick=500, type="talk", actor=teller, location="loc_market",
+        data={"to": hearer, "message": "x", "claim": {"kind": kind, "subject": subject}},
+        witnesses=[hearer],
+    )  # fmt: skip
+
+
+def test_same_claim_from_same_teller_is_ignored_after_the_first_time():
+    s = BeliefState.from_scenario(SC)
+    s.apply(tell("npc_victor", "npc_bob", "killer", "npc_hal", 1))
+    snap = json.dumps(s.to_dict(), sort_keys=True)
+    for eid in range(2, 7):
+        s.apply(tell("npc_victor", "npc_bob", "killer", "npc_hal", eid))
+    # Nothing changed: not confidence, sources or trust (the saved state is identical).
+    assert json.dumps(s.to_dict(), sort_keys=True) == snap
+    assert len(s.sources["npc_bob"]["npc_hal"]) == 1
+    # A different teller, or the opposite claim, still counts.
+    s.apply(tell("npc_alice", "npc_bob", "killer", "npc_hal", 7))
+    s.apply(tell("npc_victor", "npc_bob", "innocent", "npc_hal", 8))
+    assert len(s.sources["npc_bob"]["npc_hal"]) == 3
+
+
+def test_repeat_is_tracked_per_hearer():
+    s = BeliefState.from_scenario(SC)
+    s.apply(tell("npc_victor", "npc_bob", "killer", "npc_hal", 1))
+    # Alice did not hear it the first time, so for her it is new.
+    s.apply(tell("npc_victor", "npc_alice", "killer", "npc_hal", 2))
+    assert s.confidence("npc_alice", "npc_hal") > 0
+
+
+def test_heard_is_saved_sorted_and_old_dicts_still_load():
+    s = BeliefState.from_scenario(SC)
+    s.apply(tell("npc_victor", "npc_bob", "killer", "npc_hal", 1))
+    s.apply(tell("npc_alice", "npc_bob", "innocent", "npc_hal", 2))
+    d = json.loads(json.dumps(s.to_dict()))
+    assert d["heard"] == sorted(d["heard"]) and len(d["heard"]) == 2
+    assert BeliefState.from_dict(d).heard == s.heard
+    del d["heard"]  # a file saved before this key existed
+    assert BeliefState.from_dict(d).heard == set()
 
 
 def test_replay_equals_live_and_round_trips():

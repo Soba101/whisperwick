@@ -45,6 +45,18 @@ def test_trace_a_teller_with_a_saw_source_shows_the_note(tmp_path):
     assert "made up" not in text
 
 
+def test_teller_speaking_about_himself_is_not_a_lie():
+    state = BeliefState.from_scenario(SC)
+    state.conf = {"npc_a": {"npc_hal": 0.4}}
+    state.sources = {"npc_a": {"npc_hal": [Source("told", "npc_hal", 5, 480, "said innocent")]}}
+    data = trace.build_trace(state, "npc_hal")
+    inner = data["believers"][0]["sources"][0]["sources"][0]
+    assert inner["kind"] == "self" and inner["by"] == "npc_hal"
+    text = trace.format_trace(data, NAMES)
+    assert "Hal was speaking about themselves" in text
+    assert "made up" not in text
+
+
 def test_self_loop_ends_and_long_chain_is_cut():
     state = BeliefState.from_scenario(SC)
     # Event ids only go down along a chain, so a real loop cannot happen: a teller who
