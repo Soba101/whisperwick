@@ -4,7 +4,7 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 2 — vertical slice.** See [docs/week2-plan.md](docs/week2-plan.md). Villagers can move, talk and look.
+> Status: **Week 3 — player + real objects.** Gate 1 passed. See [docs/week3-plan.md](docs/week3-plan.md).
 
 ## The question
 
