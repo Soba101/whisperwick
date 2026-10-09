@@ -46,6 +46,20 @@ class EventLog:
         if self.db.execute("SELECT COUNT(*) FROM events").fetchone()[0]:
             raise ValueError(f"{path} already has events; use a new file for each run")
 
+    @staticmethod
+    def read(path: str) -> list[Event]:
+        """Every event in a finished run's file, opened read-only.
+
+        __init__ refuses a file that already has events (to stop two runs mixing),
+        so reading an old run needs its own door. mode=ro means it can never write.
+        """
+        log = EventLog.__new__(EventLog)  # skip __init__: no table creation, no checks
+        log.db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            return log.all()
+        finally:
+            log.db.close()
+
     def append(self, event: Event) -> Event:
         """Store an event and return it with its new id."""
         cur = self.db.execute(

@@ -84,3 +84,11 @@ def test_evidence_is_seeded_and_the_dead_never_act():
     assert any("killed Mayor Aldric" in m.text for m in memories["npc_victor"].memories)
     assert "npc_mayor" not in memories  # no turn, no memories, no reflection
     assert client.intent_calls == 5
+
+
+def test_on_hour_is_called_once_per_game_hour():
+    world = fresh_world()
+    seen = []
+    # Start is 08:00, so three hours end at 09:00, 10:00 and 11:00.
+    run_llm(world, LookClient(), 180, on_hour=lambda w, s: seen.append(w.clock.label()))
+    assert seen == ["day 1 09:00", "day 1 10:00", "day 1 11:00"]

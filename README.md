@@ -26,6 +26,13 @@ uv run whisperwick run       # run the default scenario for one game day
 uv run pytest                # run every engine check (see VERIFY.md)
 ```
 
+To use a real model, copy `.env.example` to `.env` and set the server and model first.
+
+```bash
+uv run whisperwick run --agent llm --days 3   # 3 game days with the model, saved to data/
+uv run whisperwick story data/run-<name>.db   # read the run as a transcript (no model)
+```
+
 ## How an agent acts
 
 Agents never touch the world directly. They send an intent, and the engine decides:

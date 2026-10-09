@@ -3,6 +3,8 @@
 Each minute the scheduler picks who gets a model call. Everyone else waits.
 """
 
+from collections.abc import Callable
+
 from whisperwick import llm_agent, memory
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
@@ -17,6 +19,9 @@ def run_llm(
     memories: Memories | None = None,
     stats: dict | None = None,
     evidence: dict[str, list[str]] | None = None,
+    # Optional hook, called with (world, stats) after each full game hour.
+    # The CLI uses it to print progress. Tests can ignore it.
+    on_hour: Callable[[World, dict], None] | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -48,4 +53,7 @@ def run_llm(
             for npc in living:
                 if memory.reflect(memories[npc], world.npcs[npc].name, client, world.clock.tick):
                     stats["reflections"] = stats.get("reflections", 0) + 1
+        # Reported last, so the hour's reflections are already in the stats.
+        if on_hour and world.clock.tick % 60 == 0:
+            on_hour(world, stats)
     return memories, stats

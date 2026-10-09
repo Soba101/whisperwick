@@ -12,7 +12,6 @@ dependencies = [
     "pydantic>=2.8",  # typed data models for events, NPCs, scenarios
     "pyyaml>=6.0",    # reads scenario files
     "typer>=0.12",    # command-line interface
-    "openai>=1.40",   # client for any OpenAI-compatible server, e.g. local vLLM (used from week 2)
 ]
 
 [project.scripts]
