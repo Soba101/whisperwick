@@ -23,9 +23,11 @@ class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     actor: str  # who wants to act, e.g. "npc_bob"
-    action: str  # "move" | "talk" | "look"
-    target: str | None = None  # a location id (move) or an npc id (talk)
+    action: str  # "move" | "talk" | "look" | "take" | "drop" | "give" | "show"
+    # A location id (move) or an npc id (talk, give, show).
+    target: str | None = None
     message: str | None = None  # what to say (talk only)
+    item: str | None = None  # an item id (take, drop, give, show)
 
 
 @dataclass
@@ -114,9 +116,18 @@ def do_look(world, intent: Intent) -> ActionResult:
         "exits": sorted(world.locations[here].links),
         # Dead NPCs are not "people". They show up here, so a body can be found.
         "bodies": world.bodies_at(here),
+        # Only items on the ground. What people carry stays private until shown.
+        "items": world.items_at(here),
+        "holding": world.items_held(intent.actor),
     }
     return ActionResult(True, observation=observation)
 
 
 # The full list of actions an agent may use. Add new actions here.
 HANDLERS = {"move": do_move, "talk": do_talk, "look": do_look}
+
+# Item actions live in their own file to keep this one small. They need the names
+# above, so they are imported last.
+from whisperwick.item_actions import do_drop, do_give, do_show, do_take  # noqa: E402
+
+HANDLERS.update({"take": do_take, "drop": do_drop, "give": do_give, "show": do_show})

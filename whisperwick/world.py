@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from whisperwick.actions import HANDLERS, ActionResult, Intent, reject
 from whisperwick.clock import Clock
 from whisperwick.events import Event, EventLog
+from whisperwick.items import Item
 
 
 class Location(BaseModel):
@@ -41,18 +42,20 @@ class World:
         clock: Clock,
         log: EventLog,
         seed: int = 0,
+        items: list[Item] | None = None,
     ):
         # Dicts keyed by stable ID. Never key by display name.
         self.locations = {loc.id: loc for loc in locations}
         self.npcs = {npc.id: npc for npc in npcs}
+        self.items = {item.id: item for item in items or []}
         self.clock = clock
         self.log = log
         # The world's own random generator. Anything random (the stub agent now,
         # e.g. theft success later) must use this, so it is saved with the world.
         self.rng = random.Random(seed)
-        self._check_setup(locations, npcs)
+        self._check_setup(locations, npcs, items or [])
 
-    def _check_setup(self, locations: list[Location], npcs: list[NPC]) -> None:
+    def _check_setup(self, locations: list[Location], npcs: list[NPC], items: list[Item]) -> None:
         """Refuse a broken scenario up front, instead of crashing mid-run.
 
         This raises on purpose: a bad scenario file is a bug in our data,
@@ -69,6 +72,19 @@ class World:
         for npc in npcs:
             if npc.location not in self.locations:
                 raise ValueError(f"{npc.id} starts in unknown location {npc.location}")
+        if len(self.items) != len(items):
+            raise ValueError("duplicate item ids")
+        for item in items:
+            # Exactly one of location / holder: an item is never in two places or none.
+            if (item.location is None) == (item.holder is None):
+                raise ValueError(f"{item.id} needs exactly one of location or holder")
+            if item.location is not None and item.location not in self.locations:
+                raise ValueError(f"{item.id} is in unknown location {item.location}")
+            if item.holder is not None:
+                if item.holder not in self.npcs:
+                    raise ValueError(f"{item.id} is held by unknown npc {item.holder}")
+                if not self.npcs[item.holder].alive:
+                    raise ValueError(f"{item.id} is held by dead npc {item.holder}")
 
     def npcs_at(self, location_id: str) -> list[str]:
         """IDs of the LIVING at a location, sorted so results are deterministic.
@@ -83,6 +99,14 @@ class World:
         return sorted(
             n.id for n in self.npcs.values() if not n.alive and n.location == location_id
         )
+
+    def items_at(self, location_id: str) -> list[str]:
+        """IDs of items lying on the ground at a location, sorted."""
+        return sorted(i.id for i in self.items.values() if i.location == location_id)
+
+    def items_held(self, actor_id: str) -> list[str]:
+        """IDs of items an NPC is carrying, sorted."""
+        return sorted(i.id for i in self.items.values() if i.holder == actor_id)
 
     # ---- The one door agents use -------------------------------------------
 
@@ -138,6 +162,7 @@ class World:
             "tick": self.clock.tick,
             "locations": [self.locations[k].model_dump() for k in sorted(self.locations)],
             "npcs": [self.npcs[k].model_dump() for k in sorted(self.npcs)],
+            "items": [self.items[k].model_dump() for k in sorted(self.items)],
             "events": [e.model_dump() for e in self.log.all()],
             # Saving the generator's exact position makes resumed runs identical.
             "rng": self.rng.getstate(),
@@ -155,6 +180,8 @@ class World:
             [NPC.model_validate(x) for x in data["npcs"]],
             Clock(data["tick"]),
             log,
+            # Older saves have no items key.
+            items=[Item.model_validate(x) for x in data.get("items", [])],
         )
         # JSON turns the state's tuples into lists; setstate needs tuples back.
         version, internal, gauss = data["rng"]

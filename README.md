@@ -44,7 +44,7 @@ world.act({"actor": "npc_bob", "action": "talk", "target": "npc_victor", "messag
 # -> ActionResult(ok=True, event=...)    or    ActionResult(ok=False, reason="npc_victor is not here")
 ```
 
-Actions so far: `move`, `talk`, `look`.
+Actions so far: `move`, `talk`, `look`, `take`, `drop`, `give`, `show`.
 
 ## Layout
 

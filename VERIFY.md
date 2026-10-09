@@ -13,6 +13,7 @@ uv run pytest
 | Action legality | `tests/test_actions.py` | Bad intents are rejected with a reason, never raise, and change nothing |
 | Invariants | `tests/test_invariants.py` | No impossible state after any tick (places exist, time moves forward, log is append-only) |
 | Golden snapshot | `tests/test_snapshot.py` | Behaviour does not change by accident |
+| Items | `tests/test_items.py` | take/drop/give/show are strict, logged with witnesses, and never leave an item in two places |
 | Save/load | `tests/test_save_load.py` | A paused and resumed run ends in the same world as an unbroken one |
 
 All checks drive NPCs with the seeded stub agent in `whisperwick/stub_agent.py`.

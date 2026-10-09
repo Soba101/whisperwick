@@ -65,6 +65,8 @@ def test_look_shows_the_room_and_changes_nothing():
         "people": ["npc_victor"],
         "exits": ["loc_inn", "loc_temple", "loc_town_hall"],
         "bodies": [],
+        "items": [],  # Victor's boots are held, so not on the ground
+        "holding": [],
     }
     assert world.state_hash() == before
 

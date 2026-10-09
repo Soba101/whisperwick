@@ -22,6 +22,18 @@ npcs:
   # Dead from the start. He never acts, and the engine never schedules him.
   - { id: npc_mayor,  name: Mayor Aldric, occupation: mayor, location: loc_town_hall, alive: false }
 
+# Real objects. Each is on the ground (location) or carried (holder), never both.
+# The knife lies by the body; Victor still wears his muddy boots.
+items:
+  - id: item_knife
+    name: bloody knife
+    description: a kitchen knife with dried blood on the blade and a merchant's seal on the handle
+    location: loc_town_hall
+  - id: item_boots
+    name: muddy boots
+    description: Victor's boots, caked in fresh mud
+    holder: npc_victor
+
 # Ground truth. Only the engine sees this. Villagers must learn it through events.
 secrets:
   murderer: npc_victor

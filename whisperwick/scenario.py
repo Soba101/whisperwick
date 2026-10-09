@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from whisperwick.clock import Clock
 from whisperwick.events import EventLog
+from whisperwick.items import Item
 from whisperwick.world import NPC, Location, World
 
 
@@ -17,6 +18,7 @@ class Scenario(BaseModel):
     start: dict[str, int]  # {"day": 1, "hour": 8}
     locations: list[Location]
     npcs: list[NPC]
+    items: list[Item] = Field(default_factory=list)  # real objects, optional
     secrets: dict[str, Any] = Field(default_factory=dict)  # ground truth, engine-only
     # Private starting memories: npc id -> lines only that NPC knows at the start.
     evidence: dict[str, list[str]] = Field(default_factory=dict)
@@ -40,6 +42,11 @@ def check_references(scenario: Scenario) -> None:
             raise ValueError(f"secret {key} names unknown npc {value}")
         if isinstance(value, str) and value.startswith("loc_") and value not in loc_ids:
             raise ValueError(f"secret {key} names unknown location {value}")
+    for item in scenario.items:
+        if item.location is not None and item.location not in loc_ids:
+            raise ValueError(f"item {item.id} is in unknown location {item.location}")
+        if item.holder is not None and item.holder not in npc_ids:
+            raise ValueError(f"item {item.id} is held by unknown npc {item.holder}")
     for npc_id in scenario.evidence:
         if npc_id not in npc_ids:
             raise ValueError(f"evidence given to unknown npc {npc_id}")
@@ -55,4 +62,6 @@ def build_world(scenario: Scenario, db_path: str = ":memory:", seed: int | None 
     npcs = [npc.model_copy() for npc in scenario.npcs]
     check_references(scenario)
     seed = scenario.seed if seed is None else seed
-    return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed)
+    # Copy items too, for the same reason.
+    items = [item.model_copy() for item in scenario.items]
+    return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed, items=items)

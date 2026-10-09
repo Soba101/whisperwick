@@ -23,6 +23,15 @@ def check_invariants(world: World, last_tick: list[int]) -> None:
     for npc in world.npcs.values():
         assert npc.location in world.locations, f"{npc.id} is in unknown place {npc.location}"
 
+    # Every item is in exactly one valid place, and a holder is alive.
+    for item in world.items.values():
+        assert (item.location is None) != (item.holder is None), f"{item.id}: not in one place"
+        if item.location is not None:
+            assert item.location in world.locations, f"{item.id}: unknown location"
+        else:
+            assert item.holder in world.npcs, f"{item.id}: unknown holder"
+            assert world.npcs[item.holder].alive, f"{item.id}: held by the dead"
+
     events = world.log.all()
     for e in events:
         # Every reference in the log points to something real.

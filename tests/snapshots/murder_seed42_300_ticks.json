@@ -169,6 +169,22 @@
       ]
     }
   ],
+  "items": [
+    {
+      "description": "Victor's boots, caked in fresh mud",
+      "holder": "npc_victor",
+      "id": "item_boots",
+      "location": null,
+      "name": "muddy boots"
+    },
+    {
+      "description": "a kitchen knife with dried blood on the blade and a merchant's seal on the handle",
+      "holder": null,
+      "id": "item_knife",
+      "location": "loc_town_hall",
+      "name": "bloody knife"
+    }
+  ],
   "locations": [
     {
       "id": "loc_inn",
