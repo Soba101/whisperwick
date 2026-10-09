@@ -93,3 +93,46 @@ def test_on_hour_is_called_once_per_game_hour():
     # Start is 08:00, so three hours end at 09:00, 10:00 and 11:00.
     run_llm(world, LookClient(), 180, on_hour=lambda w, s: seen.append(w.clock.label()))
     assert seen == ["day 1 09:00", "day 1 10:00", "day 1 11:00"]
+
+
+class DeadServer:
+    """Every call fails, like the PC dropping off the network (#34)."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def chat(self, messages, schema):
+        from whisperwick.llm_client import LLMError
+
+        self.calls += 1
+        raise LLMError("chat failed: No route to host")
+
+
+def test_run_stops_when_the_model_server_is_gone():
+    world, client, stats = fresh_world(), DeadServer(), {}
+    start = world.clock.tick
+    run_llm(world, client, 600, stats=stats)
+    # It stops after 20 failed calls in a row, long before the 10 hours are up.
+    assert "20 times in a row" in stats["stopped"] and "No route to host" in stats["stopped"]
+    assert world.clock.tick - start < 600
+
+
+def test_one_good_answer_resets_the_error_count():
+    class Flaky(LookClient):
+        """Fails 19 times, then answers once, then fails again. Never 20 in a row."""
+
+        def __init__(self):
+            super().__init__()
+            self.n = 0
+
+        def chat(self, messages, schema):
+            from whisperwick.llm_client import LLMError
+
+            self.n += 1
+            if self.n % 20:
+                raise LLMError("blip")
+            return super().chat(messages, schema)
+
+    stats = {}
+    run_llm(fresh_world(), Flaky(), 120, stats=stats)
+    assert "stopped" not in stats

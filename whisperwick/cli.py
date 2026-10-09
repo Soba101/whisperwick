@@ -96,6 +96,9 @@ def run_with_llm(
     # Read-only interview and final item places. Both go in the sidecar only.
     extra = run_report.after_run(world, memories, client, stats)
     typer.echo(f"\n{llm_run.stats_line(stats)}")
+    if stats.get("stopped"):
+        # Said loudly: a stopped run is not a normal result (#34).
+        typer.echo(f"RUN STOPPED EARLY: {stats['stopped']}")
     typer.echo("Interview (who killed the mayor?):")
     names = {i: n.name for i, n in world.npcs.items()}
     typer.echo("\n".join(run_report.summary_lines(extra["interview"], names, belief_log)))

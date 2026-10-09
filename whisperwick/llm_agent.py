@@ -129,12 +129,17 @@ def decide(
         if reply.get("action") == "talk" and kind and subject:
             reply["claim"] = {"kind": kind, "subject": subject}
         # The actor is filled in by code. The model never chooses who it is.
-        return Intent(actor=npc_id, **reply)
+        intent = Intent(actor=npc_id, **reply)
     except (LLMError, ValidationError, TypeError) as e:
         if stats is not None:
             stats["errors"] = stats.get("errors", 0) + 1
             stats["last_error"] = str(e)
+            # Counted so the run can stop when the model server is gone (#34).
+            stats["errors_in_a_row"] = stats.get("errors_in_a_row", 0) + 1
         return Intent(actor=npc_id, action="look")
+    if stats is not None and stats.get("errors_in_a_row"):
+        stats["errors_in_a_row"] = 0  # the model answered, so the server is alive
+    return intent
 
 
 def act(

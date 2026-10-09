@@ -17,6 +17,9 @@ from whisperwick.world import World
 
 # Villagers think every 4 game hours while awake, and again at bedtime.
 THINK_EVERY = 240
+# After this many failed model calls in a row the run stops (#34). In one run the PC
+# dropped off the network and 247 calls failed while the villagers only looked around.
+MAX_ERRORS_IN_A_ROW = 20
 
 
 def run_llm(
@@ -71,6 +74,12 @@ def run_llm(
                 scheduler.notice(result.event)
             if result.observation:
                 memories.observe_look(npc, result.observation, tick, world)
+        if stats.get("errors_in_a_row", 0) >= MAX_ERRORS_IN_A_ROW:
+            # Stop instead of running on without a model. The caller still saves what exists.
+            stats["stopped"] = f"model failed {MAX_ERRORS_IN_A_ROW} times in a row: " + str(
+                stats.get("last_error", "")
+            )
+            break
         world.clock.advance()
         # Thinking time: every 4 awake hours, and at bedtime. Never in the night.
         now = world.clock.tick
