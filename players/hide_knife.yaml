@@ -1,4 +1,6 @@
-# The player steals the bloody knife from the Town Hall and hides it at the Temple.
+# The player steals the bloody knife from the Town Hall and keeps it.
+# Held items are private: nobody can find it unless Wren shows or gives it.
+# (Run 1 dropped it at the Temple, and Hal found it within hours: see #22.)
 # Hal starts in the Town Hall, so he may see the take. That is a real consequence.
 # The market links to the Town Hall and the Temple, so each step is a legal walk.
 name: hide_knife
@@ -7,4 +9,3 @@ steps:
   - { at: "1 08:06", action: take, item: item_knife }
   - { at: "1 08:07", action: move, target: loc_market }
   - { at: "1 08:08", action: move, target: loc_temple }
-  - { at: "1 08:09", action: drop, item: item_knife }

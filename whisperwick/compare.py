@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from whisperwick import story
+from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_run import rejection_rate, sidecar_path
 from whisperwick.player import PLAYER_ID
@@ -16,7 +17,7 @@ from whisperwick.scenario import load_scenario
 
 ITEM_EVENTS = ("take", "drop", "give", "show")
 MAX_EVENT_LINES = 15  # per run, so three runs still fit on one screen
-COL = 14  # width of one table column
+GAP = 2  # spaces after the longest cell in a column
 
 
 def load_run(db: Path) -> dict:
@@ -35,18 +36,23 @@ def load_names(runs: list[dict]) -> dict[str, str]:
     return {}
 
 
+def table(rows: list[list[str]], indent: str = "") -> list[str]:
+    """Pad each column to its longest cell plus GAP, so long run names never collide."""
+    widths = [max(len(r[i]) for r in rows) + GAP for i in range(len(rows[0]))]
+    lines = ("".join(c.ljust(w) for c, w in zip(r, widths, strict=True)) for r in rows)
+    return [(indent + line).rstrip() for line in lines]
+
+
 def header_rows(runs: list[dict]) -> list[str]:
     """One row per run: db name, player script, model calls, rejection rate."""
-    rows = [f"{'Run'.ljust(COL * 2)}{'Player'.ljust(COL)}{'Calls'.ljust(COL)}Rejected"]
+    rows = [["Run", "Player", "Calls", "Rejected"]]
     for r in runs:
         s = r["sidecar"]
         stats = s.get("stats")
         calls = str(stats.get("calls", 0)) if stats else "-"
         rate = f"{rejection_rate(stats):.1%}" if stats else "-"
-        rows.append(
-            f"{r['name'].ljust(COL * 2)}{s.get('player', '-').ljust(COL)}{calls.ljust(COL)}{rate}"
-        )
-    return rows
+        rows.append([r["name"], s.get("player", "-"), calls, rate])
+    return table(rows)
 
 
 def suspect_of(run: dict, npc_id: str, names: dict[str, str]) -> str:
@@ -58,11 +64,10 @@ def suspect_of(run: dict, npc_id: str, names: dict[str, str]) -> str:
 def suspect_table(runs: list[dict], names: dict[str, str]) -> list[str]:
     """Rows = NPCs, columns = runs. NPCs are the union of everyone interviewed."""
     npcs = sorted({n for r in runs for n in r["sidecar"].get("interview", {})})
-    rows = ["Suspects:", "  " + "".join(["NPC".ljust(COL), *(r["name"].ljust(COL) for r in runs)])]
+    grid = [["NPC", *(r["name"] for r in runs)]]
     for n in npcs:
-        cells = (suspect_of(r, n, names).ljust(COL) for r in runs)
-        rows.append("  " + story.show(names, n).ljust(COL) + "".join(cells))
-    return rows if npcs else ["Suspects: -"]
+        grid.append([story.show(names, n), *(suspect_of(r, n, names) for r in runs)])
+    return ["Suspects:", *table(grid, "  ")] if npcs else ["Suspects: -"]
 
 
 def vote_line(run: dict, names: dict[str, str]) -> str:
@@ -99,7 +104,10 @@ def key_events(run: dict, names: dict[str, str]) -> list[str]:
     keep: list[Event] = [
         e for e in run["events"] if e.actor == PLAYER_ID or e.type in ITEM_EVENTS
     ]
-    lines = [line for e in keep if (line := story.format_event(e, names))]
+    # story only gives HH:MM, so add the day here (d2 07:01).
+    lines = [
+        f"d{Clock(e.tick).day} {line}" for e in keep if (line := story.format_event(e, names))
+    ]
     extra = len(lines) - MAX_EVENT_LINES
     lines = lines[:MAX_EVENT_LINES] + ([f"... and {extra} more"] if extra > 0 else [])
     return [f"{run['name']}:", *(f"  {x}" for x in lines or ["-"])]

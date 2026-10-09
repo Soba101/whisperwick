@@ -66,7 +66,7 @@ def test_example_scripts_load():
     assert load_script(PLAYERS / "none.yaml").script == {}
     assert load_script(PLAYERS / "blame_hal.yaml").name == "blame_hal"
     hide = load_script(PLAYERS / "hide_knife.yaml").script
-    assert sorted(hide) == [485, 486, 487, 488, 489]
+    assert sorted(hide) == [485, 486, 487, 488]
 
 
 # ---- the run loop ----
@@ -124,10 +124,10 @@ def test_player_acts_at_night_and_hide_knife_works():
     assert any(e.actor == PLAYER_ID for e in w.log.all())
 
 
-def test_hide_knife_script_moves_the_knife():
+def test_hide_knife_script_keeps_the_knife():
     w = fresh_world()
     run_llm(w, LookClient(), 10, player=load_script(PLAYERS / "hide_knife.yaml"))
-    assert w.items["item_knife"].location == "loc_temple"
+    assert w.items["item_knife"].holder == "player"
 
 
 def test_scripted_player_warns_about_steps_before_the_start():

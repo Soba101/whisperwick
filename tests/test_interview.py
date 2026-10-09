@@ -109,6 +109,22 @@ def test_compare_caps_event_lines_and_handles_empty_sidecar():
     assert compare.suspect_table([make_run("a.db", {})], NAMES) == ["Suspects: -"]
 
 
+def test_compare_columns_fit_long_run_names():
+    long = "w3-blame_hal_with_a_long_name.db"
+    runs = [make_run(long, NEW), make_run("b.db", NEW)]
+    header = compare.header_rows(runs)
+    assert header[1].startswith(long + "  ") and header[2].startswith("b.db" + " " * 30)
+    suspects = compare.suspect_table(runs, NAMES)
+    # The second run's column starts two spaces after the long name ends.
+    assert suspects[1].index("b.db") == suspects[1].index(long) + len(long) + 2
+
+
+def test_compare_event_lines_show_the_day():
+    day2 = KNIFE.model_copy(update={"tick": 1440 + 7 * 60 + 1})
+    lines = compare.key_events(make_run("a.db", {}, [KNIFE, day2]), NAMES)
+    assert lines[1].startswith("  d1 08:06") and lines[2].startswith("  d2 07:01")
+
+
 def test_compare_cli_smoke(tmp_path):
     dbs = []
     for n in ("a", "b"):
