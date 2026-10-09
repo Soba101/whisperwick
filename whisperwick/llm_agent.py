@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from whisperwick.actions import MAX_MESSAGE_CHARS, ActionResult, Intent
 from whisperwick.llm_client import LLMError
+from whisperwick.memory import MemoryStream
 from whisperwick.world import World
 
 ACTIONS = ["move", "talk", "look"]
@@ -77,21 +78,38 @@ def build_messages(
     ]
 
 
+def memory_lines(
+    stream: MemoryStream, now_tick: int, world: World, npc_id: str, k: int = 8
+) -> list[str]:
+    """The memories most worth showing now. The query is who is here plus where we are."""
+    _, people = exits_and_people(world, npc_id)
+    here = world.locations[world.npcs[npc_id].location]
+    query = " ".join([*(world.npcs[p].name for p in people), here.name])
+    return [m.text for m in stream.retrieve(now_tick, query, k)]
+
+
 def decide(
     world: World,
     npc_id: str,
     client,
     memories: Sequence[str] = (),
     feedback: str | None = None,
+    stats: dict | None = None,
 ) -> Intent:
-    """Ask the model for an intent. Anything unusable becomes a harmless look."""
+    """Ask the model for an intent. Anything unusable becomes a harmless look.
+
+    stats, if given, counts {"errors"} and keeps "last_error", so failures are not silent.
+    """
     try:
         reply = client.chat(
             build_messages(world, npc_id, memories, feedback), intent_schema(world, npc_id)
         )
         # The actor is filled in by code. The model never chooses who it is.
         return Intent(actor=npc_id, **reply)
-    except (LLMError, ValidationError, TypeError):
+    except (LLMError, ValidationError, TypeError) as e:
+        if stats is not None:
+            stats["errors"] = stats.get("errors", 0) + 1
+            stats["last_error"] = str(e)
         return Intent(actor=npc_id, action="look")
 
 
@@ -104,12 +122,12 @@ def act(
 ) -> ActionResult:
     """Decide and act. One retry with the engine's reason, then fall back to look.
 
-    stats, if given, counts {"calls", "rejected"} so a run can report its rejection rate.
+    stats, if given, counts {"calls", "rejected", "errors"} so a run can report its rejection rate.
     """
     stats = stats if stats is not None else {}
     feedback = None
     for _ in range(2):
-        result = world.act(decide(world, npc_id, client, memories, feedback))
+        result = world.act(decide(world, npc_id, client, memories, feedback, stats))
         stats["calls"] = stats.get("calls", 0) + 1
         if result.ok:
             return result

@@ -5,6 +5,7 @@ from helpers import fresh_world
 from whisperwick import llm_agent
 from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.llm_client import FakeClient, chat_url
+from whisperwick.memory import MemoryStream
 
 
 def schema_targets(schema):
@@ -88,3 +89,36 @@ def test_chat_url_strips_v1():
     assert chat_url("http://h:11434/v1") == "http://h:11434/api/chat"
     assert chat_url("http://h:11434/v1/") == "http://h:11434/api/chat"
     assert chat_url("http://h:11434") == "http://h:11434/api/chat"
+
+
+def test_errors_are_counted_and_last_error_kept():
+    world = fresh_world()
+    stats = {}
+    llm_agent.decide(world, "npc_bob", FakeClient([]), stats=stats)  # model error
+    llm_agent.decide(world, "npc_bob", FakeClient([{"nonsense": 1}]), stats=stats)  # bad reply
+    assert stats["errors"] == 2
+    assert stats["last_error"]  # some readable text
+
+
+def test_act_passes_stats_to_decide():
+    world = fresh_world()
+    stats = {}
+    result = llm_agent.act(world, "npc_bob", FakeClient([]), stats=stats)
+    assert result.ok and result.observation is not None  # look
+    assert stats["errors"] == 1  # the look fallback succeeded, so there was no second try
+
+
+def test_good_reply_counts_no_errors():
+    world = fresh_world()
+    stats = {}
+    client = FakeClient([{"action": "look", "target": None, "message": None}])
+    llm_agent.decide(world, "npc_bob", client, stats=stats)
+    assert "errors" not in stats
+
+
+def test_memory_lines_use_people_and_place_as_query():
+    world = fresh_world()
+    stream = MemoryStream()
+    stream.add(0, "Victor owes me coins", 5)
+    stream.add(0, "the weather was mild", 5)
+    assert llm_agent.memory_lines(stream, 0, world, "npc_bob", k=1) == ["Victor owes me coins"]
