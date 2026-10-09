@@ -15,6 +15,23 @@ from whisperwick.events import Event
 # Longest thing an NPC may say in one turn. Stops runaway LLM output later.
 MAX_MESSAGE_CHARS = 500
 
+# What a claim can say about a person. The one place to add a new kind.
+CLAIM_KINDS = ("killer", "innocent")
+
+
+class Claim(BaseModel):
+    """A structured statement about one person, carried by a talk.
+
+    Only claims (never free text) will change beliefs, so they must be well formed.
+    The kind and subject are checked by the engine in claims.py, not here, so a bad
+    one becomes a clear rejection reason instead of a parse error.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: str  # one of CLAIM_KINDS
+    subject: str  # a person id, e.g. "npc_hal"
+
 
 class Intent(BaseModel):
     """One proposed action. Week 2's JSON schema for the LLM is built from this."""
@@ -28,6 +45,7 @@ class Intent(BaseModel):
     target: str | None = None
     message: str | None = None  # what to say (talk only)
     item: str | None = None  # an item id (take, drop, give, show)
+    claim: Claim | None = None  # "X is the killer" or "X is innocent" (talk only)
 
 
 @dataclass
@@ -93,6 +111,11 @@ def do_talk(world, intent: Intent) -> ActionResult:
 
     # Everyone in the room hears it, including the listener. This is how rumours
     # will leak in week 3: the overhearers get the claim too.
+    data = {"to": listener.id, "message": message}
+    # The claim is only added when there is one, so plain talk logs exactly as before.
+    # The engine never checks if a claim is true: lies are allowed.
+    if intent.claim is not None:
+        data["claim"] = intent.claim.model_dump()
     witnesses = [n for n in world.npcs_at(npc.location) if n != npc.id]
     event = world.log.append(
         Event(
@@ -100,7 +123,7 @@ def do_talk(world, intent: Intent) -> ActionResult:
             type="talk",
             actor=npc.id,
             location=npc.location,
-            data={"to": listener.id, "message": message},
+            data=data,
             witnesses=witnesses,
         )
     )

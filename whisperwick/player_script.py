@@ -14,7 +14,7 @@ from whisperwick.actions import ActionResult, Intent
 from whisperwick.clock import Clock
 from whisperwick.player import PLAYER_ID, PlayerSource
 
-STEP_KEYS = {"at", "action", "target", "item", "message"}
+STEP_KEYS = {"at", "action", "target", "item", "message", "claim"}
 AT_FORMAT = re.compile(r"^(\d+) (\d{1,2}):(\d{2})$")  # "1 09:00" = day 1, 09:00
 
 

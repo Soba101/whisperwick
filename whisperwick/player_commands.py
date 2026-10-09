@@ -9,6 +9,9 @@ HELP = """Commands:
   look                       show the room again (free)
   move <loc>                 walk to a place, e.g. move loc_inn
   talk <npc> <message...>    say something to someone here
+  tell <npc> <kind> <person> <message...>
+                             talk, and claim the person is the killer or innocent
+                             e.g. tell npc_bob killer npc_hal I saw him
   take <item>                pick up an item from the ground
   drop <item>                put an item down
   give <item> <npc>          hand an item to someone here
@@ -42,6 +45,12 @@ def parse_command(line: str) -> tuple[str, object] | None:
     if cmd == "talk" and len(args) >= 2:
         # Everything after the npc id is the message, spaces kept as typed words.
         return act(target=args[0], message=" ".join(args[1:]))
+    if cmd == "tell" and len(args) >= 4:
+        # A tell is a talk with a claim. The engine checks the kind and the person, not us,
+        # so a typo gets the same clear rejection as anywhere else.
+        cmd = "talk"
+        claim = {"kind": args[1].lower(), "subject": args[2]}
+        return act(target=args[0], message=" ".join(args[3:]), claim=claim)
     if cmd in ("take", "drop") and len(args) == 1:
         return act(item=args[0])
     if cmd == "give" and len(args) == 2:

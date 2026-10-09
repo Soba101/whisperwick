@@ -17,6 +17,15 @@ def name_of(world: World, npc_id: str) -> str:
     return f"{npc.name} ({npc_id})" if npc else npc_id
 
 
+def claim_text(event: Event, world: World) -> str:
+    """e.g. ' [claim: Hal (npc_hal) is the killer]', or '' when the talk had no claim."""
+    claim = event.data.get("claim")
+    if not claim:
+        return ""
+    verdict = "the killer" if claim["kind"] == "killer" else "innocent"
+    return f" [claim: {name_of(world, claim['subject'])} is {verdict}]"
+
+
 def describe(event: Event, world: World, viewer_id: str) -> str:
     """One short line about an event, as the viewer would remember it."""
     when = Clock(event.tick).label().capitalize()
@@ -26,7 +35,9 @@ def describe(event: Event, world: World, viewer_id: str) -> str:
     if event.type == "talk":
         to = event.data["to"]
         target = "you" if to == viewer_id else name_of(world, to)
-        return f'{prefix} {who} said to {target}: "{event.data["message"]}"'
+        return (
+            f'{prefix} {who} said to {target}: "{event.data["message"]}"{claim_text(event, world)}'
+        )
     if event.type == "move":
         if me:
             return f"{prefix} You walked to {event.data['to']}"
@@ -68,5 +79,3 @@ def importance_of(event: Event, viewer_id: str) -> int:
         return 5
     # The murder setup will add higher-importance kinds (a body, an accusation) later.
     return 3
-
-

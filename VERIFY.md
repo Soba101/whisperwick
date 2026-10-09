@@ -15,6 +15,7 @@ uv run pytest
 | Golden snapshot | `tests/test_snapshot.py` | Behaviour does not change by accident |
 | Items | `tests/test_items.py` | take/drop/give/show are strict, logged with witnesses, and never leave an item in two places |
 | Save/load | `tests/test_save_load.py` | A paused and resumed run ends in the same world as an unbroken one |
+| Claims | `tests/test_claims.py` | A talk's claim is well formed, logged with witnesses, never checked for truth; bad ones change nothing |
 
 All checks drive NPCs with the seeded stub agent in `whisperwick/stub_agent.py`.
 Never call a real LLM in these checks: LLM output is not repeatable.

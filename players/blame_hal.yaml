@@ -1,12 +1,14 @@
 # The player spreads a lie: Hal (the guard) was seen leaving the Town Hall with blood
 # on his sleeve. The player starts at the market, where Bob is. Alice is at the inn,
 # which the market links to, so the player walks there first.
+# Both talks carry a structured claim, which the engine logs (it never checks if true).
 # Steps start at 08:00, before anyone has walked away, so the claims reach their targets.
 name: blame_hal
 steps:
   - at: "1 08:00"
     action: talk
     target: npc_bob
+    claim: {kind: killer, subject: npc_hal}
     message: "I saw Hal the guard leaving the Town Hall last night with blood on his sleeve."
   - at: "1 08:01"
     action: move
@@ -14,4 +16,5 @@ steps:
   - at: "1 08:02"
     action: talk
     target: npc_alice
+    claim: {kind: killer, subject: npc_hal}
     message: "Careful around Hal. I saw him sneak out of the Town Hall with blood on his sleeve."

@@ -14,6 +14,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from whisperwick.actions import HANDLERS, ActionResult, Intent, reject
+from whisperwick.claims import claim_problem
 from whisperwick.clock import Clock
 from whisperwick.events import Event, EventLog
 from whisperwick.items import Item
@@ -96,9 +97,7 @@ class World:
 
     def bodies_at(self, location_id: str) -> list[str]:
         """IDs of the dead at a location, sorted."""
-        return sorted(
-            n.id for n in self.npcs.values() if not n.alive and n.location == location_id
-        )
+        return sorted(n.id for n in self.npcs.values() if not n.alive and n.location == location_id)
 
     def items_at(self, location_id: str) -> list[str]:
         """IDs of items lying on the ground at a location, sorted."""
@@ -132,6 +131,11 @@ class World:
         handler = HANDLERS.get(intent.action)
         if handler is None:
             return reject(f"unknown action {intent.action}")
+        # A claim must be well formed and only ever rides on a talk. Checked here, before
+        # any handler runs, so a bad claim can never change anything.
+        problem = claim_problem(self, intent)
+        if problem:
+            return reject(problem)
         return handler(self, intent)
 
     def move(self, npc_id: str, to: str) -> ActionResult:

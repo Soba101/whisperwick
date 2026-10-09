@@ -44,7 +44,12 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
     if e.type == "talk":
         place = show(names, e.location).ljust(PLACE_WIDTH)
         who, to = show(names, e.actor), show(names, e.data["to"])
-        return f'{hhmm(e.tick)}  {place} {who} -> {to}: "{e.data["message"]}"'
+        line = f'{hhmm(e.tick)}  {place} {who} -> {to}: "{e.data["message"]}"'
+        # A claim is shown after the words, by display name (or id if none is known).
+        if claim := e.data.get("claim"):
+            verdict = "the killer" if claim["kind"] == "killer" else "innocent"
+            line += f" [claim: {show(names, claim['subject'])} is {verdict}]"
+        return line
     if e.type == "move":
         src, dst = show(names, e.data["from"]), show(names, e.data["to"])
         return f"{hhmm(e.tick)}  {show(names, e.actor)} walks {src} -> {dst}"
