@@ -13,6 +13,9 @@ from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import OllamaClient
 from whisperwick.llm_sim import run_llm
+from whisperwick.player import PlayerSource
+from whisperwick.player_script import load_script
+from whisperwick.player_terminal import TerminalPlayer
 from whisperwick.scenario import build_world, load_scenario
 from whisperwick.sim import run as run_sim
 
@@ -49,23 +52,39 @@ def llm_settings() -> tuple[str, str]:
     return base_url, model
 
 
-def run_with_llm(sc, scenario: Path, db: str, seed: int | None, minutes: int) -> None:
-    """The LLM run: one progress line per game hour, then a sidecar next to the db."""
+def run_with_llm(
+    sc, scenario: Path, db: str, seed: int | None, minutes: int,
+    player: PlayerSource | None = None, player_name: str | None = None,
+) -> None:
+    """The LLM run: one progress line per game hour, then a sidecar next to the db.
+
+    `play` shares this. With a player, the run may end early (quit) and is summed up too.
+    """
     # Check settings first, so a bad setup leaves no empty db file behind.
     base_url, model = llm_settings()
     Path(db).parent.mkdir(parents=True, exist_ok=True)
     world = build_world(sc, db, seed=seed)
     started = time.monotonic()
+    start_tick = world.clock.tick
 
     def progress(w, stats):
         typer.echo(llm_run.progress_line(w.clock.label(), stats, time.monotonic() - started))
 
     client = OllamaClient(base_url, model)
-    memories, stats = run_llm(world, client, minutes, evidence=sc.evidence, on_hour=progress)
+    # Hourly progress would clutter a human's screen, so terminal play skips it.
+    on_hour = None if isinstance(player, TerminalPlayer) else progress
+    stats = {"player_rejected": []} if player else {}
+    memories, stats = run_llm(
+        world, client, minutes, stats=stats, evidence=sc.evidence, on_hour=on_hour, player=player
+    )
     typer.echo(f"\n{llm_run.stats_line(stats)}")
+    if player:
+        typer.echo(f"Player steps rejected: {len(stats['player_rejected'])}")
     typer.echo(f"Events: {db}")
     path = llm_run.sidecar_path(db)
-    data = llm_run.sidecar_data(scenario, model, minutes, stats, sc.secrets, memories)
+    # Minutes actually played: a quit can end the run early.
+    played = world.clock.tick - start_tick
+    data = llm_run.sidecar_data(scenario, model, played, stats, sc.secrets, memories, player_name)
     llm_run.write_sidecar(path, data)
     typer.echo(f"Sidecar: {path}")
 
@@ -95,6 +114,30 @@ def run(
         seen = ", ".join(e.witnesses) or "nobody"
         typer.echo(f"{Clock(e.tick).label()}  {describe(e)}  (seen by {seen})")
     typer.echo(f"\n{len(world.log.all())} events.")
+
+
+@app.command()
+def play(
+    script: Annotated[
+        Path | None, typer.Option(help="Player script YAML. Without it you play in the terminal.")
+    ] = None,
+    scenario: Annotated[Path, typer.Option(help="Scenario YAML file.")] = DEFAULT_SCENARIO,
+    days: Annotated[int, typer.Option(help="Game days to play.")] = 1,
+    seed: Annotated[int | None, typer.Option(help="Override the scenario's seed.")] = None,
+    db: Annotated[str | None, typer.Option(help="SQLite file for the event log.")] = None,
+) -> None:
+    """Play Wren in the village (terminal), or run a player script. Needs a model server."""
+    sc = load_scenario(scenario)
+    try:
+        player = load_script(script) if script else TerminalPlayer()
+    except (ValueError, OSError) as e:
+        # A broken script is a data bug: say so plainly instead of a traceback.
+        typer.echo(f"Bad player script: {e}", err=True)
+        raise typer.Exit(1) from e
+    name = getattr(player, "name", "terminal")
+    run_with_llm(
+        sc, scenario, db or llm_run.default_db_path(sc.name), seed, days * 24 * 60, player, name
+    )
 
 
 @app.command("story")

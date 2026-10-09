@@ -8,7 +8,8 @@ from collections.abc import Callable
 from whisperwick import llm_agent, memory
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
-from whisperwick.player import PLAYER_ID
+from whisperwick.player import PLAYER_ID, PlayerSource
+from whisperwick.player_turn import apply_player_turn
 from whisperwick.scheduler import SLEEP_START, Scheduler
 from whisperwick.world import World
 
@@ -23,6 +24,8 @@ def run_llm(
     # Optional hook, called with (world, stats) after each full game hour.
     # The CLI uses it to print progress. Tests can ignore it.
     on_hour: Callable[[World, dict], None] | None = None,
+    # Optional human or script playing the player. None = the player stays idle.
+    player: PlayerSource | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -36,6 +39,9 @@ def run_llm(
         memory.seed_evidence(memories, evidence, world.clock.tick)
     for _ in range(minutes):
         tick = world.clock.tick
+        # The player goes first, even at night, so NPCs react to them this same minute.
+        if player and not apply_player_turn(world, player, memories, scheduler, stats):
+            break  # the player quit
         # NPCs act one by one, not all at once. A later NPC sees what an earlier one did
         # this same minute. Order is sorted ids, so it is still deterministic
         # for a given model output.

@@ -35,6 +35,15 @@ uv run whisperwick run --agent llm --days 3   # 3 game days with the model, save
 uv run whisperwick story data/run-<name>.db   # read the run as a transcript (no model)
 ```
 
+## Play
+
+```bash
+uv run whisperwick play --days 1                          # you play Wren in the terminal
+uv run whisperwick play --script players/blame_hal.yaml   # a scripted player
+```
+
+Both need a model server (see `.env.example`). Type `help` in the game for commands.
+
 ## How an agent acts
 
 Agents never touch the world directly. They send an intent, and the engine decides:

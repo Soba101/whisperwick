@@ -50,7 +50,7 @@ def progress_line(clock_label: str, stats: dict, seconds: float) -> str:
 
 def sidecar_data(
     scenario_path: str | Path, model: str, minutes: int, stats: dict, secrets: dict,
-    memories: Memories,
+    memories: Memories, player: str | None = None,
 ) -> dict:
     """Everything the story command needs besides the events. Ids only, no names."""
     reflections = {}
@@ -61,7 +61,7 @@ def sidecar_data(
             {"tick": m.tick, "text": m.text} for m in stream if m.kind == "reflection"
         ]
         final[npc_id] = [m.text for m in stream[-FINAL_MEMORIES:]]
-    return {
+    data = {
         "scenario": str(scenario_path),
         "model": model,
         "minutes": minutes,
@@ -70,6 +70,10 @@ def sidecar_data(
         "reflections": reflections,
         "final_memories": final,
     }
+    # Only play runs say who played: a script name, or "terminal".
+    if player:
+        data["player"] = player
+    return data
 
 
 def write_sidecar(path: Path, data: dict) -> None:

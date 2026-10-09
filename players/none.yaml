@@ -1,0 +1,3 @@
+# The player does nothing. This is the baseline run to compare the others against.
+name: none
+steps: []
