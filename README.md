@@ -8,9 +8,11 @@ Only the world engine decides what is actually true.
 
 ## The question
 
-Do beliefs with tracked sources ("Alice thinks Bob did it, because Sarah told her"),
-inside an authoritative world engine, produce emergent stories that are more coherent
-than the [Generative Agents](https://arxiv.org/abs/2304.03442) baseline?
+Can a player's actions change an emergent story, while the story stays coherent
+and every belief stays traceable to its source ("Alice thinks Bob did it, because Sarah told her")?
+
+The long-term goal is a Skyrim-like world where agents keep the story moving and the player changes it.
+This prototype builds the "brain" in text first. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Core rule
 
@@ -60,10 +62,10 @@ data/            local SQLite event logs (git-ignored)
 |---|---|---|
 | 1 | Engine skeleton | A seeded run replays identically, no LLM |
 | 2 | Vertical slice (local ~30B model) | **Gate 1:** a readable murder story from 5 NPCs |
-| 3 | Beliefs and rumours | Two NPCs hold conflicting, traceable beliefs |
-| 4 | Scale + evaluation harness | 20 NPCs, 5 seeds x 4 conditions, unattended |
-| 5 | Cheap model tier | Quality drop of an 8B model measured |
-| 6 | Evaluate and write up | **Gate 2:** GO / PIVOT / STOP |
+| 3 | Player + real objects | Same seed, 3 player scripts, 3 different outcomes |
+| 4 | Beliefs and rumours | A player's lie can be traced: who believes it, and via whom |
+| 5 | Consequences + endings | Story ends in an engine-decided outcome |
+| 6 | Evaluate + playable demo | **Gate 2:** GO / PIVOT / STOP |
 
 Everything runs locally (Ollama on an RTX 5090). No paid APIs.
 

@@ -9,9 +9,11 @@
 | Agent runtime | Direct OpenAI-compatible calls with JSON-schema outputs (no Hermes in v0.1) |
 | Models | Local only. ~30B quantised for everything first; ~8B tier added in week 5 |
 | Evaluation | Ablations + LLM judge + blind human ranking |
-| Player | Scripted perturbations in v0.1; interactive in v0.2 |
+| Player | Central from week 3: a player actor, driven by script (repeatable) or terminal. Interactive 3D in v0.2 |
+| Goal | (Updated after week 2) A Skyrim-like world where the player changes the story. See roadmap.md |
 
 ## Evaluation conditions (same 5 seeds each)
+(Week 6 runs each condition with 3 player scripts. See roadmap.md.)
 - **Full**: everything on.
 - **No beliefs**: belief table removed.
 - **No memory**: memory stream removed.
