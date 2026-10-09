@@ -58,35 +58,12 @@ evidence:
   npc_victor:
     - "Last night I killed Mayor Aldric in the Town Hall, because he was about to expose my cheating. I don't think anyone saw me. I must not be found out."
 
-# Week 4: beliefs and trust. These feed the agent side only; the engine never reads them.
-# Trust: how much one villager believes another's claims (0..1). "default" is for any
-# pair of villagers. "player" is towards the player, a stranger, so it starts lower.
-trust: { default: 0.5, player: 0.3 }
-
-# Telling items: item id -> the person it points to. Seeing one shown or given
-# makes the witnesses suspect that person. The knife has a merchant's seal; the boots are Victor's.
-clues:
-  item_knife: npc_victor
-  item_boots: npc_victor
-
-# Starting beliefs: "I think <subject> killed the mayor". Each is first-hand ("saw")
-# evidence held from the first minute. Hal has none: he has to find out.
-# Bob and Alice saw something themselves, so they start at 0.5 (firm, see FIRM in beliefs.py):
-# a claim against it lowers their trust in the teller.
-beliefs:
-  npc_bob:
-    - { subject: npc_victor, confidence: 0.5, note: saw Victor hurrying from the Town Hall }
-  npc_alice:
-    - { subject: npc_victor, confidence: 0.5, note: Victor came back after midnight with muddy boots }
-  npc_sarah:
-    - { subject: npc_victor, confidence: 0.2, note: the mayor meant to expose a merchant }
-  npc_victor:
-    - { subject: npc_victor, confidence: 1.0, note: I did it }
-
-# One-sentence goals, shown to each villager in its prompt.
-goals:
-  npc_victor: Avoid suspicion. Never show or hand over anything that points to you.
-  npc_hal: Find out who killed the mayor.
-  npc_bob: Keep your forge running and warn people if you think a killer is loose.
-  npc_alice: Keep the inn calm and share what you know with guests you trust.
-  npc_sarah: Guide the village through the crisis and learn the truth before accusing anyone.
+# Character, not plot: how each villager treats strangers, gossip and proof.
+# Nothing here says who did it or what to believe. Each villager works that out
+# for itself from its own memories. Shown in the prompt as "Your character: ...".
+personality:
+  npc_alice: "Warm and chatty, and loves to hear the latest news. Trusts her regulars quickly and strangers slowly. Hates trouble in her inn."
+  npc_bob: "Blunt and stubborn. Trusts what he sees with his own eyes far more than talk. Little patience for gossip."
+  npc_sarah: "Calm and careful. Wants proof before she accuses anyone, and believes everyone deserves a fair hearing."
+  npc_hal: "Dutiful and proud of his post. Wary of newcomers, and of anyone who tells him how to do his job."
+  npc_victor: "Charming, clever and calculating. Good at telling people what they want to hear. Protects his reputation above all."

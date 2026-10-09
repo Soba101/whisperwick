@@ -2,10 +2,10 @@
 
 Strictly read-only. It never calls world.act, never adds memories and never writes
 events, so asking cannot change the story it measures. The answers are saved in the
-sidecar file only. A stand-in for real beliefs until week 4.
+sidecar file only. It asks the model directly; thoughts live in the belief log.
 """
 
-from whisperwick import belief_report, llm_agent
+from whisperwick import llm_agent
 from whisperwick.llm_client import LLMError
 from whisperwick.memory import Memories, MemoryStream
 from whisperwick.world import World
@@ -45,9 +45,7 @@ def messages(world: World, npc_id: str, stream: MemoryStream) -> list[dict]:
     ]  # fmt: skip
     # k=12, more than a normal turn's 8: the answer should rest on the whole run,
     # not only on the last few hours.
-    mem = llm_agent.memory_lines(
-        stream, world.clock.tick, world, npc_id, k=12, query=MEMORY_QUERY
-    )
+    mem = llm_agent.memory_lines(stream, world.clock.tick, world, npc_id, k=12, query=MEMORY_QUERY)
     if mem:
         lines += ["You remember:", *(f"- {m}" for m in mem)]
     return [
@@ -57,14 +55,13 @@ def messages(world: World, npc_id: str, stream: MemoryStream) -> list[dict]:
 
 
 def interview(
-    world: World, memories: Memories, client, npc_ids: list[str], stats: dict | None = None,
-    beliefs=None,
+    world: World,
+    memories: Memories,
+    client,
+    npc_ids: list[str],
+    stats: dict | None = None,
 ) -> dict[str, dict]:
-    """One model call per living NPC, in sorted order. Errors are counted, never raised.
-
-    With `beliefs` (a BeliefState), each answer also carries the code's own answer
-    (belief_suspect, belief_confidence) next to the model's, so the two can be compared.
-    """
+    """One model call per living NPC, in sorted order. Errors are counted, never raised."""
     out = {}
     for npc_id in sorted(npc_ids):
         if not world.npcs[npc_id].alive:
@@ -81,8 +78,4 @@ def interview(
             if stats is not None:
                 stats["interview_errors"] = stats.get("interview_errors", 0) + 1
             out[npc_id] = {"suspect": None, "why": f"error: {e}"}
-    # The code answer is added last and comes from the log only, so it never fails.
-    if beliefs is not None:
-        for npc_id in out:
-            out[npc_id].update(belief_report.belief_answer(beliefs, npc_id))
     return out

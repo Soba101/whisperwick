@@ -5,7 +5,6 @@ remembered and wakes the villagers who saw it. A bad one is NOT fatal: the playe
 gets the reason and the run goes on.
 """
 
-from whisperwick.beliefs import BeliefState
 from whisperwick.memory import Memories
 from whisperwick.player import PlayerSource
 from whisperwick.scheduler import Scheduler
@@ -18,7 +17,6 @@ def apply_player_turn(
     memories: Memories,
     scheduler: Scheduler,
     stats: dict,
-    beliefs: BeliefState | None = None,
 ) -> bool:
     """Apply the player's intents for this minute. Returns False when the player quits."""
     intents = player.turn(world)
@@ -29,9 +27,6 @@ def apply_player_turn(
         if result.event:
             # Same as an NPC event: remember it right away and wake the witnesses.
             memories.observe(result.event, world)
-            # The player's claims reach the villagers' beliefs here (trust in the player is lower).
-            if beliefs is not None:
-                beliefs.apply(result.event)
             scheduler.notice(result.event)
         if not result.ok:
             # Kept in the stats so a run can be checked afterwards.

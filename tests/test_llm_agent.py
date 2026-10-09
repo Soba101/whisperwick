@@ -2,7 +2,7 @@
 
 from helpers import fresh_world
 
-from whisperwick import llm_agent
+from whisperwick import llm_agent, llm_intent
 from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.llm_client import FakeClient, chat_url
 from whisperwick.memory import MemoryStream
@@ -19,7 +19,7 @@ def test_schema_targets_are_exits_plus_people_here():
     assert schema_targets(schema) == {
         "loc_inn", "loc_town_hall", "loc_temple", "npc_victor", "player", None,
     }  # fmt: skip
-    assert schema["properties"]["action"]["enum"] == llm_agent.ACTIONS
+    assert schema["properties"]["action"]["enum"] == llm_intent.ACTIONS
     assert schema["properties"]["message"]["maxLength"] == MAX_MESSAGE_CHARS
     assert schema["required"] == [
             "action", "target", "item", "message", "claim_kind", "claim_subject",

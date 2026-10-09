@@ -10,16 +10,17 @@ LOOK = {"action": "look", "target": None, "message": None}
 
 
 class LookClient:
-    """Always looks; answers a reflection schema with a fixed thought. Counts calls."""
+    """Always looks; answers a thinking schema with a fixed thought. Counts calls."""
 
     def __init__(self):
         self.intent_calls = 0
-        self.reflect_calls = 0
+        self.think_calls = 0
 
     def chat(self, messages, schema):
         if "thoughts" in schema["properties"]:
-            self.reflect_calls += 1
-            return {"thoughts": "all quiet"}
+            self.think_calls += 1
+            return {"thoughts": "all quiet", "suspect": None, "sureness": "unsure",
+                    "because": [], "trust": []}  # fmt: skip
         self.intent_calls += 1
         return dict(LOOK)
 
@@ -58,15 +59,15 @@ def test_talk_reply_gives_the_target_a_memory():
     assert any("Knife sale" in m.text for m in memories["npc_bob"].memories)
 
 
-def test_a_full_day_reflects_once_per_npc():
+def test_a_full_day_thinks_five_times_per_npc():
     world = fresh_world()
     client, stats = LookClient(), {}
     memories, _ = run_llm(world, client, MINUTES_PER_DAY, stats=stats)
     living = [n for n in world.npcs if world.npcs[n].alive and n != "player"]
-    assert client.reflect_calls == stats["reflections"] == len(living)
+    # From 08:00: 12:00, 16:00, 20:00, bedtime 22:00, then 08:00 next day. Not at 04:00 (asleep).
+    assert client.think_calls == stats["thoughts"] == 5 * len(living)
     for npc in living:
-        # Later morning looks come after it, so look for it anywhere in the stream.
-        assert [m.kind for m in memories[npc].memories].count("reflection") == 1
+        assert [m.kind for m in memories[npc].memories].count("reflection") == 5
 
 
 def test_looking_changes_nothing_but_the_clock():

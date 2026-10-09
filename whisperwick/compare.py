@@ -24,12 +24,14 @@ def load_run(db: Path) -> dict:
     """Read one run's events and sidecar. A missing sidecar just means less data."""
     side = sidecar_path(db)
     sidecar = json.loads(side.read_text()) if side.is_file() else {}
-    # Beliefs are replayed from the events, so old runs without them still work.
-    try:
-        state = belief_report.beliefs_for_run(db)
-    except Exception:  # a broken scenario file must not stop the rest of the report
-        state = None
-    return {"name": db.name, "events": story.read_events(db), "sidecar": sidecar, "beliefs": state}
+    # "beliefs" is the run's belief log, or None for an older run that has none.
+    beliefs = belief_report.load_beliefs(db, sidecar)
+    return {
+        "name": db.name,
+        "events": story.read_events(db),
+        "sidecar": sidecar,
+        "beliefs": beliefs,
+    }
 
 
 def load_names(runs: list[dict]) -> dict[str, str]:
@@ -75,23 +77,6 @@ def suspect_table(runs: list[dict], names: dict[str, str]) -> list[str]:
     return ["Suspects:", *table(grid, "  ")] if npcs else ["Suspects: -"]
 
 
-def belief_table(runs: list[dict], names: dict[str, str]) -> list[str]:
-    """What the code says each villager believes at the end (replayed, not asked)."""
-    states = [r.get("beliefs") for r in runs]
-    npcs = sorted({n for s in states if s for n in belief_report.villagers(s)})
-    if not npcs:
-        return ["Beliefs: -"]
-    grid = [["NPC", *(r["name"] for r in runs)]]
-    for n in npcs:
-        cells = [belief_report.belief_cell(s, n, names) for s in states]
-        grid.append([story.show(names, n), *cells])
-    out = ["Beliefs (from the log):", *table(grid, "  "), "", "Trust in the player at the end:"]
-    return out + [
-        f"  {r['name']}: {belief_report.trust_in_player_line(s, names)}"
-        for r, s in zip(runs, states, strict=True)
-    ]
-
-
 def vote_line(run: dict, names: dict[str, str]) -> str:
     """e.g. 'Victor 3, Hal 1, none 0'. Most votes first, ties by name."""
     answers = run["sidecar"].get("interview")
@@ -123,23 +108,29 @@ def item_line(run: dict, names: dict[str, str]) -> str:
 
 def key_events(run: dict, names: dict[str, str]) -> list[str]:
     """Every player event and every item event, capped so the report stays short."""
-    keep: list[Event] = [
-        e for e in run["events"] if e.actor == PLAYER_ID or e.type in ITEM_EVENTS
-    ]
+    keep: list[Event] = [e for e in run["events"] if e.actor == PLAYER_ID or e.type in ITEM_EVENTS]
     # story only gives HH:MM, so add the day here (d2 07:01).
-    lines = [
-        f"d{Clock(e.tick).day} {line}" for e in keep if (line := story.format_event(e, names))
-    ]
+    lines = [f"d{Clock(e.tick).day} {line}" for e in keep if (line := story.format_event(e, names))]
     extra = len(lines) - MAX_EVENT_LINES
     lines = lines[:MAX_EVENT_LINES] + ([f"... and {extra} more"] if extra > 0 else [])
     return [f"{run['name']}:", *(f"  {x}" for x in lines or ["-"])]
+
+
+def belief_section(runs: list[dict], names: dict[str, str]) -> list[str]:
+    """What each villager privately suspected at the end, per run (from the belief log)."""
+    out = ["Beliefs (latest thought):"]
+    for r in runs:
+        # .get(): a run dict built without a belief log just shows "-".
+        block = belief_report.compare_lines(r.get("beliefs"), r["events"], names)
+        out += [f"  {r['name']}:", *block]
+    return out
 
 
 def format_compare(runs: list[dict], names: dict[str, str]) -> str:
     """The whole report."""
     out = [*header_rows(runs), "", *suspect_table(runs, names), "", "Votes:"]
     out += [f"  {vote_line(r, names)}" for r in runs]
-    out += ["", *belief_table(runs, names)]
+    out += ["", *belief_section(runs, names)]
     out += ["", "Items at the end:", *(f"  {item_line(r, names)}" for r in runs)]
     out += ["", "Key events:"]
     for r in runs:

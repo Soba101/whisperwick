@@ -1,6 +1,6 @@
 """Repeat guard (issue #12): stop NPCs from showing, giving or saying the same thing again.
 
-Agent side only, like memories and beliefs. It is never part of World state or state_hash.
+Agent side only, like memories and the belief log. It is never part of World state or state_hash.
 One ActionHistory is made per run. The engine still decides what is legal;
 this only refuses a pointless repeat BEFORE World.act, with a reason the model can read.
 """
@@ -46,7 +46,7 @@ def is_repeat(old: Record, new: Record) -> bool:
         return old.item == new.item and old.target == new.target
     if new.action == "talk":
         # Only the exact same words count. The same claim in new words is harmless:
-        # beliefs ignore a claim the hearer already got from this teller.
+        # the hearer already got that claim from this teller.
         if old.target != new.target:
             return False
         return normalise(old.message) == normalise(new.message)

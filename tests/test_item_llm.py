@@ -2,7 +2,7 @@
 
 from helpers import SCENARIO, fresh_world
 
-from whisperwick import llm_agent, memory
+from whisperwick import llm_agent, llm_intent, memory
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import FakeClient
@@ -25,7 +25,7 @@ def test_schema_item_enum_is_ground_plus_held_plus_null():
     assert item_enum(w, "npc_bob") == {None}  # nothing here or held
     assert "item" in llm_agent.intent_schema(w, "npc_bob")["required"]
     for verb in ["take", "drop", "give", "show"]:
-        assert verb in llm_agent.ACTIONS
+        assert verb in llm_intent.ACTIONS
 
 
 def test_prompt_lists_items_here_and_carried():

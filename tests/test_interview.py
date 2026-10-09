@@ -70,6 +70,7 @@ def test_final_items_and_summary_lines():
 
 # ---- compare ----
 
+
 def make_run(name, sidecar, events=()):
     return {"name": name, "events": list(events), "sidecar": sidecar}
 
@@ -79,7 +80,8 @@ KNIFE = Event(
     data={"item": "item_knife", "item_name": "bloody knife", "to": None},
 )  # fmt: skip
 NEW = {
-    "player": "blame_hal", "stats": {"calls": 10, "rejected": 1},
+    "player": "blame_hal",
+    "stats": {"calls": 10, "rejected": 1},
     "interview": {
         "npc_bob": {"suspect": "npc_hal", "why": "x"},
         "npc_hal": {"suspect": "npc_victor", "why": "y"},
@@ -148,10 +150,12 @@ class InterviewClient:
     """Looks in the game; names Victor in the interview."""
 
     def chat(self, messages, schema):
+        # A thought also has a "suspect", so tell the two apart by "thoughts" first.
+        if "thoughts" in schema["properties"]:
+            return {"thoughts": "quiet", "suspect": "npc_victor", "sureness": "unsure",
+                    "because": [], "trust": []}  # fmt: skip
         if "suspect" in schema["properties"]:
             return {"suspect": "npc_victor", "why": "He did it."}
-        if "thoughts" in schema["properties"]:
-            return {"thoughts": "quiet"}
         return {"action": "look", "target": None, "item": None, "message": None}
 
 
@@ -160,12 +164,12 @@ def test_run_stores_interview_and_items_in_sidecar(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
     monkeypatch.setattr(cli, "OllamaClient", lambda url, model: InterviewClient())
     db = tmp_path / "r.db"
-    result = CliRunner().invoke(
-        cli.app, ["run", "--agent", "llm", "--hours", "1", "--db", str(db)]
-    )
+    result = CliRunner().invoke(cli.app, ["run", "--agent", "llm", "--hours", "1", "--db", str(db)])
     assert result.exit_code == 0, result.output
     side = json.loads(Path(db).with_suffix(".json").read_text())
     assert side["interview"]["npc_bob"]["suspect"] == "npc_victor"
     assert "npc_mayor" not in side["interview"] and "player" not in side["interview"]
     assert side["items"]["item_knife"]["location"] == "loc_town_hall"
-    assert "Bob: model says Victor, beliefs say Victor 50%" in result.output
+    assert "  Bob -> Victor" in result.output
+    # The thoughts were saved next to the db, and the sidecar says where.
+    assert side["belief_log"] == str(db.with_suffix(".beliefs.jsonl"))

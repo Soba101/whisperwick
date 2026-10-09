@@ -4,7 +4,6 @@ from helpers import fresh_world
 
 from whisperwick import memory
 from whisperwick.clock import Clock
-from whisperwick.llm_client import FakeClient
 from whisperwick.memory import Memories, MemoryStream
 
 
@@ -101,24 +100,6 @@ def test_observe_look_stores_a_cheap_line():
     assert "npc_victor" in only.text and "loc_market" in only.text
 
 
-def test_reflect_stores_a_reflection():
-    stream = MemoryStream()
-    stream.add(1, "Victor looked nervous", 4)
-    client = FakeClient([{"thoughts": "Victor is hiding something."}])
-    got = memory.reflect(stream, "Bob", client, tick=60)
-    assert (got.kind, got.importance, got.tick) == ("reflection", 8, 60)
-    assert stream.memories[-1] is got
-    assert "Victor looked nervous" in client.calls[0]["messages"][0]["content"]
-    assert client.calls[0]["schema"]["required"] == ["thoughts"]
-
-
-def test_reflect_returns_none_on_failure():
-    stream = MemoryStream()
-    assert memory.reflect(stream, "Bob", FakeClient([]), tick=60) is None  # model error
-    assert memory.reflect(stream, "Bob", FakeClient([{"oops": 1}]), tick=60) is None
-    assert stream.memories == []
-
-
 def test_seed_evidence_adds_important_evidence_in_sorted_npc_order():
     memories = Memories()
     evidence = {"npc_bob": ["saw Victor"], "npc_alice": ["mud on his boots", "a strong drink"]}
@@ -129,13 +110,21 @@ def test_seed_evidence_adds_important_evidence_in_sorted_npc_order():
     assert [m.text for m in memories["npc_alice"].memories] == evidence["npc_alice"]
 
 
-def test_reflection_always_reads_evidence_and_is_trimmed():
-    # Evidence older than the last 30 memories must still reach the reflection.
+def test_observe_stores_the_event_id_and_look_and_evidence_have_none():
+    w, mem = fresh_world(), Memories()
+    r = w.act({"actor": "npc_bob", "action": "talk", "target": "npc_victor", "message": "hi"})
+    mem.observe(r.event, w)
+    # Bob (actor) and Victor (listener) both remember it, with the event's id.
+    assert mem["npc_bob"].memories[0].event_id == r.event.id is not None
+    assert mem["npc_victor"].memories[0].event_id == r.event.id
+    mem.observe_look("npc_bob", {"location": "loc_market", "people": [], "exits": []}, 5)
+    memory.seed_evidence(mem, {"npc_bob": ["saw Victor"]}, 0)
+    assert [m.event_id for m in mem["npc_bob"].memories[1:]] == [None, None]
+
+
+def test_memory_id_is_the_index_and_stays_stable_as_the_stream_grows():
     stream = MemoryStream()
-    stream.add(0, "I killed the mayor.", 9, "evidence")
-    for t in range(1, 50):
-        stream.add(t, f"Saw the market at minute {t}", 1)
-    client = FakeClient([{"thoughts": "line one\nline two " + "x" * 600}])
-    result = memory.reflect(stream, "Victor", client, 60)
-    assert "I killed the mayor." in client.calls[0]["messages"][0]["content"]
-    assert "\n" not in result.text and len(result.text) <= 400
+    stream.add(0, "first", 1)
+    assert memory.memory_id(0) == "m0"
+    stream.add(1, "second", 1)
+    assert stream.memories[0].text == "first" and memory.memory_id(1) == "m1"

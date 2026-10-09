@@ -51,8 +51,9 @@ Compare runs side by side (suspects, where items ended up, key events), no model
 uv run whisperwick compare data/run-a.db data/run-b.db
 ```
 
-Trace a rumour: who believes that Hal did it, and via whom (rebuilt from the log, no model;
-add `--json` for the same thing as data):
+Trace a rumour: who suspects Hal, and the chain behind each belief (who told whom, back to
+something seen first-hand or a lie with no source). Reads the belief log, no model;
+add `--json` for the same thing as data. Older runs without a belief log print a short message:
 
 ```bash
 uv run whisperwick trace data/run-a.db npc_hal

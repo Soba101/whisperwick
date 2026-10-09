@@ -24,6 +24,11 @@ def sidecar_path(db: str | Path) -> Path:
     return Path(db).with_suffix(".json")
 
 
+def beliefs_path(db: str | Path) -> Path:
+    """The belief log (JSON lines) lives next to the db too."""
+    return Path(db).with_suffix(".beliefs.jsonl")
+
+
 def rejection_rate(stats: dict) -> float:
     """Share of model calls the engine refused. 0 when there were no calls."""
     calls = stats.get("calls", 0)
@@ -34,7 +39,7 @@ def stats_line(stats: dict) -> str:
     """One readable line for the end of a run (and for the story)."""
     return (
         f"calls {stats.get('calls', 0)}, rejected {stats.get('rejected', 0)}, "
-        f"errors {stats.get('errors', 0)}, reflections {stats.get('reflections', 0)}, "
+        f"errors {stats.get('errors', 0)}, thoughts {stats.get('thoughts', 0)}, "
         f"rejection rate {rejection_rate(stats):.1%}"
     )
 
@@ -43,14 +48,20 @@ def progress_line(clock_label: str, stats: dict, seconds: float) -> str:
     """One line per game hour, so a long run shows it is alive."""
     return (
         f"{clock_label}  calls {stats.get('calls', 0)}  rejected {stats.get('rejected', 0)}  "
-        f"errors {stats.get('errors', 0)}  reflections {stats.get('reflections', 0)}  "
+        f"errors {stats.get('errors', 0)}  thoughts {stats.get('thoughts', 0)}  "
         f"{seconds:.0f}s"
     )
 
 
 def sidecar_data(
-    scenario_path: str | Path, model: str, minutes: int, stats: dict, secrets: dict,
-    memories: Memories, player: str | None = None,
+    scenario_path: str | Path,
+    model: str,
+    minutes: int,
+    stats: dict,
+    secrets: dict,
+    memories: Memories,
+    player: str | None = None,
+    belief_log: str | Path | None = None,
 ) -> dict:
     """Everything the story command needs besides the events. Ids only, no names."""
     reflections = {}
@@ -73,6 +84,9 @@ def sidecar_data(
     # Only play runs say who played: a script name, or "terminal".
     if player:
         data["player"] = player
+    # Where this run's thoughts were saved, so reports can find them.
+    if belief_log:
+        data["belief_log"] = str(belief_log)
     return data
 
 

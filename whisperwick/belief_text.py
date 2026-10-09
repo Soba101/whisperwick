@@ -1,20 +1,19 @@
-"""Words for the prompt: goal, beliefs, trust and last words. Pure text, no state changes.
+"""Words for the prompt: character, what I think, who I trust, and my last words.
 
-Everything here is read from BeliefState / ActionHistory, so the model sees what the
-code knows. The model is told what it believes and why; it never decides that.
+Pure text, no state changes. A villager's belief is shown in the villager's own words,
+as it said them when it last thought. No numbers from code, no verdicts from code.
 """
 
-from whisperwick.beliefs import BeliefState
 from whisperwick.clock import Clock
 from whisperwick.repeat_guard import ActionHistory, Record
 
-MAX_BELIEFS = 3  # keep the prompt short for a small model
 MAX_QUOTE = 80  # longest quoted message in "last words"
 
 # Said once, after the lists, because the schema alone cannot explain it.
+# A claim is the villager choosing to speak out. It is not a belief change.
 CLAIM_RULE = (
-    "To spread what you believe, or a lie, add claim_kind (killer or innocent) and "
-    "claim_subject (a person id) to a talk. Only claims change what others believe."
+    "If you openly accuse or defend someone in a talk, also set claim_kind "
+    "(killer or innocent) and claim_subject (their id)."
 )
 
 
@@ -22,54 +21,43 @@ def who(world, person_id: str) -> str:
     return f"{world.npcs[person_id].name} ({person_id})"
 
 
-def why(world, sources) -> str:
-    """First-hand notes (no repeats), then 'told by X (id) xN', grouped by teller."""
-    seen: list[str] = []
-    told: dict[str, int] = {}
-    for s in sources:
-        if s.type == "saw":
-            if s.note not in seen:
-                seen.append(s.note)
-        else:
-            told[s.by] = told.get(s.by, 0) + 1
-    # Notes are already worded as facts ("saw Victor hurrying ..."), so show them as they are.
-    parts = list(seen)
-    for teller, count in told.items():
-        parts.append(f"told by {who(world, teller)}" + (f" x{count}" if count > 1 else ""))
-    return "; ".join(parts)
+def character_lines(personality: str | None) -> list[str]:
+    """The villager's temperament, from the scenario. Character, not plot."""
+    return [f"Your character: {personality}"] if personality else []
 
 
-def belief_lines(world, beliefs: BeliefState, npc_id: str) -> list[str]:
-    """Top suspects first (highest confidence, ties by id), each with its reasons."""
-    conf = beliefs.conf.get(npc_id, {})
-    ranked = sorted((s for s in conf if conf[s] > 0), key=lambda s: (-conf[s], s))
-    if not ranked:
+def suspect_phrase(world, record: dict, npc_id: str) -> str:
+    """e.g. 'you suspect Victor (npc_victor) of killing the mayor, fairly sure'.
+
+    Uses the villager's own words (of_what). Nothing here assumes there was a murder.
+    """
+    suspect = record["suspect"]
+    if suspect is None:
+        return "you don't suspect anyone of anything yet"
+    # .get(): records written before of_what existed have no such key.
+    of_what = f" of {record['of_what']}" if record.get("of_what") else ""
+    if suspect == npc_id:
+        # The villager suspects itself: it knows what it did.
+        return f"you know you are guilty{of_what}"
+    return f"you suspect {who(world, suspect)}{of_what}, {record['sureness']}"
+
+
+def belief_lines(world, record: dict | None, npc_id: str) -> list[str]:
+    """My latest thoughts and trust, from my newest belief record. Empty if I never thought."""
+    if record is None:
         return []
-    lines = ["What you believe about the murder:"]
-    for subject in ranked[:MAX_BELIEFS]:
-        percent = round(conf[subject] * 100)
-        # You know whether you did it yourself, so say so plainly.
-        name = "You" if subject == npc_id else who(world, subject)
-        reasons = why(world, beliefs.sources.get(npc_id, {}).get(subject, []))
-        lines.append(f"- {name} did it: {percent}%." + (f" Why: {reasons}" if reasons else ""))
-    return lines
-
-
-def trust_line(world, beliefs: BeliefState, npc_id: str, people: list[str]) -> list[str]:
-    """How much I trust each person here, sorted by id."""
-    if not people:
-        return []
-    bits = [
-        f"{world.npcs[p].name} {round(beliefs.trust.get(npc_id, p) * 100)}%" for p in sorted(people)
+    lines = [
+        f"What you think right now: {suspect_phrase(world, record, npc_id)}. {record['thoughts']}"
     ]
-    return ["Trust in people here: " + ", ".join(bits)]
-
-
-def points_to_marks(beliefs: BeliefState | None, npc_id: str) -> dict[str, str]:
-    """Items whose clue is this NPC get a warning. Empty when there are no beliefs."""
-    if beliefs is None:
-        return {}
-    return {i: " - this points to you!" for i, p in sorted(beliefs.clues.items()) if p == npc_id}
+    # Only people who still exist in this world; the model's own words about each.
+    feel = [
+        f"{who(world, t['person'])} {t['level']}: {t['why']}"
+        for t in record["trust"]
+        if t["person"] in world.npcs
+    ]
+    if feel:
+        lines.append("How you feel about people: " + "; ".join(feel))
+    return lines
 
 
 def say_of(world, r: Record) -> str:

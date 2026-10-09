@@ -1,74 +1,84 @@
-"""Beliefs for a finished run, rebuilt from its files with no model.
+"""Belief lines for reports (interview, compare, post-run). Plain text, no model.
 
-The event log plus the scenario is all a belief needs (see beliefs.py), so any
-saved run, old or new, can be replayed. Old week 3 runs have no claims in their
-logs: they just give the starting beliefs and the clue sightings. That is fine.
+Everything reads the belief log, so a run made before beliefs were logged
+simply has no log, and every function here copes with that (None).
 """
 
-import json
 from pathlib import Path
 
-from whisperwick import story
-from whisperwick.beliefs import BeliefState, replay
-from whisperwick.events import EventLog
-from whisperwick.llm_run import sidecar_path
-from whisperwick.player import PLAYER_ID
-from whisperwick.scenario import Scenario, load_scenario
+from whisperwick import trace
+from whisperwick.belief_log import BeliefLog
+from whisperwick.events import Event
+from whisperwick.llm_run import beliefs_path
 
-# Used when a run has no sidecar, or its scenario file has moved.
-DEFAULT_SCENARIO = Path(__file__).parent.parent / "scenarios" / "murder_of_the_mayor.yaml"
+NO_LOG = "No belief log for this run (an older run?): nothing to show."
 
 
-def scenario_for_run(db: str | Path) -> Scenario:
-    """The scenario named in the sidecar, else the default one."""
-    side = sidecar_path(db)
-    try:
-        path = json.loads(side.read_text()).get("scenario") if side.is_file() else None
-    except (OSError, ValueError):
-        path = None  # a broken sidecar just means: use the default
-    return load_scenario(path if path and Path(path).is_file() else DEFAULT_SCENARIO)
+def find_log(db: Path, sidecar: dict) -> Path | None:
+    """The belief file: the sidecar's 'belief_log' key, else <db>.beliefs.jsonl, else None."""
+    for path in (sidecar.get("belief_log"), beliefs_path(db)):
+        if path and Path(path).is_file():
+            return Path(path)
+    return None
 
 
-def beliefs_for_run(db: str | Path) -> BeliefState:
-    """Replay the run's events (read-only) into beliefs and trust."""
-    return replay(EventLog.read(str(db)), scenario_for_run(db))
+def load_beliefs(db: Path, sidecar: dict) -> BeliefLog | None:
+    path = find_log(db, sidecar)
+    return BeliefLog.read(path) if path else None
 
 
-def belief_answer(state: BeliefState, npc_id: str) -> dict:
-    """What the code says this villager believes: top suspect, never themselves."""
-    top = state.top(npc_id, exclude={npc_id})
-    return {
-        "belief_suspect": top[0] if top else None,
-        "belief_confidence": top[1] if top else None,
-    }
+def show(names: dict[str, str], thing_id: str) -> str:
+    return names.get(thing_id, thing_id)
 
 
-def pct(x: float) -> str:
-    return f"{x:.0%}"
+def suspect_cell(record: dict | None, names: dict[str, str]) -> str:
+    """e.g. 'Victor (fairly sure)', from the villager's latest record."""
+    if record is None:
+        return "no thoughts logged"
+    if record["suspect"] is None:
+        return "nobody"
+    return f"{show(names, record['suspect'])} ({record['sureness']})"
 
 
-def belief_text(suspect: str | None, confidence: float | None, names: dict[str, str]) -> str:
-    """e.g. 'Victor 65%', or '-' when the villager suspects nobody."""
-    return f"{story.show(names, suspect)} {pct(confidence)}" if suspect else "-"
+def interview_line(npc: str, answer: dict, log: BeliefLog, names: dict[str, str]) -> str:
+    """e.g. 'Bob: told the interviewer Victor; privately suspects Victor (fairly sure)'."""
+    told = show(names, answer["suspect"]) if answer["suspect"] else "no idea"
+    record = log.latest(npc)
+    private = "privately suspects " + suspect_cell(record, names)
+    return f"  {show(names, npc)}: told the interviewer {told}; {private}"
 
 
-def belief_cell(state: BeliefState | None, npc_id: str, names: dict[str, str]) -> str:
-    """One cell of the compare table. '-' when the run could not be replayed."""
-    if state is None:
-        return "-"
-    a = belief_answer(state, npc_id)
-    return belief_text(a["belief_suspect"], a["belief_confidence"], names)
+def trust_line(log: BeliefLog, names: dict[str, str]) -> str:
+    """e.g. 'Trust in the player: Alice high, Bob low, Hal not rated'."""
+    parts = []
+    for npc, rating in trace.trust_in_player(log).items():
+        parts.append(f"{show(names, npc)} {rating['level'] if rating else 'not rated'}")
+    return "Trust in the player: " + (", ".join(parts) or "-")
 
 
-def villagers(state: BeliefState) -> list[str]:
-    """Everyone who holds a belief or has a changed trust, except the player."""
-    return sorted((set(state.conf) | set(state.trust.pairs)) - {PLAYER_ID})
+def claims_by_actor(events: list[Event], names: dict[str, str]) -> str:
+    """e.g. 'Bob 1, Wren 2', or 'none'. Every talk that carried a claim, by who said it."""
+    counts: dict[str, int] = {}
+    for e in events:
+        if e.type == "talk" and e.data.get("claim"):
+            counts[show(names, e.actor)] = counts.get(show(names, e.actor), 0) + 1
+    return ", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none"
 
 
-def trust_in_player_line(state: BeliefState | None, names: dict[str, str]) -> str:
-    """e.g. 'Alice 30%, Bob 15%': each villager's final trust in the player."""
-    if state is None or not villagers(state):
-        return "-"
-    return ", ".join(
-        f"{story.show(names, v)} {pct(state.trust.get(v, PLAYER_ID))}" for v in villagers(state)
-    )
+def compare_lines(log: BeliefLog | None, events: list[Event], names: dict[str, str]) -> list[str]:
+    """One run's block for `compare`: latest suspects, trust in the player, counts."""
+    if log is None:
+        return ["    -"]
+    people = sorted({r["npc"] for r in log.records})
+    width = max((len(show(names, n)) for n in people), default=0) + 2
+    lines = [
+        f"    {show(names, n).ljust(width)}{suspect_cell(log.latest(n), names)}" for n in people
+    ]
+    own = trace.own_claims(events, log, names)
+    hunches = sum(1 for r in log.records if r.get("hunch"))
+    lines += [
+        f"    {trust_line(log, names)}",
+        f"    thoughts {len(log.records)}, hunches {hunches}, "
+        f"claims: {claims_by_actor(events, names)}; own-claims (no source): {len(own)}",
+    ]
+    return lines

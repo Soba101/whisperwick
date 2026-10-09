@@ -10,16 +10,12 @@ from dataclasses import dataclass
 
 from whisperwick.clock import Clock
 from whisperwick.events import Event
-from whisperwick.llm_client import LLMError
 from whisperwick.memory_text import describe, importance_of, name_of  # noqa: F401 (re-exported)
 from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
 # Each game minute makes a memory a little less recent.
 RECENCY_DECAY = 0.995
-REFLECTION_IMPORTANCE = 8
-REFLECTION_INPUT = 30  # how many recent memories a reflection reads
-REFLECTION_MAX_CHARS = 400  # a reflection is a few sentences, never an essay
 
 
 @dataclass
@@ -28,6 +24,17 @@ class Memory:
     text: str
     importance: int  # 1 (trivial) to 10 (life changing)
     kind: str = "observation"  # "observation" | "reflection" | "evidence"
+    # The world event behind this memory. None for evidence and looks: they are not events.
+    # A belief that cites this memory can then be traced back to what really happened.
+    event_id: int | None = None
+
+
+def memory_id(index: int) -> str:
+    """The id a belief uses to cite a memory: its place in the stream, e.g. 'm12'.
+
+    Streams are append-only, so a memory's index never changes and the id stays stable.
+    """
+    return f"m{index}"
 
 
 def words(text: str) -> set[str]:
@@ -41,8 +48,15 @@ class MemoryStream:
     def __init__(self):
         self.memories: list[Memory] = []
 
-    def add(self, tick: int, text: str, importance: int, kind: str = "observation") -> Memory:
-        memory = Memory(tick, text, importance, kind)
+    def add(
+        self,
+        tick: int,
+        text: str,
+        importance: int,
+        kind: str = "observation",
+        event_id: int | None = None,
+    ) -> Memory:
+        memory = Memory(tick, text, importance, kind, event_id)
         self.memories.append(memory)
         return memory
 
@@ -85,7 +99,8 @@ class Memories(UserDict):
             if npc_id == PLAYER_ID:
                 continue
             line = describe(event, world, npc_id)
-            self[npc_id].add(event.tick, line, importance_of(event, npc_id))
+            # Keep the event id, so a later belief can point back at this exact event.
+            self[npc_id].add(event.tick, line, importance_of(event, npc_id), event_id=event.id)
 
     def observe_look(
         self, npc_id: str, observation: dict, tick: int, world: World | None = None
@@ -121,40 +136,3 @@ def seed_evidence(memories: Memories, evidence: dict[str, list[str]], tick: int)
     for npc_id in sorted(evidence):
         for line in evidence[npc_id]:
             memories[npc_id].add(tick, line, 9, "evidence")
-
-
-REFLECTION_SCHEMA = {
-    "type": "object",
-    "properties": {"thoughts": {"type": "string", "maxLength": REFLECTION_MAX_CHARS}},
-    "required": ["thoughts"],
-}
-
-
-def reflect(stream: MemoryStream, npc_name: str, client, tick: int) -> Memory | None:
-    """Ask the model what this NPC now believes. None if the model fails."""
-    # Evidence always goes in: it is what this NPC knows for certain.
-    # (In the trial run Victor reflected without it and decided he was "framed".)
-    evidence = [m for m in stream.memories if m.kind == "evidence"]
-    recent = [m for m in stream.memories[-REFLECTION_INPUT:] if m.kind != "evidence"]
-    lines = "\n".join(f"- {m.text}" for m in [*evidence, *recent])
-    messages = [
-        {
-            "role": "system",
-            # In character, first person. The trial run's replies began with
-            # "The user is asking..." or a numbered plan, because nothing said who is thinking.
-            "content": f"You are {npc_name}, a villager. Stay in character. "
-            f"Your memories:\n{lines}",
-        },
-        {
-            "role": "user",
-            "content": "Think to yourself, in first person: in 1 to 3 short sentences, "
-            "what do you now believe and suspect?",
-        },
-    ]
-    try:
-        thoughts = client.chat(messages, REFLECTION_SCHEMA)["thoughts"]
-    except (LLMError, KeyError, TypeError):
-        return None  # a missed reflection is fine: the next one will catch up
-    # The server does not always enforce maxLength, so trim here and flatten newlines.
-    thoughts = " ".join(str(thoughts).split())[:REFLECTION_MAX_CHARS]
-    return stream.add(tick, thoughts, REFLECTION_IMPORTANCE, "reflection")
