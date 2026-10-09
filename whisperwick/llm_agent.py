@@ -1,0 +1,118 @@
+"""An NPC that is driven by a language model.
+
+The model only proposes an Intent. The engine (World.act) still decides
+what really happens. We never trust the model's output without that check.
+"""
+
+from collections.abc import Sequence
+
+from pydantic import ValidationError
+
+from whisperwick.actions import MAX_MESSAGE_CHARS, ActionResult, Intent
+from whisperwick.llm_client import LLMError
+from whisperwick.world import World
+
+ACTIONS = ["move", "talk", "look"]
+
+
+def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
+    """Exit location ids from here, and ids of the other NPCs here. Both sorted."""
+    here = world.npcs[npc_id].location
+    exits = sorted(world.locations[here].links)
+    people = [n for n in world.npcs_at(here) if n != npc_id]
+    return exits, people
+
+
+def intent_schema(world: World, npc_id: str) -> dict:
+    """JSON schema for this one turn.
+
+    Target can only be a real exit or a person here, so the model cannot
+    write a display name like "Victor" in place of "npc_victor".
+    """
+    exits, people = exits_and_people(world, npc_id)
+    return {
+        "type": "object",
+        "properties": {
+            "action": {"enum": ACTIONS},
+            "target": {"enum": [*exits, *people, None]},
+            "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
+        },
+        "required": ["action", "target", "message"],
+        "additionalProperties": False,
+    }
+
+
+def build_messages(
+    world: World, npc_id: str, memories: Sequence[str] = (), feedback: str | None = None
+) -> list[dict]:
+    """One compact system message: who I am, where I am, who and what is around."""
+    me = world.npcs[npc_id]
+    exits, people = exits_and_people(world, npc_id)
+    here = world.locations[me.location]
+    lines = [
+        f"You are {me.name} ({me.id}), the village {me.occupation}.",
+        "Reply only with JSON. Use exact ids, never names.",
+        # Spell out what each action needs. The schema alone cannot say
+        # "move takes an exit, talk takes a person".
+        "Actions: move (target = an exit id), talk (target = a person id, plus a message),"
+        " look (target = null).",
+        f"Time: {world.clock.label()}.",
+        f"You are at {here.id} ({here.name}).",
+        "Exits: " + ", ".join(f"{e} ({world.locations[e].name})" for e in exits),
+        "People here: "
+        + (", ".join(f"{p} ({world.npcs[p].name}, {world.npcs[p].occupation})" for p in people)
+           or "nobody"),
+    ]  # fmt: skip
+    if memories:
+        lines.append("You remember:")
+        lines += [f"- {m}" for m in memories]
+    if feedback:
+        # The engine's own words, so the model can fix its mistake.
+        lines.append(f"Your last action was rejected: {feedback}. Choose again.")
+    # A short user turn as well: chat models answer more reliably
+    # when there is a question to reply to, not only a system message.
+    return [
+        {"role": "system", "content": "\n".join(lines)},
+        {"role": "user", "content": "What do you do now?"},
+    ]
+
+
+def decide(
+    world: World,
+    npc_id: str,
+    client,
+    memories: Sequence[str] = (),
+    feedback: str | None = None,
+) -> Intent:
+    """Ask the model for an intent. Anything unusable becomes a harmless look."""
+    try:
+        reply = client.chat(
+            build_messages(world, npc_id, memories, feedback), intent_schema(world, npc_id)
+        )
+        # The actor is filled in by code. The model never chooses who it is.
+        return Intent(actor=npc_id, **reply)
+    except (LLMError, ValidationError, TypeError):
+        return Intent(actor=npc_id, action="look")
+
+
+def act(
+    world: World,
+    npc_id: str,
+    client,
+    memories: Sequence[str] = (),
+    stats: dict | None = None,
+) -> ActionResult:
+    """Decide and act. One retry with the engine's reason, then fall back to look.
+
+    stats, if given, counts {"calls", "rejected"} so a run can report its rejection rate.
+    """
+    stats = stats if stats is not None else {}
+    feedback = None
+    for _ in range(2):
+        result = world.act(decide(world, npc_id, client, memories, feedback))
+        stats["calls"] = stats.get("calls", 0) + 1
+        if result.ok:
+            return result
+        stats["rejected"] = stats.get("rejected", 0) + 1
+        feedback = result.reason
+    return world.act(Intent(actor=npc_id, action="look"))
