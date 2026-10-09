@@ -4,7 +4,7 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 1 — engine skeleton.** No LLM yet. Villagers can move, talk and look.
+> Status: **Week 2 — vertical slice.** See [docs/week2-plan.md](docs/week2-plan.md). Villagers can move, talk and look.
 
 ## The question
 
@@ -58,7 +58,7 @@ data/            local SQLite event logs (git-ignored)
 | 5 | Cheap model tier | Quality drop of an 8B model measured |
 | 6 | Evaluate and write up | **Gate 2:** GO / PIVOT / STOP |
 
-Everything runs locally (vLLM on an RTX 5090). No paid APIs.
+Everything runs locally (Ollama on an RTX 5090). No paid APIs.
 
 ## License
 
