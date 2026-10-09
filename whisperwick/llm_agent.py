@@ -53,6 +53,8 @@ def build_messages(
     lines = [
         f"You are {me.name} ({me.id}), the village {me.occupation}.",
         "Reply only with JSON. Use exact ids, never names.",
+        # The trial run invented ledgers, letters and gold. Facts belong to the engine.
+        "Only claim things you saw or were told. Never invent objects, records or events.",
         # Spell out what each action needs. The schema alone cannot say
         # "move takes an exit, talk takes a person".
         "Actions: move (target = an exit id), talk (target = a person id, plus a message),"
@@ -67,9 +69,7 @@ def build_messages(
     # A body is not a person you can talk to, but you can see it. Say so plainly.
     bodies = world.bodies_at(here.id)
     if bodies:
-        lines.append(
-            "Lying dead here: " + ", ".join(f"{b} ({world.npcs[b].name})" for b in bodies)
-        )
+        lines.append("Lying dead here: " + ", ".join(f"{b} ({world.npcs[b].name})" for b in bodies))
     if memories:
         lines.append("You remember:")
         lines += [f"- {m}" for m in memories]
@@ -91,7 +91,13 @@ def memory_lines(
     _, people = exits_and_people(world, npc_id)
     here = world.locations[world.npcs[npc_id].location]
     query = " ".join([*(world.npcs[p].name for p in people), here.name])
-    return [m.text for m in stream.retrieve(now_tick, query, k)]
+    # Evidence is always shown, first. In the Gate 1 trial run it decayed out of
+    # retrieval after a day, and Victor forgot he was the killer.
+    pinned = [m.text for m in stream.memories if m.kind == "evidence"]
+    recalled = [
+        m for m in stream.retrieve(now_tick, query, k + len(pinned)) if m.kind != "evidence"
+    ]
+    return pinned + [m.text for m in recalled[:k]]
 
 
 def decide(

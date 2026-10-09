@@ -127,3 +127,15 @@ def test_seed_evidence_adds_important_evidence_in_sorted_npc_order():
     first = memories["npc_alice"].memories[0]
     assert (first.tick, first.importance, first.kind) == (480, 9, "evidence")
     assert [m.text for m in memories["npc_alice"].memories] == evidence["npc_alice"]
+
+
+def test_reflection_always_reads_evidence_and_is_trimmed():
+    # Evidence older than the last 30 memories must still reach the reflection.
+    stream = MemoryStream()
+    stream.add(0, "I killed the mayor.", 9, "evidence")
+    for t in range(1, 50):
+        stream.add(t, f"Saw the market at minute {t}", 1)
+    client = FakeClient([{"thoughts": "line one\nline two " + "x" * 600}])
+    result = memory.reflect(stream, "Victor", client, 60)
+    assert "I killed the mayor." in client.calls[0]["messages"][0]["content"]
+    assert "\n" not in result.text and len(result.text) <= 400

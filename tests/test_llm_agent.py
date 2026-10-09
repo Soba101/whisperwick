@@ -129,3 +129,15 @@ def test_prompt_shows_bodies_here():
     world = fresh_world()
     text = llm_agent.build_messages(world, "npc_hal")[0]["content"]
     assert "Lying dead here: npc_mayor" in text
+
+
+def test_evidence_is_always_shown_first():
+    # Old evidence must not decay out of the prompt (trial run: Victor forgot his crime).
+    world = fresh_world()
+    stream = MemoryStream()
+    stream.add(0, "I killed the mayor.", 9, "evidence")
+    for t in range(1, 40):
+        stream.add(t * 60, f"Chatted at minute {t}", 6)
+    lines = llm_agent.memory_lines(stream, 3000, world, "npc_victor", k=5)
+    assert lines[0] == "I killed the mayor."
+    assert len(lines) == 6

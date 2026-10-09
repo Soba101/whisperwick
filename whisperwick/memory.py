@@ -17,6 +17,7 @@ from whisperwick.world import World
 RECENCY_DECAY = 0.995
 REFLECTION_IMPORTANCE = 8
 REFLECTION_INPUT = 30  # how many recent memories a reflection reads
+REFLECTION_MAX_CHARS = 400  # a reflection is a few sentences, never an essay
 
 
 @dataclass
@@ -142,23 +143,36 @@ def seed_evidence(memories: Memories, evidence: dict[str, list[str]], tick: int)
 
 REFLECTION_SCHEMA = {
     "type": "object",
-    "properties": {"thoughts": {"type": "string", "maxLength": 400}},
+    "properties": {"thoughts": {"type": "string", "maxLength": REFLECTION_MAX_CHARS}},
     "required": ["thoughts"],
 }
 
 
 def reflect(stream: MemoryStream, npc_name: str, client, tick: int) -> Memory | None:
     """Ask the model what this NPC now believes. None if the model fails."""
-    recent = "\n".join(f"- {m.text}" for m in stream.memories[-REFLECTION_INPUT:])
+    # Evidence always goes in: it is what this NPC knows for certain.
+    # (In the trial run Victor reflected without it and decided he was "framed".)
+    evidence = [m for m in stream.memories if m.kind == "evidence"]
+    recent = [m for m in stream.memories[-REFLECTION_INPUT:] if m.kind != "evidence"]
+    lines = "\n".join(f"- {m.text}" for m in [*evidence, *recent])
     messages = [
-        {"role": "system", "content": f"You are {npc_name}. Your recent memories:\n{recent}"},
+        {
+            "role": "system",
+            # In character, first person. The trial run's replies began with
+            # "The user is asking..." or a numbered plan, because nothing said who is thinking.
+            "content": f"You are {npc_name}, a villager. Stay in character. "
+            f"Your memories:\n{lines}",
+        },
         {
             "role": "user",
-            "content": "In 1 to 3 short sentences, what do you now believe and suspect?",
+            "content": "Think to yourself, in first person: in 1 to 3 short sentences, "
+            "what do you now believe and suspect?",
         },
     ]
     try:
         thoughts = client.chat(messages, REFLECTION_SCHEMA)["thoughts"]
     except (LLMError, KeyError, TypeError):
         return None  # a missed reflection is fine: the next one will catch up
+    # The server does not always enforce maxLength, so trim here and flatten newlines.
+    thoughts = " ".join(str(thoughts).split())[:REFLECTION_MAX_CHARS]
     return stream.add(tick, thoughts, REFLECTION_IMPORTANCE, "reflection")
