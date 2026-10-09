@@ -8,7 +8,8 @@ from typing import Annotated
 
 import typer
 
-from whisperwick import compare_command, llm_run, run_report, settings, story
+from whisperwick import compare_command, llm_run, run_report, settings, story, trace_command
+from whisperwick.beliefs import BeliefState
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import OllamaClient
@@ -74,11 +75,20 @@ def run_with_llm(
     # Hourly progress would clutter a human's screen, so terminal play skips it.
     on_hour = None if isinstance(player, TerminalPlayer) else progress
     stats = {"player_rejected": []} if player else {}
+    # Beliefs start from the scenario and follow every event of the run.
     memories, stats = run_llm(
-        world, client, minutes, stats=stats, evidence=sc.evidence, on_hour=on_hour, player=player
+        world,
+        client,
+        minutes,
+        stats=stats,
+        evidence=sc.evidence,
+        on_hour=on_hour,
+        player=player,
+        beliefs=BeliefState.from_scenario(sc),
+        goals=sc.goals,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
-    extra = run_report.after_run(world, memories, client, stats)
+    extra = run_report.after_run(world, memories, client, stats, sc)
     typer.echo(f"\n{llm_run.stats_line(stats)}")
     typer.echo("Interview (who killed the mayor?):")
     names = {i: n.name for i, n in world.npcs.items()}
@@ -172,6 +182,20 @@ def compare_command_(
     """Compare runs side by side: suspects, items, key events. No model is called."""
     try:
         typer.echo(compare_command.compare_runs(dbs))
+    except FileNotFoundError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command("trace")
+def trace_command_(
+    db: Annotated[Path, typer.Argument(help="Event log from an llm run.")],
+    subject: Annotated[str, typer.Argument(help="Person id, e.g. npc_hal.")],
+    as_json: Annotated[bool, typer.Option("--json", help="Print the trace as JSON.")] = False,
+) -> None:
+    """Who believes SUBJECT killed the mayor, and via whom. No model is called."""
+    try:
+        typer.echo(trace_command.trace_run(db, subject, as_json))
     except FileNotFoundError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e

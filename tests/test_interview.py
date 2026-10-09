@@ -168,4 +168,4 @@ def test_run_stores_interview_and_items_in_sidecar(monkeypatch, tmp_path):
     assert side["interview"]["npc_bob"]["suspect"] == "npc_victor"
     assert "npc_mayor" not in side["interview"] and "player" not in side["interview"]
     assert side["items"]["item_knife"]["location"] == "loc_town_hall"
-    assert "Bob -> Victor" in result.output
+    assert "Bob: model says Victor, beliefs say Victor 50%" in result.output

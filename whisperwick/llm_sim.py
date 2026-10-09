@@ -6,10 +6,12 @@ Each minute the scheduler picks who gets a model call. Everyone else waits.
 from collections.abc import Callable
 
 from whisperwick import llm_agent, memory
+from whisperwick.beliefs import BeliefState
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.player_turn import apply_player_turn
+from whisperwick.repeat_guard import ActionHistory
 from whisperwick.scheduler import SLEEP_START, Scheduler
 from whisperwick.world import World
 
@@ -26,6 +28,10 @@ def run_llm(
     on_hour: Callable[[World, dict], None] | None = None,
     # Optional human or script playing the player. None = the player stays idle.
     player: PlayerSource | None = None,
+    # Optional beliefs (see beliefs.py). None = NPCs see no beliefs and nothing is tracked.
+    beliefs: BeliefState | None = None,
+    # One-sentence goals: npc id -> goal. Shown in each NPC's prompt.
+    goals: dict[str, str] | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -34,24 +40,34 @@ def run_llm(
     # The player is left out too: no model calls, no memory stream, no reflection.
     living = sorted(n for n in world.npcs if world.npcs[n].alive and n != PLAYER_ID)
     scheduler = Scheduler(living)
+    goals = goals or {}
+    # What NPCs did this run, for the repeat guard. Agent side only, never world state.
+    history = ActionHistory()
     # Private starting knowledge goes in before the first turn.
     if evidence:
         memory.seed_evidence(memories, evidence, world.clock.tick)
     for _ in range(minutes):
         tick = world.clock.tick
         # The player goes first, even at night, so NPCs react to them this same minute.
-        if player and not apply_player_turn(world, player, memories, scheduler, stats):
+        if player and not apply_player_turn(
+            world, player, memories, scheduler, stats, beliefs
+        ):
             break  # the player quit
         # NPCs act one by one, not all at once. A later NPC sees what an earlier one did
         # this same minute. Order is sorted ids, so it is still deterministic
         # for a given model output.
         for npc in scheduler.due(tick):
             lines = llm_agent.memory_lines(memories[npc], tick, world, npc)
-            result = llm_agent.act(world, npc, client, lines, stats)
+            result = llm_agent.act(
+                world, npc, client, lines, stats, beliefs, goals.get(npc), history
+            )
             scheduler.acted(npc, tick)
             if result.event:
                 # Remember right away, before anyone else moves (see Memories.observe).
                 memories.observe(result.event, world)
+                # Beliefs hear it the same minute, so the next NPC already sees the change.
+                if beliefs is not None:
+                    beliefs.apply(result.event)
                 scheduler.notice(result.event)
             if result.observation:
                 memories.observe_look(npc, result.observation, tick, world)

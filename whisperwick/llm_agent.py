@@ -8,9 +8,12 @@ from collections.abc import Sequence
 
 from pydantic import ValidationError
 
-from whisperwick.actions import MAX_MESSAGE_CHARS, ActionResult, Intent
+from whisperwick import belief_text
+from whisperwick.actions import CLAIM_KINDS, MAX_MESSAGE_CHARS, ActionResult, Intent
+from whisperwick.beliefs import BeliefState
 from whisperwick.llm_client import LLMError
 from whisperwick.memory import MemoryStream
+from whisperwick.repeat_guard import ActionHistory, repeat_reason
 from whisperwick.world import World
 
 ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show"]
@@ -30,9 +33,14 @@ def usable_items(world: World, npc_id: str) -> list[str]:
     return sorted({*world.items_at(here), *world.items_held(npc_id)})
 
 
-def item_lines(world: World, ids: list[str]) -> str:
-    """'id (name: description)' for each item, or 'nothing'."""
-    return (", ".join(f"{i} ({world.items[i].name}: {world.items[i].description})" for i in ids)
+def item_lines(world: World, ids: list[str], marks: dict[str, str] | None = None) -> str:
+    """'id (name: description)' for each item, or 'nothing'.
+
+    marks adds a short warning after an item id, e.g. " - this points to you!".
+    """
+    marks = marks or {}
+    return (", ".join(f"{i} ({world.items[i].name}: {world.items[i].description}){marks.get(i, '')}"
+                      for i in ids)
             or "nothing")  # fmt: skip
 
 
@@ -51,21 +59,37 @@ def intent_schema(world: World, npc_id: str) -> dict:
             "target": {"enum": [*exits, *people, None]},
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
+            # A claim is two FLAT fields, not a nested object: llama.cpp grammars
+            # handle flat enums better. Both are null unless the model is making a claim.
+            "claim_kind": {"enum": [*CLAIM_KINDS, None]},
+            "claim_subject": {"enum": [*sorted(world.npcs), None]},
         },
-        "required": ["action", "target", "item", "message"],
+        "required": ["action", "target", "item", "message", "claim_kind", "claim_subject"],
         "additionalProperties": False,
     }
 
 
 def build_messages(
-    world: World, npc_id: str, memories: Sequence[str] = (), feedback: str | None = None
+    world: World,
+    npc_id: str,
+    memories: Sequence[str] = (),
+    feedback: str | None = None,
+    # Week 4, all optional: with none of them the prompt is exactly as before.
+    beliefs: BeliefState | None = None,
+    goal: str | None = None,
+    history: ActionHistory | None = None,
 ) -> list[dict]:
     """One compact system message: who I am, where I am, who and what is around."""
     me = world.npcs[npc_id]
     exits, people = exits_and_people(world, npc_id)
     here = world.locations[me.location]
+    # Items that point at me get a warning, so I do not hand over my own evidence.
+    marks = belief_text.points_to_marks(beliefs, npc_id)
     lines = [
         f"You are {me.name} ({me.id}), the village {me.occupation}.",
+        *([f"Your goal: {goal}"] if goal else []),
+        *(belief_text.belief_lines(world, beliefs, npc_id) if beliefs else []),
+        *(belief_text.trust_line(world, beliefs, npc_id, people) if beliefs else []),
         "Reply only with JSON. Use exact ids, never names.",
         # The trial run invented ledgers, letters and gold. Facts belong to the engine.
         "Only claim things you saw or were told. Never invent objects, records or events.",
@@ -81,13 +105,17 @@ def build_messages(
         "People here: "
         + (", ".join(f"{p} ({world.npcs[p].name}, {world.npcs[p].occupation})" for p in people)
            or "nobody"),
-        "Items on the ground here: " + item_lines(world, world.items_at(here.id)),
-        "You carry: " + item_lines(world, world.items_held(npc_id)),
+        "Items on the ground here: " + item_lines(world, world.items_at(here.id), marks),
+        "You carry: " + item_lines(world, world.items_held(npc_id), marks),
     ]  # fmt: skip
     # A body is not a person you can talk to, but you can see it. Say so plainly.
     bodies = world.bodies_at(here.id)
     if bodies:
         lines.append("Lying dead here: " + ", ".join(f"{b} ({world.npcs[b].name})" for b in bodies))
+    # What I already said to the people in front of me, so I can see when I repeat myself.
+    lines += belief_text.last_words(world, history, npc_id, people)
+    if beliefs is not None:
+        lines.append(belief_text.CLAIM_RULE)
     if memories:
         lines.append("You remember:")
         lines += [f"- {m}" for m in memories]
@@ -130,15 +158,27 @@ def decide(
     memories: Sequence[str] = (),
     feedback: str | None = None,
     stats: dict | None = None,
+    beliefs: BeliefState | None = None,
+    goal: str | None = None,
+    history: ActionHistory | None = None,
 ) -> Intent:
     """Ask the model for an intent. Anything unusable becomes a harmless look.
 
     stats, if given, counts {"errors"} and keeps "last_error", so failures are not silent.
     """
     try:
-        reply = client.chat(
-            build_messages(world, npc_id, memories, feedback), intent_schema(world, npc_id)
+        reply = dict(
+            client.chat(
+                build_messages(world, npc_id, memories, feedback, beliefs, goal, history),
+                intent_schema(world, npc_id),
+            )
         )
+        # The two flat claim fields become one Claim, but only on a talk with both set.
+        # Anything else is model noise and is dropped quietly, not counted as an error.
+        # pop(key, None) keeps old clients that never send the fields working.
+        kind, subject = reply.pop("claim_kind", None), reply.pop("claim_subject", None)
+        if reply.get("action") == "talk" and kind and subject:
+            reply["claim"] = {"kind": kind, "subject": subject}
         # The actor is filled in by code. The model never chooses who it is.
         return Intent(actor=npc_id, **reply)
     except (LLMError, ValidationError, TypeError) as e:
@@ -154,15 +194,29 @@ def act(
     client,
     memories: Sequence[str] = (),
     stats: dict | None = None,
+    beliefs: BeliefState | None = None,
+    goal: str | None = None,
+    history: ActionHistory | None = None,
 ) -> ActionResult:
     """Decide and act. One retry with the engine's reason, then fall back to look.
 
-    stats, if given, counts {"calls", "rejected", "errors"} so a run can report its rejection rate.
+    stats, if given, counts {"calls", "rejected", "errors", "repeats"}
+    so a run can report its rejection rate.
     """
     stats = stats if stats is not None else {}
     feedback = None
     for _ in range(2):
-        result = world.act(decide(world, npc_id, client, memories, feedback, stats))
+        intent = decide(world, npc_id, client, memories, feedback, stats, beliefs, goal, history)
+        # Repeat guard (#12): refuse a pointless repeat before the engine sees it.
+        # It counts as a rejection, so the one-retry flow below stays the same.
+        reason = repeat_reason(world, history, intent) if history is not None else None
+        if reason:
+            stats["repeats"] = stats.get("repeats", 0) + 1
+            result = ActionResult(False, reason)
+        else:
+            result = world.act(intent)
+            if result.ok and history is not None:
+                history.record(world.clock.tick, intent)
         stats["calls"] = stats.get("calls", 0) + 1
         if result.ok:
             return result

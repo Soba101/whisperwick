@@ -51,6 +51,13 @@ Compare runs side by side (suspects, where items ended up, key events), no model
 uv run whisperwick compare data/run-a.db data/run-b.db
 ```
 
+Trace a rumour: who believes that Hal did it, and via whom (rebuilt from the log, no model;
+add `--json` for the same thing as data):
+
+```bash
+uv run whisperwick trace data/run-a.db npc_hal
+```
+
 ## How an agent acts
 
 Agents never touch the world directly. They send an intent, and the engine decides:

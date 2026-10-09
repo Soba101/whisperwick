@@ -8,7 +8,7 @@ sidecar is {}, and anything it lacks shows as "-" (old runs have no interview).
 import json
 from pathlib import Path
 
-from whisperwick import story
+from whisperwick import belief_report, story
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_run import rejection_rate, sidecar_path
@@ -24,7 +24,12 @@ def load_run(db: Path) -> dict:
     """Read one run's events and sidecar. A missing sidecar just means less data."""
     side = sidecar_path(db)
     sidecar = json.loads(side.read_text()) if side.is_file() else {}
-    return {"name": db.name, "events": story.read_events(db), "sidecar": sidecar}
+    # Beliefs are replayed from the events, so old runs without them still work.
+    try:
+        state = belief_report.beliefs_for_run(db)
+    except Exception:  # a broken scenario file must not stop the rest of the report
+        state = None
+    return {"name": db.name, "events": story.read_events(db), "sidecar": sidecar, "beliefs": state}
 
 
 def load_names(runs: list[dict]) -> dict[str, str]:
@@ -68,6 +73,23 @@ def suspect_table(runs: list[dict], names: dict[str, str]) -> list[str]:
     for n in npcs:
         grid.append([story.show(names, n), *(suspect_of(r, n, names) for r in runs)])
     return ["Suspects:", *table(grid, "  ")] if npcs else ["Suspects: -"]
+
+
+def belief_table(runs: list[dict], names: dict[str, str]) -> list[str]:
+    """What the code says each villager believes at the end (replayed, not asked)."""
+    states = [r.get("beliefs") for r in runs]
+    npcs = sorted({n for s in states if s for n in belief_report.villagers(s)})
+    if not npcs:
+        return ["Beliefs: -"]
+    grid = [["NPC", *(r["name"] for r in runs)]]
+    for n in npcs:
+        cells = [belief_report.belief_cell(s, n, names) for s in states]
+        grid.append([story.show(names, n), *cells])
+    out = ["Beliefs (from the log):", *table(grid, "  "), "", "Trust in the player at the end:"]
+    return out + [
+        f"  {r['name']}: {belief_report.trust_in_player_line(s, names)}"
+        for r, s in zip(runs, states, strict=True)
+    ]
 
 
 def vote_line(run: dict, names: dict[str, str]) -> str:
@@ -117,6 +139,7 @@ def format_compare(runs: list[dict], names: dict[str, str]) -> str:
     """The whole report."""
     out = [*header_rows(runs), "", *suspect_table(runs, names), "", "Votes:"]
     out += [f"  {vote_line(r, names)}" for r in runs]
+    out += ["", *belief_table(runs, names)]
     out += ["", "Items at the end:", *(f"  {item_line(r, names)}" for r in runs)]
     out += ["", "Key events:"]
     for r in runs:
