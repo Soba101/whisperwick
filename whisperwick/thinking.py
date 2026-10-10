@@ -6,61 +6,25 @@ A suspect with no valid citation is kept, but marked as a "hunch" (the #11 measu
 Agent side only: never part of World state or state_hash.
 """
 
+from typing import NamedTuple
+
 from whisperwick import aims, belief_text
 from whisperwick.belief_log import BeliefLog
 from whisperwick.llm_client import LLMError
 from whisperwick.memory import Memory, MemoryStream
 from whisperwick.thought_people import people_ids, shown_memories
+from whisperwick.thought_schema import (  # noqa: F401  (limits are re-exported for callers)
+    LEVELS,
+    MAX_BECAUSE,
+    MAX_TRUST,
+    OF_WHAT_MAX_CHARS,
+    SURENESS,
+    THOUGHTS_MAX_CHARS,
+    WHY_MAX_CHARS,
+    schema,
+)
 
 REFLECTION_IMPORTANCE = 8
-THOUGHTS_MAX_CHARS = 400  # a thought is a few sentences, never an essay
-WHY_MAX_CHARS = 150
-OF_WHAT_MAX_CHARS = 100  # e.g. "killing the mayor", in the villager's own words
-MAX_BECAUSE = 5
-MAX_TRUST = 6
-SURENESS = ["unsure", "fairly sure", "certain"]
-LEVELS = ["low", "medium", "high"]
-
-
-def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
-    """Enums everywhere, so the model can only name real people and memories it was shown."""
-    suspects, trusted = people_ids(world, npc_id)
-    return {
-        "type": "object",
-        "properties": {
-            "thoughts": {"type": "string", "maxLength": THOUGHTS_MAX_CHARS},
-            # Who they truly believe did it (their private belief).
-            "suspect": {"enum": [*suspects, None]},
-            # What they suspect that person of, in their own words. The code never names a crime:
-            # a villager only knows about the murder if it saw the body or was told.
-            "of_what": {"type": ["string", "null"], "maxLength": OF_WHAT_MAX_CHARS},
-            "sureness": {"enum": SURENESS},
-            # Who they mean to accuse out loud, if anyone. May differ from suspect: that is
-            # how belief and intention are recorded apart. Only living others can be named.
-            "will_accuse": {"enum": [*trusted, None]},
-            # What they want to do next, in their own words (see aims.py). May be null.
-            **aims.schema_properties(),
-            "because": {"type": "array", "maxItems": MAX_BECAUSE, "items": {"enum": memory_ids}},
-            "trust": {
-                "type": "array",
-                "maxItems": MAX_TRUST,
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "person": {"enum": trusted},
-                        "level": {"enum": LEVELS},
-                        "why": {"type": "string", "maxLength": WHY_MAX_CHARS},
-                    },
-                    "required": ["person", "level", "why"],
-                },
-            },
-        },
-        "required": [
-            "thoughts", "suspect", "of_what", "sureness", "will_accuse", "aim", "aim_status",
-            "because", "trust",
-        ],  # fmt: skip
-    }
-
 
 def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> list[dict]:
     """In character, first person. Without this the model answers as an assistant."""
@@ -143,29 +107,39 @@ def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: di
             "because": because[:MAX_BECAUSE], "trust": trust[:MAX_TRUST]}  # fmt: skip
 
 
-def think(
-    stream: MemoryStream,
-    npc_id: str,
-    world,
-    client,
-    tick: int,
-    personality: str | None,
-    belief_log: BeliefLog,
-    stats: dict | None = None,
-) -> dict | None:
-    """One thought. Returns the new belief record, or None if the model failed.
+class Prepared(NamedTuple):
+    """Everything one thinking call needs. Built in the main thread; the call may run anywhere."""
 
-    Stores a reflection memory (what the villager remembers thinking) and a belief record.
-    stats, if given, counts bad_citations, hunches and thought_errors.
-    """
-    stats = stats if stats is not None else {}
+    shown: dict[str, Memory]
+    messages: list[dict]
+    schema: dict
+
+
+def prepare(stream, npc_id, world, personality, belief_log) -> Prepared | None:
+    """Read this villager's own memories and the world; build the call. None = nothing to think."""
     shown = shown_memories(stream)
     if not shown:
         return None  # nothing to think about yet, and an empty enum is not a valid schema
     prompt = messages(world, npc_id, personality, shown, belief_log.latest(npc_id))
+    return Prepared(shown, prompt, schema(world, npc_id, list(shown)))
+
+
+def finish(
+    stream: MemoryStream,
+    npc_id: str,
+    world,
+    tick: int,
+    belief_log: BeliefLog,
+    prepared: Prepared,
+    outcome,
+    stats: dict,
+) -> dict | None:
+    """Turn the call's reply (or the exception it raised) into a record. None if it failed."""
+    shown = prepared.shown
     try:
-        reply = client.chat(prompt, schema(world, npc_id, list(shown)))
-        record = checked(reply, shown, world, npc_id, stats)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        record = checked(outcome, shown, world, npc_id, stats)
     except (LLMError, KeyError, TypeError, ValueError) as e:
         # A missed thought is fine: the next one will catch up. Count it, never crash.
         stats["thought_errors"] = stats.get("thought_errors", 0) + 1
@@ -184,3 +158,30 @@ def think(
     stream.add(tick, record["thoughts"], REFLECTION_IMPORTANCE, "reflection")
     belief_log.add(record)
     return record
+
+
+def think(
+    stream: MemoryStream,
+    npc_id: str,
+    world,
+    client,
+    tick: int,
+    personality: str | None,
+    belief_log: BeliefLog,
+    stats: dict | None = None,
+) -> dict | None:
+    """One thought. Returns the new belief record, or None if the model failed.
+
+    Stores a reflection memory (what the villager remembers thinking) and a belief record.
+    stats, if given, counts bad_citations, hunches and thought_errors.
+    The parallel run loop calls prepare and finish itself, with the model calls in between.
+    """
+    stats = stats if stats is not None else {}
+    prepared = prepare(stream, npc_id, world, personality, belief_log)
+    if prepared is None:
+        return None
+    try:
+        outcome = client.chat(prepared.messages, prepared.schema)
+    except (LLMError, KeyError, TypeError, ValueError) as e:
+        outcome = e
+    return finish(stream, npc_id, world, tick, belief_log, prepared, outcome, stats)

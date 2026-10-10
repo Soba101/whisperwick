@@ -5,7 +5,7 @@ Each minute the scheduler picks who gets a model call. Everyone else waits.
 
 from collections.abc import Callable
 
-from whisperwick import llm_agent, memory, thinking
+from whisperwick import llm_agent, memory, parallel_calls, thinking
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
@@ -38,6 +38,8 @@ def run_llm(
     personalities: dict[str, str] | None = None,
     # Where thoughts are kept. None = an in-memory log that the caller never sees.
     belief_log: BeliefLog | None = None,
+    # How many thinking calls may be in flight at once. 1 = one after another, as before.
+    parallel: int = 1,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -85,11 +87,21 @@ def run_llm(
         now = world.clock.tick
         bedtime = now % MINUTES_PER_DAY == SLEEP_START * 60
         if bedtime or (now % THINK_EVERY == 0 and not scheduler.asleep(now)):
-            # Sorted ids, so the order of model calls (and the log) is the same every run.
-            for npc in living:
-                if thinking.think(
-                    memories[npc], npc, world, client, now,
-                    personalities.get(npc), belief_log, stats,
+            # A thought only reads its own villager's memories, the villager's last belief
+            # and the world (which does not change now). So the model calls can overlap.
+            # Prepared and applied in sorted ids, so the result matches a one-by-one run.
+            prepared = {
+                npc: thinking.prepare(memories[npc], npc, world, personalities.get(npc), belief_log)
+                for npc in living
+            }
+            todo = [npc for npc in living if prepared[npc] is not None]
+            outcomes = parallel_calls.run_all(
+                [lambda p=prepared[npc]: client.chat(p.messages, p.schema) for npc in todo],
+                parallel,
+            )
+            for npc, outcome in zip(todo, outcomes, strict=True):
+                if thinking.finish(
+                    memories[npc], npc, world, now, belief_log, prepared[npc], outcome, stats,
                 ):  # fmt: skip
                     stats["thoughts"] = stats.get("thoughts", 0) + 1
         # Reported last, so the hour's thoughts are already in the stats.

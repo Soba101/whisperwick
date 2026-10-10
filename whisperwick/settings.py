@@ -36,3 +36,17 @@ def llm_base_url(env_path: Path = ENV_PATH) -> str | None:
 
 def llm_model(env_path: Path = ENV_PATH) -> str | None:
     return get("LLM_MODEL", env_path)
+
+
+def parallel(env_path: Path = ENV_PATH) -> int:
+    """How many thinking calls to send at once (WHISPERWICK_PARALLEL). Default 1 = one by one."""
+    raw = get("WHISPERWICK_PARALLEL", env_path)
+    if raw is None:
+        return 1
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 0
+    if value < 1:
+        raise ValueError(f"WHISPERWICK_PARALLEL must be a whole number >= 1, got {raw!r}")
+    return value

@@ -26,3 +26,21 @@ def test_environment_beats_env_file(tmp_path, monkeypatch):
 def test_missing_file_and_missing_key_give_none(tmp_path, monkeypatch):
     monkeypatch.delenv("LLM_BASE_URL", raising=False)
     assert settings.llm_base_url(tmp_path / "nope.env") is None
+
+
+def test_parallel_defaults_to_one_and_reads_a_number(tmp_path, monkeypatch):
+    monkeypatch.delenv("WHISPERWICK_PARALLEL", raising=False)
+    assert settings.parallel(tmp_path / "nope.env") == 1
+    assert settings.parallel(write_env(tmp_path, "WHISPERWICK_PARALLEL=4\n")) == 4
+
+
+def test_bad_parallel_values_raise(tmp_path, monkeypatch):
+    monkeypatch.delenv("WHISPERWICK_PARALLEL", raising=False)
+    for bad in ("0", "-2", "two", "1.5"):
+        path = write_env(tmp_path, f"WHISPERWICK_PARALLEL={bad}\n")
+        try:
+            settings.parallel(path)
+        except ValueError as e:
+            assert "WHISPERWICK_PARALLEL" in str(e)
+        else:
+            raise AssertionError(f"{bad} should have raised")

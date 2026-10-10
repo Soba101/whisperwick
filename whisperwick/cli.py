@@ -76,6 +76,11 @@ def run_with_llm(
     """
     # Check settings first, so a bad setup leaves no empty db file behind.
     base_url, model = llm_settings()
+    try:
+        parallel = settings.parallel()
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
     Path(db).parent.mkdir(parents=True, exist_ok=True)
     world = build_world(sc, db, seed=seed)
     started = time.monotonic()
@@ -100,6 +105,7 @@ def run_with_llm(
         player=player,
         personalities=sc.personality,
         belief_log=belief_log,
+        parallel=parallel,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
     extra = run_report.after_run(world, memories, client, stats)
