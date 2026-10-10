@@ -15,6 +15,7 @@ from whisperwick import (
     judge_command,
     llm_run,
     outcome_command,
+    replay_command,
     run_report,
     settings,
     story,
@@ -273,6 +274,22 @@ def eval_command_(
     """Code-only measures per run, then a summary across runs. No model is called."""
     try:
         typer.echo(eval_command.eval_runs(dbs))
+    except FileNotFoundError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command("replay")
+def replay_command_(
+    db: Annotated[Path, typer.Argument(help="Event log from a finished run.")],
+    out: Annotated[Path | None, typer.Option(help="Where to write the HTML page.")] = None,
+    scenario: Annotated[
+        Path | None, typer.Option(help="Scenario YAML for names and the map.")
+    ] = None,
+) -> None:
+    """Write one self-contained HTML page that replays the run. World facts only."""
+    try:
+        typer.echo(f"Wrote {replay_command.replay_run(db, out, scenario)}")
     except FileNotFoundError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
