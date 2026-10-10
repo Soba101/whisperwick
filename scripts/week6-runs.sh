@@ -12,14 +12,16 @@ DAYS=3
 # One job per line: name seed player-script memory(on|off).
 # Main grid: 5 seeds x 3 scripts, villager memory on.
 # Baseline: 3 seeds x none, villager memory off (week 5 prompts), same seeds.
+# Ordered by seed, each seed's baseline right after it, so a batch cut short still has
+# whole seeds and a memory on/off pair to compare.
 jobs=()
 for seed in 1 2 3 4 5; do
   for s in none blame_hal accuse_victor; do
     jobs+=("s${seed}-${s} $seed $s on")
   done
-done
-for seed in 1 2 3; do
-  jobs+=("s${seed}-none-off $seed none off")
+  if (( seed <= 3 )); then
+    jobs+=("s${seed}-none-off $seed none off")
+  fi
 done
 
 run_one() {
