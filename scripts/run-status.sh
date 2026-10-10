@@ -24,7 +24,9 @@ DAYS=3  # runs are 3 game days, from day 1 08:00 to day 4 08:00
 [ -n "$ZSH_VERSION" ] && setopt nullglob
 # Say so plainly when there is nothing to show, instead of printing nothing.
 # (Runs and their logs only exist on the machine that ran them: the Mac.)
-if ! ls data/${prefix}*.log >/dev/null 2>&1; then
+# Collect the matches. zsh counts arrays from 1 and bash from 0, so check both slots.
+logs=(data/${prefix}*.log)
+if [ ! -e "${logs[0]:-none}" ] && [ ! -e "${logs[1]:-none}" ]; then
   echo "No run logs matching data/${prefix}*.log in $(pwd)."
   echo "Runs live on the Mac in ~/DocumentsMac/Codes/whisperwick/data/."
   exit 0
