@@ -39,11 +39,21 @@ run_one() {
 }
 
 # Simple queue: start up to AT_ONCE runs, wait for any to end, start the next.
+# We keep our own list of process ids: `$(jobs -r)` runs in a subshell, which sees no
+# jobs, so a first version of this script started all 18 runs at once.
+running=()
 for job in "${jobs[@]}"; do
-  while (( $(jobs -r | wc -l) >= AT_ONCE )); do
+  while true; do
+    alive=()
+    for pid in "${running[@]}"; do
+      kill -0 $pid 2>/dev/null && alive+=($pid)
+    done
+    running=("${alive[@]}")
+    (( ${#running[@]} < AT_ONCE )) && break
     sleep 15
   done
   run_one ${=job} &
+  running+=($!)
   sleep 2  # stagger starts a little
 done
 wait
