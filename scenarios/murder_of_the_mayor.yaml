@@ -38,6 +38,10 @@ items:
     description: Victor's boots, caked in fresh mud
     holder: npc_victor
 
+# Who may arrest and release people. A fact about the world, like who holds an item.
+# It says who CAN hold someone, never who will or should.
+authority: [npc_hal]
+
 # Ground truth. Only the engine sees this. Villagers must learn it through events.
 secrets:
   murderer: npc_victor

@@ -7,6 +7,13 @@ from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.world import World
 
 ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show"]
+# Only villagers the scenario names as authority are offered these.
+AUTHORITY_ACTIONS = ["arrest", "release"]
+
+
+def actions_for(world: World, npc_id: str) -> list[str]:
+    """The actions this villager may choose: arrest and release only for authority."""
+    return [*ACTIONS, *AUTHORITY_ACTIONS] if npc_id in world.authority else list(ACTIONS)
 
 
 def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
@@ -40,7 +47,7 @@ def intent_schema(world: World, npc_id: str) -> dict:
     return {
         "type": "object",
         "properties": {
-            "action": {"enum": ACTIONS},
+            "action": {"enum": actions_for(world, npc_id)},
             "target": {"enum": [*exits, *people, None]},
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},

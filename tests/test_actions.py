@@ -67,6 +67,7 @@ def test_look_shows_the_room_and_changes_nothing():
         "bodies": [],
         "items": [],  # Victor's boots are held, so not on the ground
         "holding": [],
+        "held": [],
     }
     assert world.state_hash() == before
 

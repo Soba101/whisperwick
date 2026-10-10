@@ -87,3 +87,25 @@ def last_words(world, history: ActionHistory | None, npc_id: str, people: list[s
     if not records:
         return []
     return ["Your last words here:", *[f"- {say_of(world, r)}" for r in records]]
+
+
+# Plain facts about custody. They never say whom to arrest, or whether to.
+WORDS_RULE = "Words alone never hold anyone; only an arrest does."
+
+
+def custody_lines(world, npc_id: str) -> list[str]:
+    """Custody facts for this villager's prompt."""
+    me = world.npcs[npc_id]
+    lines = [WORDS_RULE]
+    if npc_id in world.authority:
+        # The role comes from the world, not from a hardcoded word.
+        lines.append(
+            f"As the {me.occupation}, you can hold someone with the arrest action and let them "
+            "go with release. Saying someone is under arrest does nothing by itself."
+        )
+    if me.held_by is not None:
+        lines.append(
+            f"You are being held by {world.npcs[me.held_by].name}. "
+            "You cannot move, take, drop or give."
+        )
+    return lines

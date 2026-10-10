@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from whisperwick.actions import HANDLERS, ActionResult, Intent, reject
 from whisperwick.claims import claim_problem
 from whisperwick.clock import Clock
+from whisperwick.custody import held_problem
 from whisperwick.events import Event, EventLog
 from whisperwick.items import Item
 
@@ -33,6 +34,9 @@ class NPC(BaseModel):
     location: str  # id of the location they are in right now
     # A dead NPC stays in the world as a body, but never acts, hears or is spoken to.
     alive: bool = True
+    # Who is holding this NPC in custody (an authority's id), or None if free.
+    # World state, so it is saved and part of the state hash.
+    held_by: str | None = None
 
 
 class World:
@@ -44,11 +48,15 @@ class World:
         log: EventLog,
         seed: int = 0,
         items: list[Item] | None = None,
+        authority: list[str] | None = None,
     ):
         # Dicts keyed by stable ID. Never key by display name.
         self.locations = {loc.id: loc for loc in locations}
         self.npcs = {npc.id: npc for npc in npcs}
         self.items = {item.id: item for item in items or []}
+        # Ids of NPCs who may arrest and release. A fact about the world, like who
+        # holds an item. The world never picks who gets arrested; it only allows it.
+        self.authority = list(authority or [])
         self.clock = clock
         self.log = log
         # The world's own random generator. Anything random (the stub agent now,
@@ -73,6 +81,12 @@ class World:
         for npc in npcs:
             if npc.location not in self.locations:
                 raise ValueError(f"{npc.id} starts in unknown location {npc.location}")
+        for who in self.authority:
+            if who not in self.npcs:
+                raise ValueError(f"authority {who} is not a known npc")
+        for npc in npcs:
+            if npc.held_by is not None and npc.held_by not in self.authority:
+                raise ValueError(f"{npc.id} is held by {npc.held_by}, who has no authority")
         if len(self.items) != len(items):
             raise ValueError("duplicate item ids")
         for item in items:
@@ -136,6 +150,11 @@ class World:
         problem = claim_problem(self, intent)
         if problem:
             return reject(problem)
+        # Custody: a held person cannot move, take, drop or give. One check, here,
+        # so no handler can forget it.
+        problem = held_problem(self, intent)
+        if problem:
+            return reject(problem)
         return handler(self, intent)
 
     def move(self, npc_id: str, to: str) -> ActionResult:
@@ -167,6 +186,7 @@ class World:
             "locations": [self.locations[k].model_dump() for k in sorted(self.locations)],
             "npcs": [self.npcs[k].model_dump() for k in sorted(self.npcs)],
             "items": [self.items[k].model_dump() for k in sorted(self.items)],
+            "authority": sorted(self.authority),
             "events": [e.model_dump() for e in self.log.all()],
             # Saving the generator's exact position makes resumed runs identical.
             "rng": self.rng.getstate(),
@@ -186,6 +206,7 @@ class World:
             log,
             # Older saves have no items key.
             items=[Item.model_validate(x) for x in data.get("items", [])],
+            authority=data.get("authority", []),
         )
         # JSON turns the state's tuples into lists; setstate needs tuples back.
         version, internal, gauss = data["rng"]

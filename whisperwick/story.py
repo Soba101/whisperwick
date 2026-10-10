@@ -41,7 +41,7 @@ def hhmm(tick: int) -> str:
 
 
 def format_event(e: Event, names: dict[str, str]) -> str | None:
-    """One line for a talk, move or item event. Other events (like look) are left out."""
+    """One line for a talk, move, item or custody event. Other events (like look) are left out."""
     if e.type == "talk":
         place = show(names, e.location).ljust(PLACE_WIDTH)
         who, to = show(names, e.actor), show(names, e.data["to"])
@@ -66,6 +66,11 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
         }
         place = show(names, e.location).ljust(PLACE_WIDTH)
         return f"{hhmm(e.tick)}  {place} {who} {verbs[e.type]}"
+    if e.type in ("arrest", "release"):
+        place = show(names, e.location).ljust(PLACE_WIDTH)
+        verb = "arrests" if e.type == "arrest" else "releases"
+        who, target = show(names, e.actor), show(names, e.data["target"])
+        return f"{hhmm(e.tick)}  {place} {who} {verb} {target}"
     return None
 
 

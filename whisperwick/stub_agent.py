@@ -15,6 +15,9 @@ ROUTINE_EVERY = 60
 # Chances per check. Whatever is left over means "do nothing this hour".
 WANDER_CHANCE = 0.3
 CHAT_CHANCE = 0.2
+# Authority only: now and then try a custody action. Most get rejected, which is fine:
+# it keeps the checks exercising the rules (and a few arrests land, so custody is covered).
+CUSTODY_CHANCE = 0.1
 
 GREETINGS = ["Good morning.", "Busy day?", "Have you seen the mayor?"]
 
@@ -39,6 +42,10 @@ def choose(world: World, npc_id: str) -> Intent | None:
                 target=rng.choice(others),
                 message=rng.choice(GREETINGS),
             )
+    if roll < WANDER_CHANCE + CHAT_CHANCE + CUSTODY_CHANCE and npc_id in world.authority:
+        # Pick from everyone, even people who are not here: a rejection is a fine outcome.
+        action = rng.choice(["arrest", "release"])
+        return Intent(actor=npc_id, action=action, target=rng.choice(sorted(world.npcs)))
     return None
 
 

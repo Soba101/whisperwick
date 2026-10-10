@@ -17,6 +17,13 @@ from whisperwick.repeat_guard import ActionHistory, repeat_reason
 from whisperwick.world import World
 
 
+def people_label(world: World, person_id: str) -> str:
+    """e.g. 'npc_bob (Bob, blacksmith)'. A held person also shows who holds them."""
+    npc = world.npcs[person_id]
+    held = f", held by {world.npcs[npc.held_by].name}" if npc.held_by else ""
+    return f"{person_id} ({npc.name}, {npc.occupation}{held})"
+
+
 def build_messages(
     world: World,
     npc_id: str,
@@ -45,12 +52,12 @@ def build_messages(
         " look (target = null),"
         " take/drop (item = an item id), give (item + target = a person id),"
         " show (item, target = a person id, or null for everyone here).",
+        *belief_text.custody_lines(world, npc_id),
         f"Time: {world.clock.label()}.",
         f"You are at {here.id} ({here.name}).",
         "Exits: " + ", ".join(f"{e} ({world.locations[e].name})" for e in exits),
         "People here: "
-        + (", ".join(f"{p} ({world.npcs[p].name}, {world.npcs[p].occupation})" for p in people)
-           or "nobody"),
+        + (", ".join(people_label(world, p) for p in people) or "nobody"),
         "Items on the ground here: " + item_lines(world, world.items_at(here.id)),
         "You carry: " + item_lines(world, world.items_held(npc_id)),
     ]  # fmt: skip

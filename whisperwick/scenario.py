@@ -19,6 +19,8 @@ class Scenario(BaseModel):
     locations: list[Location]
     npcs: list[NPC]
     items: list[Item] = Field(default_factory=list)  # real objects, optional
+    # Ids of villagers who may arrest and release. A fact about the world.
+    authority: list[str] = Field(default_factory=list)
     secrets: dict[str, Any] = Field(default_factory=dict)  # ground truth, engine-only
     # Private starting memories: npc id -> lines only that NPC knows at the start.
     evidence: dict[str, list[str]] = Field(default_factory=dict)
@@ -50,6 +52,9 @@ def check_references(scenario: Scenario) -> None:
             raise ValueError(f"item {item.id} is in unknown location {item.location}")
         if item.holder is not None and item.holder not in npc_ids:
             raise ValueError(f"item {item.id} is held by unknown npc {item.holder}")
+    for npc_id in scenario.authority:
+        if npc_id not in npc_ids:
+            raise ValueError(f"authority given to unknown npc {npc_id}")
     for npc_id in scenario.evidence:
         if npc_id not in npc_ids:
             raise ValueError(f"evidence given to unknown npc {npc_id}")
@@ -71,4 +76,5 @@ def build_world(scenario: Scenario, db_path: str = ":memory:", seed: int | None 
     seed = scenario.seed if seed is None else seed
     # Copy items too, for the same reason.
     items = [item.model_copy() for item in scenario.items]
-    return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed, items=items)
+    return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed, items=items,
+                 authority=scenario.authority)  # fmt: skip

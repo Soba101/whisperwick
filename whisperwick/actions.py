@@ -41,8 +41,9 @@ class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     actor: str  # who wants to act, e.g. "npc_bob"
-    action: str  # "move" | "talk" | "look" | "take" | "drop" | "give" | "show"
-    # A location id (move) or an npc id (talk, give, show).
+    # "move" | "talk" | "look" | "take" | "drop" | "give" | "show" | "arrest" | "release"
+    action: str
+    # A location id (move) or an npc id (talk, give, show, arrest, release).
     target: str | None = None
     message: str | None = None  # what to say (talk only)
     item: str | None = None  # an item id (take, drop, give, show)
@@ -154,6 +155,8 @@ def do_look(world, intent: Intent) -> ActionResult:
         # Only items on the ground. What people carry stays private until shown.
         "items": world.items_at(here),
         "holding": world.items_held(intent.actor),
+        # People here who are held, so a villager can see custody with its own eyes.
+        "held": [n for n in world.npcs_at(here) if world.npcs[n].held_by is not None],
     }
     return ActionResult(True, observation=observation)
 
@@ -166,3 +169,8 @@ HANDLERS = {"move": do_move, "talk": do_talk, "look": do_look}
 from whisperwick.item_actions import do_drop, do_give, do_show, do_take  # noqa: E402
 
 HANDLERS.update({"take": do_take, "drop": do_drop, "give": do_give, "show": do_show})
+
+# Custody actions, in their own file for the same reason.
+from whisperwick.custody import do_arrest, do_release  # noqa: E402
+
+HANDLERS.update({"arrest": do_arrest, "release": do_release})

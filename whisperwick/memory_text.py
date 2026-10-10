@@ -11,6 +11,9 @@ from whisperwick.world import World
 # Item events. Each pairs the event type with the verb used in the sentence.
 ITEM_VERBS = {"take": "picked up", "drop": "dropped", "give": "gave", "show": "showed"}
 
+# Custody events: the event type paired with the verb used in the sentence.
+CUSTODY_VERBS = {"arrest": "arrested", "release": "released"}
+
 
 def name_of(world: World, npc_id: str) -> str:
     """Display name plus id, e.g. 'Bob (npc_bob)'. The id is what the model must use."""
@@ -51,7 +54,19 @@ def describe(event: Event, world: World, viewer_id: str) -> str:
         return f"{prefix} {who} left for {event.data['to']}"
     if event.type in ITEM_VERBS:
         return f"{prefix} {describe_item_event(event, world, viewer_id, who)}"
+    if event.type in CUSTODY_VERBS:
+        return f"{prefix} {describe_custody_event(event, world, viewer_id, who)}"
     return f"{prefix} {who} did {event.type}"
+
+
+def describe_custody_event(event: Event, world: World, viewer_id: str, who: str) -> str:
+    """e.g. 'Hal (npc_hal) arrested Victor (npc_victor)', 'you were arrested by ...'."""
+    verb = CUSTODY_VERBS[event.type]
+    target_id = event.data["target"]
+    if target_id == viewer_id:
+        return f"You were {verb} by {who}"
+    target = name_of(world, target_id)
+    return f"{who} {verb} {target}"
 
 
 def describe_item_event(event: Event, world: World, viewer_id: str, who: str) -> str:
@@ -78,6 +93,10 @@ def importance_of(event: Event, viewer_id: str) -> int:
     # Handing over or showing an item is big news, most of all for the person it is for.
     if event.type in ("give", "show"):
         return 8 if event.data.get("to") == viewer_id else 7
+    # Being held, or holding someone, changes everything: top importance for the two
+    # people involved. Everyone else who saw it still remembers it well.
+    if event.type in CUSTODY_VERBS:
+        return 9 if viewer_id in (event.actor, event.data["target"]) else 8
     # Picking up or dropping something is noticeable but not dramatic.
     if event.type in ("take", "drop"):
         return 5
