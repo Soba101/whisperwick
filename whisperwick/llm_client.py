@@ -20,8 +20,16 @@ def chat_url(base_url: str) -> str:
 
 
 class OllamaClient:
-    def __init__(self, base_url: str, model: str, keep_alive: str = "30m", timeout: int = 120):
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        keep_alive: str = "30m",
+        timeout: int = 120,
+        temperature: float = 0.7,  # runs use 0.7, the after-run judge uses 0
+    ):
         self.url = chat_url(base_url)
+        self.temperature = temperature
         self.model = model
         self.keep_alive = keep_alive  # keeps the model loaded between turns
         self.timeout = timeout
@@ -34,7 +42,7 @@ class OllamaClient:
             "think": False,  # no hidden reasoning: it only costs time here
             "stream": False,
             "keep_alive": self.keep_alive,
-            "options": {"temperature": 0.7},
+            "options": {"temperature": self.temperature},
         }
         request = urllib.request.Request(
             self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
@@ -60,8 +68,9 @@ class LlamaServerClient:
     Nothing is kept between calls, so many threads can share one client.
     """
 
-    def __init__(self, base_url: str, model: str, timeout: int = 120):
+    def __init__(self, base_url: str, model: str, timeout: int = 120, temperature: float = 0.7):
         self.url = completions_url(base_url)
+        self.temperature = temperature
         self.model = model  # llama-server ignores it, other OpenAI-style servers use it
         self.timeout = timeout
 
@@ -69,7 +78,7 @@ class LlamaServerClient:
         body = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.7,
+            "temperature": self.temperature,
             # The server forces the reply to match this schema.
             "response_format": {
                 "type": "json_schema",

@@ -10,7 +10,9 @@ import typer
 
 from whisperwick import (
     compare_command,
+    eval_command,
     event_trace_command,
+    judge_command,
     llm_run,
     outcome_command,
     run_report,
@@ -63,11 +65,11 @@ def llm_settings() -> tuple[str, str]:
     return base_url, model
 
 
-def make_client(server: str, base_url: str, model: str):
-    """Pick the client class for LLM_SERVER."""
+def make_client(server: str, base_url: str, model: str, temperature: float = 0.7):
+    """Pick the client class for LLM_SERVER. The judge asks for temperature 0."""
     if server == "llama-server":
-        return LlamaServerClient(base_url, model)
-    return OllamaClient(base_url, model)
+        return LlamaServerClient(base_url, model, temperature=temperature)
+    return OllamaClient(base_url, model, temperature=temperature)
 
 
 def run_with_llm(
@@ -145,6 +147,8 @@ def run_with_llm(
         scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path
     )
     data.update(extra)
+    # The seed lets `eval` group runs that differ only in the player script.
+    data["seed"] = sc.seed if seed is None else seed
     data.update(sidecar_part(agent_memory, agent_log, notebooks))
     llm_run.write_sidecar(path, data)
     typer.echo(f"Sidecar: {path}")
@@ -260,3 +264,35 @@ def outcome_command_(
     except FileNotFoundError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
+
+
+@app.command("eval")
+def eval_command_(
+    dbs: Annotated[list[Path], typer.Argument(help="One or more event logs from llm runs.")],
+) -> None:
+    """Code-only measures per run, then a summary across runs. No model is called."""
+    try:
+        typer.echo(eval_command.eval_runs(dbs))
+    except FileNotFoundError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command("judge")
+def judge_command_(
+    db: Annotated[Path, typer.Argument(help="Event log from a finished llm run.")],
+    limit: Annotated[int, typer.Option(help="Items per question type.")] = 40,
+) -> None:
+    """Ask the model to grade a finished run. Run it only when no village run is going."""
+    if not db.is_file():
+        typer.echo(f"No such file: {db}", err=True)
+        raise typer.Exit(1)
+    base_url, model = llm_settings()
+    try:
+        server = settings.llm_server()
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+    # Temperature 0, so the same run gets the same grades.
+    client = make_client(server, base_url, model, temperature=0.0)
+    typer.echo(judge_command.judge_run_command(db, client, model, limit))
