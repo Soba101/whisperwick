@@ -78,6 +78,14 @@ def test_name_check_flags_a_tag_the_words_never_mention():
     assert bad.data["claim"]["unverified"] is True
 
 
+
+def test_talking_to_the_subject_counts_as_naming_them():
+    # "You did it" said to the person accused needs no name (week 5 smoke run finding).
+    world, memories, _ = new_world()
+    alice = {"kind": "accuses", "subject": "npc_alice"}
+    e = talk(world, memories, "npc_bob", "npc_alice", "You were there, I saw you.", alice)
+    assert "unverified" not in e.data["claim"]
+
 def test_old_logs_with_killer_and_innocent_still_read():
     world, _, _ = new_world()
     old = Event(

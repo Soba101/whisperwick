@@ -127,7 +127,13 @@ def do_talk(world, intent: Intent) -> ActionResult:
     # Crude name check: catches a tag naming someone the words never mention.
     # It does not judge truth. The claim is still kept and the words never change;
     # the flag is only added when true, so normal claims log exactly as before.
-    if intent.claim is not None and not mentions(message, intent.claim.subject, world):
+    # Talking TO the subject counts as naming them: "you did it" needs no name (seen in
+    # the week 5 smoke run, where Alice's "you" accusations to Victor were flagged).
+    if (
+        intent.claim is not None
+        and intent.claim.subject != listener.id
+        and not mentions(message, intent.claim.subject, world)
+    ):
         data["claim"]["unverified"] = True
     witnesses = [n for n in world.npcs_at(npc.location) if n != npc.id]
     event = world.log.append(
