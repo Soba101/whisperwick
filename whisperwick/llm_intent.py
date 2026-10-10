@@ -36,12 +36,14 @@ def item_lines(world: World, ids: list[str]) -> str:
             or "nothing")  # fmt: skip
 
 
-def intent_schema(world: World, npc_id: str) -> dict:
+def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
     """JSON schema for this one turn.
 
     Target can only be a real exit or a person here (authority: any living person),
     so the model cannot write a display name like "Victor" in place of "npc_victor".
     Item can only be an item lying here or one this NPC holds, so no invented objects.
+    recall=True also offers "recall" (search my own memory). Off by default, so the schema
+    is exactly the old one when villager memory is off.
     """
     exits, people = exits_and_people(world, npc_id)
     targets = [*exits, *people]
@@ -54,7 +56,7 @@ def intent_schema(world: World, npc_id: str) -> dict:
     return {
         "type": "object",
         "properties": {
-            "action": {"enum": actions_for(world, npc_id)},
+            "action": {"enum": [*actions_for(world, npc_id), *(["recall"] if recall else [])]},
             "target": {"enum": [*targets, None]},
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},

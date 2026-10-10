@@ -29,6 +29,11 @@ def beliefs_path(db: str | Path) -> Path:
     return Path(db).with_suffix(".beliefs.jsonl")
 
 
+def agent_log_path(db: str | Path) -> Path:
+    """The agent log (recall searches, JSON lines) lives next to the db too."""
+    return Path(db).with_suffix(".agent.jsonl")
+
+
 def rejection_rate(stats: dict) -> float:
     """Share of model calls the engine refused. 0 when there were no calls."""
     calls = stats.get("calls", 0)

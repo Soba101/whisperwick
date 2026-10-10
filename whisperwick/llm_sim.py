@@ -5,12 +5,15 @@ Each minute the scheduler picks who gets a model call. Everyone else waits.
 
 from collections.abc import Callable
 
-from whisperwick import llm_agent, memory, parallel_calls, thinking
+from whisperwick import llm_agent, memory, thought_memory
+from whisperwick.agent_log import AgentLog
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.memory import Memories
+from whisperwick.notebook import Notebooks
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.player_turn import apply_player_turn
+from whisperwick.recall import Private
 from whisperwick.repeat_guard import ActionHistory
 from whisperwick.scheduler import SLEEP_START, Scheduler
 from whisperwick.world import World
@@ -40,6 +43,10 @@ def run_llm(
     belief_log: BeliefLog | None = None,
     # How many thinking calls may be in flight at once. 1 = one after another, as before.
     parallel: int = 1,
+    # Week 6: villager recall and notebook. False = prompts and schemas as in week 5.
+    agent_memory: bool = True,
+    notebooks: Notebooks | None = None,  # kept by the caller to read at the end
+    agent_log: AgentLog | None = None,  # recall searches, in memory if no path
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -52,6 +59,8 @@ def run_llm(
     belief_log = belief_log if belief_log is not None else BeliefLog()
     # What NPCs did this run, for the repeat guard. Agent side only, never world state.
     history = ActionHistory()
+    notebooks = notebooks if notebooks is not None else Notebooks()
+    agent_log = agent_log if agent_log is not None else AgentLog()
     # Private starting knowledge goes in before the first turn.
     if evidence:
         memory.seed_evidence(memories, evidence, world.clock.tick)
@@ -68,6 +77,7 @@ def run_llm(
             result = llm_agent.act(
                 world, npc, client, lines, stats,
                 personalities.get(npc), belief_log.latest(npc), history,
+                Private(memories[npc], notebooks, agent_log) if agent_memory else None,
             )  # fmt: skip
             scheduler.acted(npc, tick)
             if result.event:
@@ -90,20 +100,10 @@ def run_llm(
             # A thought only reads its own villager's memories, the villager's last belief
             # and the world (which does not change now). So the model calls can overlap.
             # Prepared and applied in sorted ids, so the result matches a one-by-one run.
-            prepared = {
-                npc: thinking.prepare(memories[npc], npc, world, personalities.get(npc), belief_log)
-                for npc in living
-            }
-            todo = [npc for npc in living if prepared[npc] is not None]
-            outcomes = parallel_calls.run_all(
-                [lambda p=prepared[npc]: client.chat(p.messages, p.schema) for npc in todo],
-                parallel,
+            thought_memory.think_all(
+                living, memories, world, client, personalities, belief_log, now, parallel,
+                stats, notebooks if agent_memory else None, agent_log,
             )
-            for npc, outcome in zip(todo, outcomes, strict=True):
-                if thinking.finish(
-                    memories[npc], npc, world, now, belief_log, prepared[npc], outcome, stats,
-                ):  # fmt: skip
-                    stats["thoughts"] = stats.get("thoughts", 0) + 1
         # Reported last, so the hour's thoughts are already in the stats.
         if on_hour and world.clock.tick % 60 == 0:
             on_hour(world, stats)

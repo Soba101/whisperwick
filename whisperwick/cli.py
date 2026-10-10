@@ -17,11 +17,13 @@ from whisperwick import (
     settings,
     story,
 )
+from whisperwick.agent_log import AgentLog, sidecar_part
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_client import LlamaServerClient, OllamaClient
 from whisperwick.llm_sim import run_llm
+from whisperwick.notebook import Notebooks
 from whisperwick.player import PlayerSource
 from whisperwick.player_script import load_script
 from whisperwick.player_terminal import TerminalPlayer
@@ -86,6 +88,7 @@ def run_with_llm(
     try:
         parallel = settings.parallel()
         server = settings.llm_server()
+        agent_memory = settings.agent_memory()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
@@ -105,6 +108,9 @@ def run_with_llm(
     stats = {"player_rejected": []} if player else {}
     # Every thought is also saved as a JSON line next to the db.
     belief_log = BeliefLog(llm_run.beliefs_path(db))
+    # Recall searches are saved as JSON lines too. Notebooks are read back at the end.
+    agent_log = AgentLog(llm_run.agent_log_path(db))
+    notebooks = Notebooks()
     memories, stats = run_llm(
         world,
         client,
@@ -116,6 +122,9 @@ def run_with_llm(
         personalities=sc.personality,
         belief_log=belief_log,
         parallel=parallel,
+        agent_memory=agent_memory,
+        notebooks=notebooks,
+        agent_log=agent_log,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
     extra = run_report.after_run(world, memories, client, stats)
@@ -136,6 +145,7 @@ def run_with_llm(
         scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path
     )
     data.update(extra)
+    data.update(sidecar_part(agent_memory, agent_log, notebooks))
     llm_run.write_sidecar(path, data)
     typer.echo(f"Sidecar: {path}")
 

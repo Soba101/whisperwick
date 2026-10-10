@@ -1,6 +1,8 @@
 """The thought schema and its limits. Split out of thinking.py to keep that file small."""
 
 from whisperwick import aims
+from whisperwick.notebook import MAX_PEOPLE_PER_THOUGHT, ME_MAX_CHARS, PERSON_MAX_CHARS
+from whisperwick.recall import RECALL_WORDS_MAX
 from whisperwick.thought_people import people_ids
 
 THOUGHTS_MAX_CHARS = 400  # a thought is a few sentences, never an essay
@@ -12,10 +14,16 @@ SURENESS = ["unsure", "fairly sure", "certain"]
 LEVELS = ["low", "medium", "high"]
 
 
-def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
-    """Enums everywhere, so the model can only name real people and memories it was shown."""
+def schema(
+    world, npc_id: str, memory_ids: list[str], memory: bool = False, recall: bool = False
+) -> dict:
+    """Enums everywhere, so the model can only name real people and memories it was shown.
+
+    memory=True adds the notebook fields, recall=True the recall field (week 6). Both are
+    off by default, so with villager memory off the schema is exactly the old one.
+    """
     suspects, trusted = people_ids(world, npc_id)
-    return {
+    out = {
         "type": "object",
         "properties": {
             "thoughts": {"type": "string", "maxLength": THOUGHTS_MAX_CHARS},
@@ -50,3 +58,23 @@ def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
             "because", "trust",
         ],  # fmt: skip
     }
+    if recall:
+        # Words to search its own memory for before it thinks, or null.
+        out["properties"]["recall"] = {"type": ["string", "null"], "maxLength": RECALL_WORDS_MAX}
+        out["required"].append("recall")
+    if memory:
+        out["properties"]["notebook_me"] = {"type": ["string", "null"], "maxLength": ME_MAX_CHARS}
+        out["properties"]["notebook_people"] = {
+            "type": "array",
+            "maxItems": MAX_PEOPLE_PER_THOUGHT,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "person": {"enum": trusted},
+                    "line": {"type": "string", "maxLength": PERSON_MAX_CHARS},
+                },
+                "required": ["person", "line"],
+            },
+        }
+        out["required"] += ["notebook_me", "notebook_people"]
+    return out

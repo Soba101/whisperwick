@@ -12,7 +12,8 @@ from whisperwick import belief_text
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.llm_client import LLMError
 from whisperwick.llm_intent import exits_and_people, intent_schema, item_lines
-from whisperwick.memory import MemoryStream
+from whisperwick.memory_view import memory_lines  # noqa: F401  (re-exported)
+from whisperwick.recall import Private, Recall, act_lines, clean_words, search
 from whisperwick.repeat_guard import ActionHistory, repeat_reason
 from whisperwick.world import World
 
@@ -33,6 +34,9 @@ def build_messages(
     personality: str | None = None,
     belief: dict | None = None,  # this villager's latest record in the belief log
     history: ActionHistory | None = None,
+    # Week 6, optional: private notebook and recall lines, and whether recall is offered.
+    private_lines: Sequence[str] = (),
+    recall: bool = False,
 ) -> list[dict]:
     """One compact system message: who I am, where I am, who and what is around."""
     me = world.npcs[npc_id]
@@ -51,7 +55,8 @@ def build_messages(
         "Actions: move (target = an exit id), talk (target = a person id, plus a message),"
         " look (target = null),"
         " take/drop (item = an item id), give (item + target = a person id),"
-        " show (item, target = a person id, or null for everyone here).",
+        " show (item, target = a person id, or null for everyone here)."
+        + (" recall (message = words to search your own memory for)." if recall else ""),
         *belief_text.custody_lines(world, npc_id),
         f"Time: {world.clock.label()}.",
         f"You are at {here.id} ({here.name}).",
@@ -71,6 +76,8 @@ def build_messages(
     if memories:
         lines.append("You remember:")
         lines += [f"- {m}" for m in memories]
+    # Notebook and what a recall just found: private to this villager.
+    lines += private_lines
     if feedback:
         # The engine's own words, so the model can fix its mistake.
         lines.append(f"Your last action was rejected: {feedback}. Choose again.")
@@ -80,31 +87,6 @@ def build_messages(
         {"role": "system", "content": "\n".join(lines)},
         {"role": "user", "content": "What do you do now?"},
     ]
-
-
-def memory_lines(
-    stream: MemoryStream,
-    now_tick: int,
-    world: World,
-    npc_id: str,
-    k: int = 8,
-    query: str | None = None,
-) -> list[str]:
-    """The memories most worth showing now. The query is who is here plus where we are.
-
-    A caller may pass its own query (the end-of-run interview asks about the murder).
-    """
-    if query is None:
-        _, people = exits_and_people(world, npc_id)
-        here = world.locations[world.npcs[npc_id].location]
-        query = " ".join([*(world.npcs[p].name for p in people), here.name])
-    # Evidence is always shown, first. In the Gate 1 trial run it decayed out of
-    # retrieval after a day, and Victor forgot he was the killer.
-    pinned = [m.text for m in stream.memories if m.kind == "evidence"]
-    recalled = [
-        m for m in stream.retrieve(now_tick, query, k + len(pinned)) if m.kind != "evidence"
-    ]
-    return pinned + [m.text for m in recalled[:k]]
 
 
 def decide(
@@ -117,18 +99,28 @@ def decide(
     personality: str | None = None,
     belief: dict | None = None,
     history: ActionHistory | None = None,
-) -> Intent:
+    private_lines: Sequence[str] = (),
+    recall: bool = False,
+) -> Intent | Recall:
     """Ask the model for an intent. Anything unusable becomes a harmless look.
 
     stats, if given, counts {"errors"} and keeps "last_error", so failures are not silent.
+    With recall=True the model may ask to search its memory: that comes back as a Recall.
     """
     try:
         reply = dict(
             client.chat(
-                build_messages(world, npc_id, memories, feedback, personality, belief, history),
-                intent_schema(world, npc_id),
+                build_messages(
+                    world, npc_id, memories, feedback, personality, belief, history,
+                    private_lines, recall,
+                ),
+                intent_schema(world, npc_id, recall),
             )
         )
+        if recall and reply.get("action") == "recall":
+            if stats is not None and stats.get("errors_in_a_row"):
+                stats["errors_in_a_row"] = 0  # the model answered
+            return Recall(clean_words(reply.get("message")))
         # The two flat fields become one Claim, but only on a talk. On any other action
         # they are model noise and are dropped quietly, not counted as an error.
         # pop(key, None) keeps old clients that never send the fields working.
@@ -164,18 +156,32 @@ def act(
     personality: str | None = None,
     belief: dict | None = None,
     history: ActionHistory | None = None,
+    private: Private | None = None,  # recall and notebook; None = neither (memory off)
 ) -> ActionResult:
     """Decide and act. One retry with the engine's reason, then fall back to look.
 
     stats, if given, counts {"calls", "rejected", "errors", "repeats"}
-    so a run can report its rejection rate.
+    so a run can report its rejection rate. A recall is not an action: it is not sent to the
+    world, not a call and not a rejection; it is counted as stats["recalls"].
     """
     stats = stats if stats is not None else {}
     feedback = None
+    notebook = private.notebooks.lines(npc_id, world) if private else []
     for _ in range(2):
         intent = decide(
-            world, npc_id, client, memories, feedback, stats, personality, belief, history
+            world, npc_id, client, memories, feedback, stats, personality, belief, history,
+            notebook, recall=private is not None,
         )
+        if isinstance(intent, Recall):
+            # Search its own memory, then ask again in the same turn. Recall is not offered
+            # on that second ask, so a turn holds at most one recall.
+            found = search(private.stream, intent.words)
+            stats["recalls"] = stats.get("recalls", 0) + 1
+            private.log.recall(world.clock.tick, npc_id, "act", intent.words, [i for i, _ in found])
+            intent = decide(
+                world, npc_id, client, memories, feedback, stats, personality, belief, history,
+                [*notebook, *act_lines(intent.words, found)],
+            )
         # Repeat guard (#12): refuse a pointless repeat before the engine sees it.
         # It counts as a rejection, so the one-retry flow below stays the same.
         reason = repeat_reason(world, history, intent) if history is not None else None

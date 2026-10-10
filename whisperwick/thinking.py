@@ -8,11 +8,13 @@ Agent side only: never part of World state or state_hash.
 
 from typing import NamedTuple
 
-from whisperwick import aims, belief_text
+from whisperwick import aims
 from whisperwick.belief_log import BeliefLog
 from whisperwick.llm_client import LLMError
 from whisperwick.memory import Memory, MemoryStream
+from whisperwick.recall import Private
 from whisperwick.thought_people import people_ids, shown_memories
+from whisperwick.thought_prompt import messages  # noqa: F401  (re-exported)
 from whisperwick.thought_schema import (  # noqa: F401  (limits are re-exported for callers)
     LEVELS,
     MAX_BECAUSE,
@@ -25,46 +27,6 @@ from whisperwick.thought_schema import (  # noqa: F401  (limits are re-exported 
 )
 
 REFLECTION_IMPORTANCE = 8
-
-def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> list[dict]:
-    """In character, first person. Without this the model answers as an assistant."""
-    me = world.npcs[npc_id]
-    # No line saying "the mayor was killed": a real villager only knows that if it saw
-    # the body or was told. What it knows is in its memories, nowhere else.
-    _, trusted = people_ids(world, npc_id)
-    lines = [
-        f"You are {me.name} ({me.id}), the village {me.occupation}. Stay in character.",
-        *belief_text.character_lines(personality),
-        "People you may have met: " + ", ".join(belief_text.who(world, n) for n in trusted),
-        "Your memories, each with its id:",
-        *(f"[{mid}] {m.text}" for mid, m in shown.items()),
-    ]
-    # #43: plain custody facts only (Sarah was held all day, yet her thoughts said "released").
-    lines += belief_text.custody_facts(world, npc_id)
-    if previous:
-        lines += ["Your last thoughts (you may change your mind):"]
-        lines += belief_text.belief_lines(world, previous, npc_id, with_aim=False)
-        # Here the aim is offered back to be continued, changed or dropped.
-        if aims.active(previous):
-            lines.append(f"Your aim: {aims.active(previous)}")
-    lines += [
-        "Reply only with JSON. Use exact ids, never names.",
-        "Only rely on the memories listed. Never invent objects, records or events.",
-    ]
-    # An open question: what is going on, as far as I know? Nothing here hints at the plot.
-    ask = (
-        "Think to yourself, in first person. What do you make of what has been happening? "
-        "Who, if anyone, do you truly believe has done something bad, of what, and how sure "
-        "are you? Which of your memories make you think so (give their ids)? "
-        "Do you mean to accuse anyone out loud? If so, who? "
-        + aims.ASK + " "
-        "And how do you feel about the people you have met, and why?"
-    )
-    return [
-        {"role": "system", "content": "\n".join(lines)},
-        {"role": "user", "content": ask},
-    ]
-
 
 def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: dict) -> dict:
     """Keep only what is real. Raises on a reply that is not usable at all."""
@@ -113,15 +75,27 @@ class Prepared(NamedTuple):
     shown: dict[str, Memory]
     messages: list[dict]
     schema: dict
+    # Week 6: is villager memory on, and what did a recall (round 1) search for and find?
+    memory: bool = False
+    recall: str | None = None
+    recalled: tuple[str, ...] = ()
 
 
-def prepare(stream, npc_id, world, personality, belief_log) -> Prepared | None:
-    """Read this villager's own memories and the world; build the call. None = nothing to think."""
+def prepare(
+    stream, npc_id, world, personality, belief_log, private: Private | None = None
+) -> Prepared | None:
+    """Read this villager's own memories and the world; build the call. None = nothing to think.
+
+    With private (villager memory on) the prompt shows the notebook and the schema offers
+    recall and notebook fields. Without it everything is as before week 6.
+    """
     shown = shown_memories(stream)
     if not shown:
         return None  # nothing to think about yet, and an empty enum is not a valid schema
-    prompt = messages(world, npc_id, personality, shown, belief_log.latest(npc_id))
-    return Prepared(shown, prompt, schema(world, npc_id, list(shown)))
+    notebook = private.notebooks.lines(npc_id, world) if private else None
+    prompt = messages(world, npc_id, personality, shown, belief_log.latest(npc_id), notebook)
+    sch = schema(world, npc_id, list(shown), memory=bool(private), recall=bool(private))
+    return Prepared(shown, prompt, sch, memory=bool(private))
 
 
 def finish(
@@ -133,6 +107,7 @@ def finish(
     prepared: Prepared,
     outcome,
     stats: dict,
+    private: Private | None = None,
 ) -> dict | None:
     """Turn the call's reply (or the exception it raised) into a record. None if it failed."""
     shown = prepared.shown
@@ -155,6 +130,13 @@ def finish(
         # Everything up to this event id was already said when the villager thought.
         after_event=events[-1].id if events else 0,
     )  # fmt: skip
+    if private:
+        # Only now, once the thought is known to be usable, does the notebook change.
+        private.notebooks.apply(npc_id, outcome, people_ids(world, npc_id)[1])
+        record.update(
+            recall=prepared.recall, recalled=list(prepared.recalled),
+            notebook=private.notebooks.to_dict().get(npc_id, {"me": None, "people": {}}),
+        )  # fmt: skip
     stream.add(tick, record["thoughts"], REFLECTION_IMPORTANCE, "reflection")
     belief_log.add(record)
     return record
