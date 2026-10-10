@@ -50,3 +50,11 @@ def parallel(env_path: Path = ENV_PATH) -> int:
     if value < 1:
         raise ValueError(f"WHISPERWICK_PARALLEL must be a whole number >= 1, got {raw!r}")
     return value
+
+
+def llm_server(env_path: Path = ENV_PATH) -> str:
+    """Which server speaks for the model (LLM_SERVER): "ollama" (default) or "llama-server"."""
+    value = get("LLM_SERVER", env_path) or "ollama"
+    if value not in ("ollama", "llama-server"):
+        raise ValueError(f'LLM_SERVER must be "ollama" or "llama-server", got {value!r}')
+    return value

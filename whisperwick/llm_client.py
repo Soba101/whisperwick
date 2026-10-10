@@ -48,6 +48,48 @@ class OllamaClient:
             raise LLMError(f"chat failed: {e}") from e
 
 
+def completions_url(base_url: str) -> str:
+    """Build the OpenAI-style chat URL. The base already ends in /v1."""
+    return f"{base_url.rstrip('/')}/chat/completions"
+
+
+class LlamaServerClient:
+    """Talks to llama.cpp's llama-server, which allows several calls at once.
+
+    Ollama refuses parallel requests for our model, llama-server does not.
+    Nothing is kept between calls, so many threads can share one client.
+    """
+
+    def __init__(self, base_url: str, model: str, timeout: int = 120):
+        self.url = completions_url(base_url)
+        self.model = model  # llama-server ignores it, other OpenAI-style servers use it
+        self.timeout = timeout
+
+    def chat(self, messages: list[dict], schema: dict) -> dict:
+        body = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.7,
+            # The server forces the reply to match this schema.
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "reply", "schema": schema},
+            },
+            "chat_template_kwargs": {"enable_thinking": False},  # no hidden reasoning
+            "stream": False,
+        }
+        request = urllib.request.Request(
+            self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                reply = json.load(response)
+            return json.loads(reply["choices"][0]["message"]["content"])
+        except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
+            # Same catch as OllamaClient, plus IndexError for an empty choices list.
+            raise LLMError(f"chat failed: {e}") from e
+
+
 class FakeClient:
     """A stand-in for tests. Returns queued replies in order and records every call."""
 

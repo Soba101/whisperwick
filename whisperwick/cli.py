@@ -20,7 +20,7 @@ from whisperwick import (
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import Clock
 from whisperwick.events import Event
-from whisperwick.llm_client import OllamaClient
+from whisperwick.llm_client import LlamaServerClient, OllamaClient
 from whisperwick.llm_sim import run_llm
 from whisperwick.player import PlayerSource
 from whisperwick.player_script import load_script
@@ -61,6 +61,13 @@ def llm_settings() -> tuple[str, str]:
     return base_url, model
 
 
+def make_client(server: str, base_url: str, model: str):
+    """Pick the client class for LLM_SERVER."""
+    if server == "llama-server":
+        return LlamaServerClient(base_url, model)
+    return OllamaClient(base_url, model)
+
+
 def run_with_llm(
     sc,
     scenario: Path,
@@ -78,6 +85,7 @@ def run_with_llm(
     base_url, model = llm_settings()
     try:
         parallel = settings.parallel()
+        server = settings.llm_server()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
@@ -89,7 +97,9 @@ def run_with_llm(
     def progress(w, stats):
         typer.echo(llm_run.progress_line(w.clock.label(), stats, time.monotonic() - started))
 
-    client = OllamaClient(base_url, model)
+    client = make_client(server, base_url, model)
+    if server == "llama-server":
+        model = f"{model} via llama-server"  # the sidecar says which server was used
     # Hourly progress would clutter a human's screen, so terminal play skips it.
     on_hour = None if isinstance(player, TerminalPlayer) else progress
     stats = {"player_rejected": []} if player else {}
