@@ -89,7 +89,7 @@ def test_terminal_player_shows_npc_replies_and_quits_on_eof():
 def fake_setup(monkeypatch):
     monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
     monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli, "OllamaClient", lambda url, model: LookClient())
+    monkeypatch.setattr(cli, "make_client", lambda server, url, model: LookClient())
 
 
 def test_play_script_smoke(monkeypatch, tmp_path):

@@ -8,9 +8,13 @@ import re
 from collections import UserDict
 from dataclasses import dataclass
 
-from whisperwick.clock import Clock
 from whisperwick.events import Event
-from whisperwick.memory_text import describe, importance_of, name_of  # noqa: F401 (re-exported)
+from whisperwick.memory_text import (  # noqa: F401 (re-exported)
+    describe,
+    importance_of,
+    look_text,
+    name_of,
+)
 from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
@@ -108,22 +112,15 @@ class Memories(UserDict):
         """Remember what a look showed. Cheap and low importance (1)."""
         if npc_id == PLAYER_ID:
             return  # the player has no memory stream
-        people = ", ".join(observation["people"]) or "nobody"
-        when = Clock(tick).label().capitalize()
-        line = f"{when} at {observation['location']}: you looked around and saw {people}"
+        # The wording lives in memory_text.look_text: one sentence per fact, so a body
+        # is never listed next to a living person's name (#49).
+        line = look_text(observation, tick, world)
         # Seeing a body matters far more than seeing who is around.
         # .get() keeps older observations (made before bodies existed) working.
         bodies = observation.get("bodies") or []
-        if bodies:
-            line += f". Dead here: {', '.join(bodies)}"
         importance = 7 if bodies else 1
         # Items on the ground matter a little more (a knife by a body is a clue).
-        # The observation holds ids; the world gives the names for the memory text.
-        items = observation.get("items") or []
-        if items:
-            names = [f"{world.items[i].name} ({i})" if world and i in world.items else i
-                     for i in items]  # fmt: skip
-            line += f". On the ground: {', '.join(names)}"
+        if observation.get("items"):
             importance = max(importance, 5)
         self[npc_id].add(tick, line, importance)
 

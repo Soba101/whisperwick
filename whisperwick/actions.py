@@ -45,7 +45,7 @@ class Intent(BaseModel):
     action: str
     # A location id (move) or an npc id (talk, give, show, arrest, release).
     target: str | None = None
-    message: str | None = None  # what to say (talk only)
+    message: str | None = None  # what to say (talk), or the reason (arrest, release)
     item: str | None = None  # an item id (take, drop, give, show)
     claim: Claim | None = None  # "accuses X" or "defends X" (talk only)
 

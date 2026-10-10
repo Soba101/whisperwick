@@ -240,3 +240,56 @@ def test_setup_refuses_unknown_authority():
     with pytest.raises(ValueError):
         World(list(w.locations.values()), list(w.npcs.values()), w.clock, w.log,
               authority=["npc_ghost"])  # fmt: skip
+
+
+def test_arrest_with_reason_logs_it_and_witnesses_remember_it():
+    w = hal_with_victor()
+    r = w.act(do("npc_hal", "arrest", target="npc_victor", message=" for the knife "))
+    assert r.ok and r.event.data == {"target": "npc_victor", "reason": "for the knife"}
+    text = describe(r.event, w, "npc_hal")
+    assert text.endswith('arrested Victor (npc_victor), saying: "for the knife"')
+    assert 'You were arrested by Hal (npc_hal), saying: "for the knife"' in describe(
+        r.event, w, "npc_victor"
+    )
+
+
+def test_arrest_without_message_has_no_reason_key():
+    for message in (None, "", "   "):
+        w = hal_with_victor()
+        r = w.act(do("npc_hal", "arrest", target="npc_victor", message=message))
+        assert r.ok and r.event.data == {"target": "npc_victor"}
+        assert "saying" not in describe(r.event, w, "npc_hal")
+
+
+def test_too_long_reason_is_rejected_and_changes_nothing():
+    w = hal_with_victor()
+    long = "x" * 501
+    assert_rejected(w, do("npc_hal", "arrest", target="npc_victor", message=long), "longer than")
+    assert w.npcs["npc_victor"].held_by is None
+    w = held_victor()
+    assert_rejected(w, do("npc_hal", "release", target="npc_victor", message=long), "longer than")
+    assert w.npcs["npc_victor"].held_by == "npc_hal"
+
+
+def test_release_with_reason():
+    w = held_victor()
+    r = w.act(do("npc_hal", "release", target="npc_victor", message="no proof"))
+    assert r.ok and r.event.data["reason"] == "no proof"
+    text = describe(r.event, w, "npc_hal")
+    assert text.endswith('released Victor (npc_victor), saying: "no proof"')
+
+
+def test_outcome_shows_the_reason_of_the_final_arrest():
+    from whisperwick import outcome
+
+    w = hal_with_victor()
+    w.act(do("npc_hal", "arrest", target="npc_victor", message="obstruction"))
+    text = outcome.format_outcome(w.log.all(), {})
+    assert 'saying: "obstruction"' in text
+    assert 'Reason given for holding npc_victor: "obstruction"' in text
+
+
+def test_authority_prompt_mentions_message_as_reason():
+    w = fresh_world()
+    assert "reason" in " ".join(belief_text.custody_lines(w, "npc_hal"))
+    assert "reason" not in " ".join(belief_text.custody_lines(w, "npc_bob"))

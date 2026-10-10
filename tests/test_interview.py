@@ -162,7 +162,7 @@ class InterviewClient:
 def test_run_stores_interview_and_items_in_sidecar(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
     monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli, "OllamaClient", lambda url, model: InterviewClient())
+    monkeypatch.setattr(cli, "make_client", lambda server, url, model: InterviewClient())
     db = tmp_path / "r.db"
     result = CliRunner().invoke(cli.app, ["run", "--agent", "llm", "--hours", "1", "--db", str(db)])
     assert result.exit_code == 0, result.output

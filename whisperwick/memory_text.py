@@ -21,6 +21,32 @@ def name_of(world: World, npc_id: str) -> str:
     return f"{npc.name} ({npc_id})" if npc else npc_id
 
 
+def label(world: World | None, ids: dict, thing_id: str) -> str:
+    """'Name (id)' when the world knows the id, else the bare id (old callers pass no world)."""
+    thing = ids.get(thing_id) if world else None
+    return f"{thing.name} ({thing_id})" if thing else thing_id
+
+
+def look_text(observation: dict, tick: int, world: World | None = None) -> str:
+    """What a look showed, in plain words with names AND ids.
+
+    Each body gets its own sentence. Before, 'Dead here: npc_mayor' sat next to a living
+    person's name and the model read it as being about that person (#49).
+    """
+    when = Clock(tick).label().capitalize()
+    here = observation["location"]
+    people = [label(world, world.npcs if world else {}, p) for p in observation["people"]]
+    line = f"{when} at {label(world, world.locations if world else {}, here)}: you looked around."
+    line += f" People here: {', '.join(people) or 'nobody'}."
+    # .get() keeps older observations (made before bodies and items existed) working.
+    for body in observation.get("bodies") or []:
+        line += f" The body of {label(world, world.npcs if world else {}, body)} lies here."
+    items = [label(world, world.items if world else {}, i) for i in observation.get("items") or []]
+    if items:
+        line += f" On the ground: {', '.join(items)}."
+    return line
+
+
 def claim_text(event: Event, world: World) -> str:
     """e.g. ' [claim: accuses Hal (npc_hal)]', or '' when the talk had no claim.
 
@@ -60,13 +86,16 @@ def describe(event: Event, world: World, viewer_id: str) -> str:
 
 
 def describe_custody_event(event: Event, world: World, viewer_id: str, who: str) -> str:
-    """e.g. 'Hal (npc_hal) arrested Victor (npc_victor)', 'you were arrested by ...'."""
+    """e.g. 'Hal (npc_hal) arrested Victor (npc_victor), saying: "..."' (reason if given)."""
     verb = CUSTODY_VERBS[event.type]
     target_id = event.data["target"]
+    # The reason is the actor's own words, quoted as said and never checked.
+    reason = event.data.get("reason")
+    said = f', saying: "{reason}"' if reason else ""
     if target_id == viewer_id:
-        return f"You were {verb} by {who}"
+        return f"You were {verb} by {who}{said}"
     target = name_of(world, target_id)
-    return f"{who} {verb} {target}"
+    return f"{who} {verb} {target}{said}"
 
 
 def describe_item_event(event: Event, world: World, viewer_id: str, who: str) -> str:

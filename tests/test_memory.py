@@ -128,3 +128,39 @@ def test_memory_id_is_the_index_and_stays_stable_as_the_stream_grows():
     assert memory.memory_id(0) == "m0"
     stream.add(1, "second", 1)
     assert stream.memories[0].text == "first" and memory.memory_id(1) == "m1"
+
+
+def look_obs(**kw):
+    return {"location": "loc_inn", "people": [], "exits": [], **kw}
+
+
+def test_look_text_without_world_uses_bare_ids():
+    mem = Memories()
+    obs = look_obs(people=["npc_bob"], bodies=["npc_mayor"], items=["item_knife"])
+    mem.observe_look("npc_hal", obs, Clock.at(3, 15).tick)
+    text = mem["npc_hal"].memories[0].text
+    assert text.endswith(
+        "at loc_inn: you looked around. People here: npc_bob."
+        " The body of npc_mayor lies here. On the ground: item_knife."
+    )
+
+
+def test_look_text_with_world_has_names_and_ids_and_empty_means_nobody():
+    w, mem = fresh_world(), Memories()
+    mem.observe_look("npc_hal", look_obs(location="loc_inn"), 480, w)
+    assert "People here: nobody." in mem["npc_hal"].memories[0].text
+    assert "(loc_inn)" in mem["npc_hal"].memories[0].text
+    obs = look_obs(people=["npc_bob"], bodies=["npc_mayor"])
+    mem.observe_look("npc_hal", obs, 480, w)
+    mayor, bob = w.npcs["npc_mayor"], w.npcs["npc_bob"]
+    text = mem["npc_hal"].memories[1].text
+    assert f"People here: {bob.name} (npc_bob)." in text
+    assert f"The body of {mayor.name} (npc_mayor) lies here." in text
+
+
+def test_look_text_gives_each_body_its_own_sentence():
+    w, mem = fresh_world(), Memories()
+    mem.observe_look("npc_hal", look_obs(bodies=["npc_mayor", "npc_bob"]), 480, w)
+    text = mem["npc_hal"].memories[0].text
+    assert text.count("lies here.") == 2 and "Dead here" not in text
+    assert mem["npc_hal"].memories[0].importance == 7  # importance rules unchanged

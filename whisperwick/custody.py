@@ -9,7 +9,7 @@ authority's own chosen action. Every check happens before any change, so a rejec
 intent changes nothing.
 """
 
-from whisperwick.actions import ActionResult, Intent, reject
+from whisperwick.actions import MAX_MESSAGE_CHARS, ActionResult, Intent, reject
 from whisperwick.events import Event
 
 # Actions a held person cannot do. Talk, look and show stay open: custody stops
@@ -25,16 +25,32 @@ def held_problem(world, intent: Intent) -> str | None:
     return None
 
 
+def _reason(intent: Intent) -> str:
+    """The reason in the actor's own words (the message), trimmed. '' means none given."""
+    return (intent.message or "").strip()
+
+
+def _reason_problem(intent: Intent) -> str | None:
+    """Too long is the only way a reason can be wrong. Its content is never judged (#50)."""
+    if len(_reason(intent)) > MAX_MESSAGE_CHARS:
+        return f"message is longer than {MAX_MESSAGE_CHARS} characters"
+    return None
+
+
 def _log(world, intent: Intent, target) -> ActionResult:
     """Log an arrest or release. Everyone else present, the target included, sees it."""
     here = world.npcs[intent.actor].location
+    data = {"target": target.id}
+    # Only added when given, so a bare arrest logs exactly as before. Never checked for truth.
+    if _reason(intent):
+        data["reason"] = _reason(intent)
     event = world.log.append(
         Event(
             tick=world.clock.tick,
             type=intent.action,
             actor=intent.actor,
             location=here,
-            data={"target": target.id},
+            data=data,
             witnesses=[n for n in world.npcs_at(here) if n != intent.actor],
         )
     )
@@ -51,6 +67,7 @@ def _authority_problem(world, intent: Intent) -> str | None:
 def do_arrest(world, intent: Intent) -> ActionResult:
     """Hold someone who is here, alive and free. Only an authority who is free may."""
     problem = _authority_problem(world, intent)
+    problem = problem or _reason_problem(intent)
     if problem:
         return reject(problem)
     me = world.npcs[intent.actor]
@@ -74,6 +91,7 @@ def do_arrest(world, intent: Intent) -> ActionResult:
 def do_release(world, intent: Intent) -> ActionResult:
     """Let a held person here go. Only an authority may."""
     problem = _authority_problem(world, intent)
+    problem = problem or _reason_problem(intent)
     if problem:
         return reject(problem)
     target = world.npcs.get(intent.target or "")

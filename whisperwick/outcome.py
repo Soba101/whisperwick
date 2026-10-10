@@ -33,7 +33,16 @@ def event_line(e: Event, names: dict[str, str]) -> str:
     """e.g. 'day 1 09:30  arrest: Hal -> Victor (Town Hall)'. Day first, so days stay apart."""
     who, whom = story.show(names, e.actor), story.show(names, e.data["target"])
     where = story.show(names, e.location)
-    return f"day {Clock(e.tick).day} {story.hhmm(e.tick)}  {e.type}: {who} -> {whom} ({where})"
+    line = f"day {Clock(e.tick).day} {story.hhmm(e.tick)}  {e.type}: {who} -> {whom} ({where})"
+    # Show the actor's reason too, so "held for obstruction" and "held for murder" differ.
+    return f'{line}, saying: "{e.data["reason"]}"' if e.data.get("reason") else line
+
+
+def last_reasons(events: list[Event]) -> dict[str, str]:
+    """For each person still held, the reason given at their latest arrest (if any)."""
+    last = {e.data["target"]: e for e in custody_events(events) if e.type == "arrest"}
+    return {t: e.data["reason"] for t, e in last.items() if t in held_at_end(events)
+            and e.data.get("reason")}  # fmt: skip
 
 
 def held_text(events: list[Event], names: dict[str, str]) -> str:
@@ -50,6 +59,9 @@ def format_outcome(events: list[Event], names: dict[str, str], murderer: str | N
     else:
         out = [event_line(e, names) for e in custody]
         out += ["", f"Held at the end: {held_text(events, names)}"]
+        # The holder's own words, shown as said. Not checked for truth.
+        for who, reason in last_reasons(events).items():
+            out.append(f'Reason given for holding {story.show(names, who)}: "{reason}"')
     if murderer:
         # Kept apart and clearly labelled, so it is never mistaken for a world fact.
         out += ["", f"Scenario secret: murderer = {murderer}"]

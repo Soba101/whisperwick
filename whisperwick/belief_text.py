@@ -135,6 +135,7 @@ def custody_lines(world, npc_id: str) -> list[str]:
         lines.append(
             f"As the {me.occupation}, you can hold someone with the arrest action and let them "
             "go with release. The person must be here with you. "
+            "For either, message may give your reason in your own words. "
             "Saying someone is under arrest does nothing by itself."
         )
         if holding_line(world, npc_id):
