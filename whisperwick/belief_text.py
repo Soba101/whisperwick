@@ -4,6 +4,7 @@ Pure text, no state changes. A villager's belief is shown in the villager's own 
 as it said them when it last thought. No numbers from code, no verdicts from code.
 """
 
+from whisperwick import aims
 from whisperwick.claims import claim_words
 from whisperwick.clock import Clock
 from whisperwick.repeat_guard import ActionHistory, Record
@@ -44,7 +45,7 @@ def suspect_phrase(world, record: dict, npc_id: str) -> str:
     return f"you suspect {who(world, suspect)}{of_what}, {record['sureness']}"
 
 
-def belief_lines(world, record: dict | None, npc_id: str) -> list[str]:
+def belief_lines(world, record: dict | None, npc_id: str, with_aim: bool = True) -> list[str]:
     """My latest thoughts and trust, from my newest belief record. Empty if I never thought."""
     if record is None:
         return []
@@ -61,6 +62,11 @@ def belief_lines(world, record: dict | None, npc_id: str) -> list[str]:
     ]
     if feel:
         lines.append("How you feel about people: " + "; ".join(feel))
+    # Private: this is only ever built for the villager's own prompt. Done or dropped aims
+    # are over, so they are not shown. The thinking prompt passes with_aim=False, as it
+    # words the aim its own way.
+    if with_aim and aims.active(record):
+        lines.append(f"What you want to do: {aims.active(record)}.")
     return lines
 
 

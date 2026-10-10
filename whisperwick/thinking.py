@@ -6,13 +6,13 @@ A suspect with no valid citation is kept, but marked as a "hunch" (the #11 measu
 Agent side only: never part of World state or state_hash.
 """
 
-from whisperwick import belief_text
+from whisperwick import aims, belief_text
 from whisperwick.belief_log import BeliefLog
 from whisperwick.llm_client import LLMError
-from whisperwick.memory import Memory, MemoryStream, memory_id
+from whisperwick.memory import Memory, MemoryStream
+from whisperwick.thought_people import people_ids, shown_memories
 
 REFLECTION_IMPORTANCE = 8
-RECENT_MEMORIES = 30  # how many other memories a thought reads, besides all the evidence
 THOUGHTS_MAX_CHARS = 400  # a thought is a few sentences, never an essay
 WHY_MAX_CHARS = 150
 OF_WHAT_MAX_CHARS = 100  # e.g. "killing the mayor", in the villager's own words
@@ -20,27 +20,6 @@ MAX_BECAUSE = 5
 MAX_TRUST = 6
 SURENESS = ["unsure", "fairly sure", "certain"]
 LEVELS = ["low", "medium", "high"]
-
-
-def shown_memories(stream: MemoryStream) -> dict[str, Memory]:
-    """id -> memory for what a thought reads: all evidence, then the last 30 others.
-
-    Evidence always goes in: it is what this villager knows for certain.
-    Earlier thoughts (reflections) are left out, so a belief cannot cite itself.
-    """
-    indexed = list(enumerate(stream.memories))
-    evidence = [(i, m) for i, m in indexed if m.kind == "evidence"]
-    recent = [(i, m) for i, m in indexed if m.kind not in ("evidence", "reflection")]
-    return {memory_id(i): m for i, m in [*evidence, *recent[-RECENT_MEMORIES:]]}
-
-
-def people_ids(world, npc_id: str) -> tuple[list[str], list[str]]:
-    """(who can be suspected, who can be trusted). The dead are neither.
-
-    A villager may suspect itself (the killer knows). It does not rate its own trust.
-    """
-    living = sorted(n for n in world.npcs if world.npcs[n].alive)
-    return living, [n for n in living if n != npc_id]
 
 
 def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
@@ -59,6 +38,8 @@ def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
             # Who they mean to accuse out loud, if anyone. May differ from suspect: that is
             # how belief and intention are recorded apart. Only living others can be named.
             "will_accuse": {"enum": [*trusted, None]},
+            # What they want to do next, in their own words (see aims.py). May be null.
+            **aims.schema_properties(),
             "because": {"type": "array", "maxItems": MAX_BECAUSE, "items": {"enum": memory_ids}},
             "trust": {
                 "type": "array",
@@ -75,7 +56,8 @@ def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
             },
         },
         "required": [
-            "thoughts", "suspect", "of_what", "sureness", "will_accuse", "because", "trust",
+            "thoughts", "suspect", "of_what", "sureness", "will_accuse", "aim", "aim_status",
+            "because", "trust",
         ],  # fmt: skip
     }
 
@@ -95,7 +77,10 @@ def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> 
     ]
     if previous:
         lines += ["Your last thoughts (you may change your mind):"]
-        lines += belief_text.belief_lines(world, previous, npc_id)
+        lines += belief_text.belief_lines(world, previous, npc_id, with_aim=False)
+        # Here the aim is offered back to be continued, changed or dropped.
+        if aims.active(previous):
+            lines.append(f"Your aim: {aims.active(previous)}")
     lines += [
         "Reply only with JSON. Use exact ids, never names.",
         "Only rely on the memories listed. Never invent objects, records or events.",
@@ -106,6 +91,7 @@ def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> 
         "Who, if anyone, do you truly believe has done something bad, of what, and how sure "
         "are you? Which of your memories make you think so (give their ids)? "
         "Do you mean to accuse anyone out loud? If so, who? "
+        + aims.ASK + " "
         "And how do you feel about the people you have met, and why?"
     )
     return [
@@ -128,6 +114,7 @@ def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: di
     will_accuse = reply.get("will_accuse")
     if will_accuse is not None and will_accuse not in trusted:
         raise ValueError(f"unknown will_accuse {will_accuse}")
+    aim, aim_status = aims.checked(reply)  # raises on a bad status
     if sureness not in SURENESS:
         raise ValueError(f"unknown sureness {sureness}")
     if not isinstance(reply["because"], list):
@@ -150,7 +137,7 @@ def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: di
     # The server does not always enforce maxLength, so trim here and flatten newlines.
     thoughts = " ".join(str(reply["thoughts"]).split())[:THOUGHTS_MAX_CHARS]
     return {"suspect": suspect, "of_what": of_what, "sureness": sureness, "thoughts": thoughts,
-            "will_accuse": will_accuse,
+            "will_accuse": will_accuse, "aim": aim, "aim_status": aim_status,
             "because": because[:MAX_BECAUSE], "trust": trust[:MAX_TRUST]}  # fmt: skip
 
 
