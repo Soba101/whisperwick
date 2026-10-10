@@ -20,7 +20,13 @@ fi
 prefix="${1:-w5-}"
 DAYS=3  # runs are 3 game days, from day 1 08:00 to day 4 08:00
 
-setopt nullglob  # no matching files is fine: just print nothing
+# Say so plainly when there is nothing to show, instead of printing nothing.
+# (Runs and their logs only exist on the machine that ran them: the Mac.)
+if ! ls data/${prefix}*.log >/dev/null 2>&1; then
+  echo "No run logs matching data/${prefix}*.log in $(pwd)."
+  echo "Runs live on the Mac in ~/DocumentsMac/Codes/whisperwick/data/."
+  exit 0
+fi
 for log in data/${prefix}*.log; do
   name=$(basename "$log" .log)
   db="data/$name.db"
