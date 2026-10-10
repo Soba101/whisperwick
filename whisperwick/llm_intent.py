@@ -39,16 +39,23 @@ def item_lines(world: World, ids: list[str]) -> str:
 def intent_schema(world: World, npc_id: str) -> dict:
     """JSON schema for this one turn.
 
-    Target can only be a real exit or a person here, so the model cannot
-    write a display name like "Victor" in place of "npc_victor".
+    Target can only be a real exit or a person here (authority: any living person),
+    so the model cannot write a display name like "Victor" in place of "npc_victor".
     Item can only be an item lying here or one this NPC holds, so no invented objects.
     """
     exits, people = exits_and_people(world, npc_id)
+    targets = [*exits, *people]
+    if npc_id in world.authority:
+        # #42: Hal aimed to lock Victor up (at the Inn) but could only name Sarah, who was
+        # with him, so he arrested her. Authority may name any living person; the engine
+        # rejects someone not here ("X is not here") and the retry feeds that back.
+        far = sorted(n for n, p in world.npcs.items() if p.alive and n != npc_id)
+        targets += [n for n in far if n not in people]
     return {
         "type": "object",
         "properties": {
             "action": {"enum": actions_for(world, npc_id)},
-            "target": {"enum": [*exits, *people, None]},
+            "target": {"enum": [*targets, None]},
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
             # A claim is two FLAT fields, not a nested object: llama.cpp grammars

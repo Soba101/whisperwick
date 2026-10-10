@@ -99,19 +99,46 @@ def last_words(world, history: ActionHistory | None, npc_id: str, people: list[s
 WORDS_RULE = "Words alone never hold anyone; only an arrest does."
 
 
+def held_by_line(world, npc_id: str) -> str | None:
+    """'You are being held by Hal.' if I am held, else None."""
+    holder = world.npcs[npc_id].held_by
+    return None if holder is None else f"You are being held by {world.npcs[holder].name}."
+
+
+def holding_line(world, npc_id: str) -> str | None:
+    """'You are holding: Victor (npc_victor) at The Inn, ...' or None if I hold nobody.
+
+    #43: in a live run Hal held Sarah for a whole day but was never reminded of it once
+    she was out of the room, and her later thoughts muddled "held" with "released".
+    """
+    held = sorted(n for n in world.npcs if world.npcs[n].held_by == npc_id)
+    if not held:
+        return None
+    places = (f"{who(world, n)} at {world.locations[world.npcs[n].location].name}" for n in held)
+    return "You are holding: " + ", ".join(places) + "."
+
+
+def custody_facts(world, npc_id: str) -> list[str]:
+    """Only the held/holding facts. The thinking prompt uses this: no rules, no actions."""
+    facts = [held_by_line(world, npc_id), holding_line(world, npc_id)]
+    return [f for f in facts if f]
+
+
 def custody_lines(world, npc_id: str) -> list[str]:
     """Custody facts for this villager's prompt."""
     me = world.npcs[npc_id]
     lines = [WORDS_RULE]
     if npc_id in world.authority:
         # The role comes from the world, not from a hardcoded word.
+        # #42: the person must be here. Hal once arrested whoever was in the room
+        # instead of the one he meant, so the rule is stated as a plain fact.
         lines.append(
             f"As the {me.occupation}, you can hold someone with the arrest action and let them "
-            "go with release. Saying someone is under arrest does nothing by itself."
+            "go with release. The person must be here with you. "
+            "Saying someone is under arrest does nothing by itself."
         )
+        if holding_line(world, npc_id):
+            lines.append(holding_line(world, npc_id))
     if me.held_by is not None:
-        lines.append(
-            f"You are being held by {world.npcs[me.held_by].name}. "
-            "You cannot move, take, drop or give."
-        )
+        lines.append(f"{held_by_line(world, npc_id)} You cannot move, take, drop or give.")
     return lines

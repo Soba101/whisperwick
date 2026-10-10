@@ -75,6 +75,8 @@ def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> 
         "Your memories, each with its id:",
         *(f"[{mid}] {m.text}" for mid, m in shown.items()),
     ]
+    # #43: plain custody facts only (Sarah was held all day, yet her thoughts said "released").
+    lines += belief_text.custody_facts(world, npc_id)
     if previous:
         lines += ["Your last thoughts (you may change your mind):"]
         lines += belief_text.belief_lines(world, previous, npc_id, with_aim=False)
