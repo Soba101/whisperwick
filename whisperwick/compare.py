@@ -8,7 +8,7 @@ sidecar is {}, and anything it lacks shows as "-" (old runs have no interview).
 import json
 from pathlib import Path
 
-from whisperwick import belief_report, story
+from whisperwick import belief_report, compare_outcome, story
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_run import rejection_rate, sidecar_path
@@ -107,8 +107,12 @@ def item_line(run: dict, names: dict[str, str]) -> str:
 
 
 def key_events(run: dict, names: dict[str, str]) -> list[str]:
-    """Every player event and every item event, capped so the report stays short."""
-    keep: list[Event] = [e for e in run["events"] if e.actor == PLAYER_ID or e.type in ITEM_EVENTS]
+    """Every player event, item event and arrest/release, capped so the report stays short."""
+    # Arrests and releases are world facts that end a story, so they always count as key.
+    keep: list[Event] = [
+        e for e in run["events"]
+        if e.actor == PLAYER_ID or e.type in ITEM_EVENTS or e.type in ("arrest", "release")
+    ]  # fmt: skip
     # story only gives HH:MM, so add the day here (d2 07:01).
     lines = [f"d{Clock(e.tick).day} {line}" for e in keep if (line := story.format_event(e, names))]
     extra = len(lines) - MAX_EVENT_LINES
@@ -131,6 +135,7 @@ def format_compare(runs: list[dict], names: dict[str, str]) -> str:
     out = [*header_rows(runs), "", *suspect_table(runs, names), "", "Votes:"]
     out += [f"  {vote_line(r, names)}" for r in runs]
     out += ["", *belief_section(runs, names)]
+    out += ["", *compare_outcome.lines(runs, names)]
     out += ["", "Items at the end:", *(f"  {item_line(r, names)}" for r in runs)]
     out += ["", "Key events:"]
     for r in runs:

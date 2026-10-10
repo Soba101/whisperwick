@@ -1,0 +1,14 @@
+# The player tells Hal (the guard) that Victor did it, with nothing to show for it.
+# No item, no witness: just words. What Hal makes of it is up to Hal.
+# Hal starts in the Town Hall, which the market links to, so the player walks there first.
+# The talk carries an "accuses" claim, which the engine logs (it never checks if true).
+name: accuse_victor
+steps:
+  - at: "1 08:00"
+    action: move
+    target: loc_town_hall
+  - at: "1 08:01"
+    action: talk
+    target: npc_hal
+    claim: {kind: accuses, subject: npc_victor}
+    message: "Hal, I think Victor killed the mayor. I can't prove it, but I'm sure of it."

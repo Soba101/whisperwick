@@ -8,7 +8,15 @@ from typing import Annotated
 
 import typer
 
-from whisperwick import compare_command, llm_run, run_report, settings, story, trace_command
+from whisperwick import (
+    compare_command,
+    event_trace_command,
+    llm_run,
+    outcome_command,
+    run_report,
+    settings,
+    story,
+)
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import Clock
 from whisperwick.events import Event
@@ -201,12 +209,28 @@ def compare_command_(
 @app.command("trace")
 def trace_command_(
     db: Annotated[Path, typer.Argument(help="Event log from an llm run.")],
-    subject: Annotated[str, typer.Argument(help="Person id, e.g. npc_hal.")],
+    subject: Annotated[str | None, typer.Argument(help="Person id, e.g. npc_hal.")] = None,
+    event: Annotated[int | None, typer.Option("--event", help="Explain this event id.")] = None,
     as_json: Annotated[bool, typer.Option("--json", help="Print the trace as JSON.")] = False,
 ) -> None:
-    """Who believes SUBJECT did it, and via whom (from the belief log). No model is called."""
+    """Who believes SUBJECT did it, or (--event N) why event N happened. No model is called."""
     try:
-        typer.echo(trace_command.trace_run(db, subject, as_json))
+        typer.echo(event_trace_command.trace_any(db, subject, event, as_json))
+    except (FileNotFoundError, ValueError) as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command("outcome")
+def outcome_command_(
+    db: Annotated[Path, typer.Argument(help="Event log from an llm run.")],
+    scenario: Annotated[
+        Path | None, typer.Option(help="Scenario YAML. Only given to also print its secret.")
+    ] = None,
+) -> None:
+    """Arrests, releases and who is held at the end. World events only. No model is called."""
+    try:
+        typer.echo(outcome_command.outcome_run(db, scenario))
     except FileNotFoundError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
