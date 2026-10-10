@@ -1,4 +1,4 @@
-# Week 6 plan: villager memory, evaluation and Gate 2 (DRAFT)
+# Week 6 plan: villager memory, evaluation and Gate 2
 
 Goal: answer the roadmap question with evidence. Can a player's actions change an emergent story,
 while the story stays coherent and every belief stays traceable?
