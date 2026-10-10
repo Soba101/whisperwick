@@ -71,6 +71,10 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
 ## 6. Demo and write-up
 - `whisperwick play` as a short playable demo (1 day, you are Wren), with `outcome` at the end.
 - A write-up on the wiki: what worked, what didn't, the numbers, the Gate 2 decision.
+- A visual replay preview: one self-contained HTML page per run that replays the event log
+  (who is where, who says what, arrests), to see what a front-end could show. Read-only, world facts only.
+
+Gate 2 is Donovan's call after playing the demo. The numbers and thresholds below are inputs to it.
 
 ## Gate 2 (proposed thresholds, yours to change)
 - **GO** (start a front-end): outcomes differ by player script on most seeds, valid sources >= 95%,
