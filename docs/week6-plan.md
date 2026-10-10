@@ -18,17 +18,20 @@ coherence, % of beliefs with a valid source and the memory-slip rate, and a Gate
 Rules carry over: the world is physics only; villagers decide what they believe, want and do;
 no director, no formulas, no hints in prompts. Every new piece is agent-side and private, never world state.
 
-## 1. Faster runs (#20)
-- Villagers in different places think and act in parallel (Ollama serves a few calls at once).
-  Same-place villagers stay in order, so whoever speaks first is still decided by the scheduler, not by timing.
-- The event log stays deterministic in order (events are applied in a fixed order after the calls return).
-- Target: a 3-day run in about 20-30 minutes instead of about 65.
-- Model server, measured in this order (stop at the first that hits the target):
-  1. Ollama with `OLLAMA_NUM_PARALLEL=4` on the PC. One setting, no new server.
-  2. llama.cpp's own `llama-server` on Windows: parallel slots, prompt-prefix reuse, JSON grammars.
-  3. vLLM or SGLang: the fastest at batching, but Linux only (WSL2 on the PC). Only if we ever accept that.
-- Measure each the same way: minutes per 3-day run, errors, rejection rate, same seed.
-  Speed alone barely helps (one call at a time): the gain comes from sending calls in parallel.
+## 1. Faster runs (#20), changed after measuring (2026-10-11)
+- Measured first: in the week 5 logs, minutes where 2+ villagers act are almost all one
+  conversation in one place. Each reply must see the line before it, so those calls cannot overlap.
+  Parallel acting would save about 5% per run. Not built.
+- Why runs got slow: 955-2045 calls per 3-day run in week 5, against about 404 when #20 was filed.
+  Nearly every event is talk. Recorded as a finding, not patched.
+- Built instead:
+  1. Thoughts in parallel. All villagers think at the same minute, and one villager's thought never
+     changes another's prompt, so the calls go out together and are applied in sorted id order.
+     Same prompts, same records, same order as the serial loop.
+  2. Several runs at once: `OLLAMA_NUM_PARALLEL=4` on the PC and 3-4 runs side by side.
+     Each run is as slow as before, but the 21 runs take about a third of the time. No engine change.
+- Check: same belief log, memories and event log as the serial loop with a fake model (tests),
+  then the minutes per run and per batch of runs on the PC.
 
 ## 2. Villager memory, ideas taken from Hermes Agent (not the tool itself)
 - **Recall:** a private choice, `recall <words>`. The villager searches its own memories (full-text)
@@ -55,7 +58,7 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
 - **Baseline (week 5 code, no memory):** 3 seeds x none = 3 runs. Same seeds, so the memory effect is visible.
 - **Model check:** 1 seed x 3 scripts with a Hermes model in Ollama instead of qwen = 3 runs.
   Tells us if outcomes like "Hal arrests Bob" come from the setup or from one model.
-- 21 runs, about 11 hours with parallel calls. Overnight batches.
+- 21 runs, about 22 hours of model time, about 7-8 hours with 3-4 runs at once. Overnight batches.
 
 ## 5. Measures (`whisperwick eval`)
 - Outcome per run (world facts only): who is held at the end, right / wrong / nobody.
@@ -76,14 +79,14 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
 - **STOP:** stories are incoherent or untraceable.
 
 ## Tasks and order
-1. Parallel calls (#20). 2. Recall + notebook. 3. eval command + Kev judge. 4. Runs. 5. Demo + write-up + Gate 2.
+1. Parallel thoughts + several runs at once (#20). 2. Recall + notebook. 3. eval command + Kev judge. 4. Runs. 5. Demo + write-up + Gate 2.
 Sonnet subagents implement and write tests; I review every diff and run verify-world-engine after 1.
 
 ## Out of scope
 More villagers, escape, daily routines, economy, 3D, the 8B model tier.
 
 ## Risks
-- Parallel calls could change event order: the determinism checks must stay green.
+- Parallel thoughts could change the order of records: the determinism checks must stay green.
 - Recall and notebook make prompts longer: watch speed and context size.
 - The judge can be wrong: hand spot-checks, and the judge never feeds back into a run.
 - 21 runs is a lot of PC time: if it slips, cut the model check first.
