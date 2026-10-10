@@ -4,9 +4,13 @@ Goal: answer the roadmap question with evidence. Can a player's actions change a
 while the story stays coherent and every belief stays traceable?
 Then decide Gate 2: GO (front-end) / PIVOT / STOP.
 
-Draft. Week 5 results (none, blame_hal, hide_knife, accuse_victor) will be added before approval.
-So far: Hal arrested Bob (innocent) in every run, for "obstruction", and Victor stayed free.
-In blame_hal, Hal misread his own memories and came to believe Bob was dead.
+What week 5 showed (seed 42, 4 runs, #41):
+- Hal arrested Bob (innocent) in every run, for "obstruction"; Victor (the killer) stayed free; no releases.
+  The player's actions did not change the ending, even "Victor did it" told straight to Hal (#48).
+- Hal misread a look memory and came to believe Bob was dead (#49). Arrests carry no reason (#50).
+- The unverified-tag name check flags 8-26% of claims (#51). Aims are mostly restated as "new" (#52).
+- Good news: 0 model errors, 1.6-2.9% rejections, every arrest traces back to Hal's own thinking.
+So week 6 must first find out if "Hal arrests Bob" is this seed and these two characters, or the setup itself.
 
 Exit check: **a results table over several seeds and player scripts, with outcome divergence,
 coherence, % of beliefs with a valid source and the memory-slip rate, and a Gate 2 decision.**
@@ -34,6 +38,9 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
   The code only stores it, limits its length, and shows it back to that villager. No code summaries.
 - Logged for analysis, like beliefs. Never a world event, never in the state hash.
 - Out of scope: Hermes-style skills and sub-agents.
+- Two small fixes from week 5, both plain facts, no hints:
+  - Clearer look memories (#49): "People here: Bob (npc_bob). The body of Mayor Aldric (npc_mayor) lies here."
+  - Arrest takes an optional reason in Hal's own words, logged with the event and never checked (#50).
 
 ## 3. A judge for evaluation: Kev (local, Apache-2.0)
 - Kev-4B on the PC answers yes/no, choice and score questions with probabilities. Run only AFTER the
