@@ -5,15 +5,15 @@ import json
 from helpers import SCENARIO
 from typer.testing import CliRunner
 
-from whisperwick import cli, llm_run
+from whisperwick import cli, llm_cli, llm_run
 from whisperwick.memory import Memories
 from whisperwick.scenario import load_scenario
 
 
 def test_llm_run_without_settings_points_at_env_example(monkeypatch, tmp_path):
     # Stub out the settings so no real .env file or environment is read.
-    monkeypatch.setattr(cli.settings, "llm_base_url", lambda: None)
-    monkeypatch.setattr(cli.settings, "llm_model", lambda: None)
+    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: None)
+    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: None)
     db = tmp_path / "x.db"
     result = CliRunner().invoke(cli.app, ["run", "--agent", "llm", "--db", str(db)])
     assert result.exit_code == 1

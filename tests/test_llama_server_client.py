@@ -7,7 +7,7 @@ import urllib.request
 
 import pytest
 
-from whisperwick import cli, settings
+from whisperwick import llm_cli, settings
 from whisperwick.llm_client import LlamaServerClient, LLMError, OllamaClient
 
 SCHEMA = {"type": "object", "properties": {"a": {"type": "string"}}}
@@ -76,5 +76,5 @@ def test_llm_server_setting(tmp_path, monkeypatch):
 
 
 def test_make_client_picks_class():
-    assert isinstance(cli.make_client("ollama", "http://h/v1", "m"), OllamaClient)
-    assert isinstance(cli.make_client("llama-server", "http://h/v1", "m"), LlamaServerClient)
+    assert isinstance(llm_cli.make_client("ollama", "http://h/v1", "m"), OllamaClient)
+    assert isinstance(llm_cli.make_client("llama-server", "http://h/v1", "m"), LlamaServerClient)

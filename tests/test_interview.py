@@ -6,7 +6,7 @@ from pathlib import Path
 from helpers import SCENARIO, fresh_world
 from typer.testing import CliRunner
 
-from whisperwick import cli, compare, compare_command, interview, llm_run, run_report
+from whisperwick import cli, compare, compare_command, interview, llm_cli, llm_run, run_report
 from whisperwick.events import Event
 from whisperwick.llm_client import FakeClient
 from whisperwick.memory import Memories
@@ -160,9 +160,9 @@ class InterviewClient:
 
 
 def test_run_stores_interview_and_items_in_sidecar(monkeypatch, tmp_path):
-    monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
-    monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli, "make_client", lambda server, url, model: InterviewClient())
+    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
+    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
+    monkeypatch.setattr(llm_cli, "make_client", lambda server, url, model: InterviewClient())
     db = tmp_path / "r.db"
     result = CliRunner().invoke(cli.app, ["run", "--agent", "llm", "--hours", "1", "--db", str(db)])
     assert result.exit_code == 0, result.output

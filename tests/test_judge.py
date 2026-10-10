@@ -6,7 +6,7 @@ from pathlib import Path
 from eval_helpers import make_run, record
 from typer.testing import CliRunner
 
-from whisperwick import cli, compare, eval_measures, judge_run
+from whisperwick import cli, compare, eval_measures, judge_run, llm_cli
 from whisperwick.llm_client import LLMError
 
 
@@ -29,16 +29,16 @@ class FakeJudge:
 
 
 def patch_cli(monkeypatch, client):
-    monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
-    monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli.settings, "llm_server", lambda: "ollama")
+    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
+    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
+    monkeypatch.setattr(llm_cli.settings, "llm_server", lambda: "ollama")
     seen = []
 
     def make_client(server, url, model, temperature=0.7):
         seen.append(temperature)
         return client
 
-    monkeypatch.setattr(cli, "make_client", make_client)
+    monkeypatch.setattr(llm_cli, "make_client", make_client)
     return seen
 
 

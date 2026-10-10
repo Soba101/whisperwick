@@ -8,7 +8,7 @@ from helpers import fresh_world
 from test_play import LookClient, say
 from typer.testing import CliRunner
 
-from whisperwick import cli
+from whisperwick import cli, llm_cli
 from whisperwick.llm_sim import run_llm
 from whisperwick.player import PLAYER_ID
 from whisperwick.player_commands import DEFAULT_WAIT, parse_command
@@ -87,9 +87,9 @@ def test_terminal_player_shows_npc_replies_and_quits_on_eof():
 # ---- the play command ----
 
 def fake_setup(monkeypatch):
-    monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
-    monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli, "make_client", lambda server, url, model: LookClient())
+    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
+    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
+    monkeypatch.setattr(llm_cli, "make_client", lambda server, url, model: LookClient())
 
 
 def test_play_script_smoke(monkeypatch, tmp_path):

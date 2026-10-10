@@ -4,7 +4,7 @@ import pytest
 from helpers import SCENARIO, fresh_world
 from test_recall import thought
 
-from whisperwick import cli, llm_agent, llm_run, settings, thinking
+from whisperwick import cli, llm_agent, llm_cli, llm_run, settings, thinking
 from whisperwick.agent_log import AgentLog, sidecar_part
 from whisperwick.belief_log import BeliefLog
 from whisperwick.llm_sim import run_llm
@@ -72,15 +72,15 @@ def test_memory_setting_defaults_on_and_rejects_bad_values(tmp_path, monkeypatch
 def test_cli_exits_on_a_bad_memory_setting(monkeypatch, tmp_path):
     from typer.testing import CliRunner
 
-    monkeypatch.setattr(cli.settings, "llm_base_url", lambda: "http://x")
-    monkeypatch.setattr(cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(cli.settings, "parallel", lambda: 1)
-    monkeypatch.setattr(cli.settings, "llm_server", lambda: "ollama")
+    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
+    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
+    monkeypatch.setattr(llm_cli.settings, "parallel", lambda: 1)
+    monkeypatch.setattr(llm_cli.settings, "llm_server", lambda: "ollama")
 
     def bad():
         raise ValueError("WHISPERWICK_MEMORY must be on or off")
 
-    monkeypatch.setattr(cli.settings, "agent_memory", bad)
+    monkeypatch.setattr(llm_cli.settings, "agent_memory", bad)
     db = tmp_path / "x.db"
     res = CliRunner().invoke(cli.app, ["run", "--agent", "llm", "--db", str(db)])
     assert res.exit_code == 1 and "WHISPERWICK_MEMORY" in res.output
