@@ -47,7 +47,10 @@ def test_compare_shows_suspects_trust_and_counts():
     assert "Trust in the player: Alice not rated, Bob high, Hal not rated" in text
     # 5 records; two hunches (Bob and Alice cite nothing in their last).
     # Claims by Bob and Wren; only Wren's has no source.
-    assert "thoughts 5, hunches 2, claims: Bob 1, Wren 1; own-claims (no source): 1" in text
+    expected = (
+        "thoughts 5, hunches 2, claims: Bob 1, Wren 1 (unverified 0); own-claims (no source): 1"
+    )
+    assert expected in text
 
 
 def test_compare_copes_with_a_run_that_has_no_belief_log():

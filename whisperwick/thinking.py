@@ -50,11 +50,15 @@ def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
         "type": "object",
         "properties": {
             "thoughts": {"type": "string", "maxLength": THOUGHTS_MAX_CHARS},
+            # Who they truly believe did it (their private belief).
             "suspect": {"enum": [*suspects, None]},
             # What they suspect that person of, in their own words. The code never names a crime:
             # a villager only knows about the murder if it saw the body or was told.
             "of_what": {"type": ["string", "null"], "maxLength": OF_WHAT_MAX_CHARS},
             "sureness": {"enum": SURENESS},
+            # Who they mean to accuse out loud, if anyone. May differ from suspect: that is
+            # how belief and intention are recorded apart. Only living others can be named.
+            "will_accuse": {"enum": [*trusted, None]},
             "because": {"type": "array", "maxItems": MAX_BECAUSE, "items": {"enum": memory_ids}},
             "trust": {
                 "type": "array",
@@ -70,7 +74,9 @@ def schema(world, npc_id: str, memory_ids: list[str]) -> dict:
                 },
             },
         },
-        "required": ["thoughts", "suspect", "of_what", "sureness", "because", "trust"],
+        "required": [
+            "thoughts", "suspect", "of_what", "sureness", "will_accuse", "because", "trust",
+        ],  # fmt: skip
     }
 
 
@@ -97,8 +103,9 @@ def messages(world, npc_id, personality, shown: dict[str, Memory], previous) -> 
     # An open question: what is going on, as far as I know? Nothing here hints at the plot.
     ask = (
         "Think to yourself, in first person. What do you make of what has been happening? "
-        "Do you suspect anyone of something bad? If so, who, of what, and how sure are you? "
-        "Which of your memories make you think so (give their ids)? "
+        "Who, if anyone, do you truly believe has done something bad, of what, and how sure "
+        "are you? Which of your memories make you think so (give their ids)? "
+        "Do you mean to accuse anyone out loud? If so, who? "
         "And how do you feel about the people you have met, and why?"
     )
     return [
@@ -116,6 +123,11 @@ def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: di
     of_what = of_what if suspect is not None else None
     if suspect is not None and suspect not in suspects:
         raise ValueError(f"unknown suspect {suspect}")
+    # .get(): older fake clients send no will_accuse. It is only an intention, so it may be
+    # anyone alive but me, whatever the suspect is.
+    will_accuse = reply.get("will_accuse")
+    if will_accuse is not None and will_accuse not in trusted:
+        raise ValueError(f"unknown will_accuse {will_accuse}")
     if sureness not in SURENESS:
         raise ValueError(f"unknown sureness {sureness}")
     if not isinstance(reply["because"], list):
@@ -138,6 +150,7 @@ def checked(reply: dict, shown: dict[str, Memory], world, npc_id: str, stats: di
     # The server does not always enforce maxLength, so trim here and flatten newlines.
     thoughts = " ".join(str(reply["thoughts"]).split())[:THOUGHTS_MAX_CHARS]
     return {"suspect": suspect, "of_what": of_what, "sureness": sureness, "thoughts": thoughts,
+            "will_accuse": will_accuse,
             "because": because[:MAX_BECAUSE], "trust": trust[:MAX_TRUST]}  # fmt: skip
 
 

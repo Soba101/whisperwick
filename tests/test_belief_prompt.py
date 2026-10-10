@@ -36,7 +36,7 @@ def prompt(w, npc, personality=None, belief=None, history=None):
 
 def reply(**kw):
     base = {"action": "look", "target": None, "item": None, "message": None}
-    return {**base, "claim_kind": None, "claim_subject": None, **kw}
+    return {**base, "accuses": None, "defends": None, **kw}
 
 
 # ---- the prompt ----
@@ -92,8 +92,9 @@ def test_no_thought_yet_means_no_belief_lines():
 def test_claim_rule_is_always_there_and_reworded():
     text = prompt(fresh_world(), "npc_bob")
     assert (
-        "If you openly accuse or defend someone in a talk, also set claim_kind "
-        "(killer or innocent) and claim_subject (their id)." in text
+        "If your words openly accuse someone, set accuses to their id. "
+        "If your words openly defend someone, set defends to their id. "
+        "Otherwise leave both null." in text
     )
 
 
@@ -121,24 +122,23 @@ def _talk(actor, target, message, **kw):
 def test_schema_has_flat_claim_fields():
     w = fresh_world()
     props = llm_agent.intent_schema(w, "npc_bob")["properties"]
-    assert props["claim_kind"]["enum"] == ["killer", "innocent", None]
-    assert props["claim_subject"]["enum"] == [*sorted(w.npcs), None]
+    assert props["accuses"]["enum"] == [*sorted(w.npcs), None]
+    assert props["defends"]["enum"] == [*sorted(w.npcs), None]
     required = llm_agent.intent_schema(w, "npc_bob")["required"]
-    assert "claim_kind" in required and "claim_subject" in required
+    assert "accuses" in required and "defends" in required
 
 
-def test_claim_is_built_only_for_talk_with_both_fields():
+def test_claim_is_built_only_for_talk():
     w = fresh_world()
     talk = reply(action="talk", target="npc_victor", message="Hal did it")
-    both = {"claim_kind": "killer", "claim_subject": "npc_hal"}
+    both = {"accuses": "npc_hal"}
     got = llm_agent.decide(w, "npc_bob", FakeClient([{**talk, **both}]))
-    assert got.claim.kind == "killer" and got.claim.subject == "npc_hal"
-    # Only one field set: dropped, not an error.
+    assert got.claim.kind == "accuses" and got.claim.subject == "npc_hal"
     stats = {}
     one = llm_agent.decide(
-        w, "npc_bob", FakeClient([{**talk, "claim_kind": "killer"}]), stats=stats
+        w, "npc_bob", FakeClient([{**talk, "defends": "npc_hal"}]), stats=stats
     )
-    assert one.action == "talk" and one.claim is None and "errors" not in stats
+    assert one.claim.kind == "defends" and "errors" not in stats
     # A claim on a look is model noise: dropped quietly.
     look = llm_agent.decide(w, "npc_bob", FakeClient([reply(**both)]), stats=stats)
     assert look.action == "look" and look.claim is None and "errors" not in stats
@@ -171,8 +171,7 @@ class ClaimClient:
                 action="talk",
                 target="npc_victor",
                 message="Hal did it",
-                claim_kind="killer",
-                claim_subject="npc_hal",
+                accuses="npc_hal",
             )
         return reply()
 
@@ -181,10 +180,10 @@ def test_model_claim_is_logged_and_remembered_by_the_hearer():
     w = fresh_world()
     memories, _ = run_llm(w, ClaimClient(), 1, personalities=PERSONALITY)
     [talk] = [e for e in w.log.all() if e.type == "talk"]
-    assert talk.data["claim"] == {"kind": "killer", "subject": "npc_hal"}
+    assert talk.data["claim"] == {"kind": "accuses", "subject": "npc_hal"}
     # The claim is a fact about what was said, not a change in what Victor believes.
     [heard] = [m for m in memories["npc_victor"].memories if "Hal did it" in m.text]
-    assert "[claim: Hal (npc_hal) is the killer]" in heard.text and heard.event_id == talk.id
+    assert "[claim: accuses Hal (npc_hal)]" in heard.text and heard.event_id == talk.id
 
 
 def test_run_prompts_carry_character_and_the_latest_own_thought():

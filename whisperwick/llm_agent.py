@@ -122,12 +122,18 @@ def decide(
                 intent_schema(world, npc_id),
             )
         )
-        # The two flat claim fields become one Claim, but only on a talk with both set.
-        # Anything else is model noise and is dropped quietly, not counted as an error.
+        # The two flat fields become one Claim, but only on a talk. On any other action
+        # they are model noise and are dropped quietly, not counted as an error.
         # pop(key, None) keeps old clients that never send the fields working.
-        kind, subject = reply.pop("claim_kind", None), reply.pop("claim_subject", None)
-        if reply.get("action") == "talk" and kind and subject:
-            reply["claim"] = {"kind": kind, "subject": subject}
+        accuses, defends = reply.pop("accuses", None), reply.pop("defends", None)
+        if reply.get("action") == "talk":
+            if accuses and defends and stats is not None:
+                # A tag can only carry one claim; we measure how often both are set.
+                stats["claim_both"] = stats.get("claim_both", 0) + 1
+            if accuses:
+                reply["claim"] = {"kind": "accuses", "subject": accuses}
+            elif defends:
+                reply["claim"] = {"kind": "defends", "subject": defends}
         # The actor is filled in by code. The model never chooses who it is.
         intent = Intent(actor=npc_id, **reply)
     except (LLMError, ValidationError, TypeError) as e:

@@ -8,7 +8,7 @@ steps:
   - at: "1 08:00"
     action: talk
     target: npc_bob
-    claim: {kind: killer, subject: npc_hal}
+    claim: {kind: accuses, subject: npc_hal}
     message: "I saw Hal the guard leaving the Town Hall last night with blood on his sleeve."
   - at: "1 08:01"
     action: move
@@ -16,5 +16,5 @@ steps:
   - at: "1 08:02"
     action: talk
     target: npc_alice
-    claim: {kind: killer, subject: npc_hal}
+    claim: {kind: accuses, subject: npc_hal}
     message: "Careful around Hal. I saw him sneak out of the Town Hall with blood on his sleeve."

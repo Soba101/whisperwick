@@ -22,7 +22,7 @@ def test_schema_targets_are_exits_plus_people_here():
     assert schema["properties"]["action"]["enum"] == llm_intent.ACTIONS
     assert schema["properties"]["message"]["maxLength"] == MAX_MESSAGE_CHARS
     assert schema["required"] == [
-            "action", "target", "item", "message", "claim_kind", "claim_subject",
+            "action", "target", "item", "message", "accuses", "defends",
         ]  # fmt: skip
     assert schema["additionalProperties"] is False
     assert "actor" not in schema["properties"]

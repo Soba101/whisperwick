@@ -5,6 +5,7 @@ The engine checks it and either applies it or rejects it with a reason.
 Handlers here are the only code that changes NPC state.
 """
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -16,7 +17,7 @@ from whisperwick.events import Event
 MAX_MESSAGE_CHARS = 500
 
 # What a claim can say about a person. The one place to add a new kind.
-CLAIM_KINDS = ("killer", "innocent")
+CLAIM_KINDS = ("accuses", "defends")
 
 
 class Claim(BaseModel):
@@ -45,7 +46,7 @@ class Intent(BaseModel):
     target: str | None = None
     message: str | None = None  # what to say (talk only)
     item: str | None = None  # an item id (take, drop, give, show)
-    claim: Claim | None = None  # "X is the killer" or "X is innocent" (talk only)
+    claim: Claim | None = None  # "accuses X" or "defends X" (talk only)
 
 
 @dataclass
@@ -89,6 +90,12 @@ def do_move(world, intent: Intent) -> ActionResult:
     return ActionResult(True, event=event)
 
 
+def mentions(message: str, person_id: str, world) -> bool:
+    """True if the message has the person's id or a word of their name (whole word, 3+ letters)."""
+    words = [person_id, *(w for w in world.npcs[person_id].name.split() if len(w) >= 3)]
+    return any(re.search(rf"\b{re.escape(w)}\b", message, re.I) for w in words)
+
+
 def do_talk(world, intent: Intent) -> ActionResult:
     """Say something to someone in the same place. Others there overhear it."""
     npc = world.npcs[intent.actor]
@@ -116,6 +123,11 @@ def do_talk(world, intent: Intent) -> ActionResult:
     # The engine never checks if a claim is true: lies are allowed.
     if intent.claim is not None:
         data["claim"] = intent.claim.model_dump()
+    # Crude name check: catches a tag naming someone the words never mention.
+    # It does not judge truth. The claim is still kept and the words never change;
+    # the flag is only added when true, so normal claims log exactly as before.
+    if intent.claim is not None and not mentions(message, intent.claim.subject, world):
+        data["claim"]["unverified"] = True
     witnesses = [n for n in world.npcs_at(npc.location) if n != npc.id]
     event = world.log.append(
         Event(

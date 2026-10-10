@@ -10,7 +10,7 @@ from whisperwick.belief_log import BeliefLog
 from whisperwick.memory import Memories, memory_id
 from whisperwick.scenario import build_world, load_scenario
 
-HAL = {"kind": "killer", "subject": "npc_hal"}
+HAL = {"kind": "accuses", "subject": "npc_hal"}
 
 
 def new_world(db=":memory:"):

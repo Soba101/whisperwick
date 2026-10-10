@@ -3,7 +3,7 @@
 Split out of llm_agent.py to keep that file small (#30). Pure functions over the world.
 """
 
-from whisperwick.actions import CLAIM_KINDS, MAX_MESSAGE_CHARS
+from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.world import World
 
 ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show"]
@@ -45,10 +45,10 @@ def intent_schema(world: World, npc_id: str) -> dict:
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
             # A claim is two FLAT fields, not a nested object: llama.cpp grammars
-            # handle flat enums better. Both are null unless the model is making a claim.
-            "claim_kind": {"enum": [*CLAIM_KINDS, None]},
-            "claim_subject": {"enum": [*sorted(world.npcs), None]},
+            # handle flat enums better. Each is null unless the words openly do that.
+            "accuses": {"enum": [*sorted(world.npcs), None]},
+            "defends": {"enum": [*sorted(world.npcs), None]},
         },
-        "required": ["action", "target", "item", "message", "claim_kind", "claim_subject"],
+        "required": ["action", "target", "item", "message", "accuses", "defends"],
         "additionalProperties": False,
     }

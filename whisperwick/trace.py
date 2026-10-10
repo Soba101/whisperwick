@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass
 
 from whisperwick.belief_log import BeliefLog
+from whisperwick.claims import claim_words, kind_of
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.player import PLAYER_ID
@@ -44,7 +45,7 @@ class Tracer:
     def mentions_subject(self, e: Event) -> bool:
         """A talk that accuses the subject (claim) or just says their name."""
         claim = e.data.get("claim")
-        if claim and claim["subject"] == self.subject and claim["kind"] == "killer":
+        if claim and claim["subject"] == self.subject and kind_of(claim) == "accuses":
             return True
         # Whole words only, so "Hal" does not match "shall".
         # Without a scenario to give names, "npc_hal" still matches the word "hal".
@@ -92,8 +93,8 @@ class Tracer:
         claim = e.data.get("claim")
         if not claim:
             return ""
-        verdict = "the killer" if claim["kind"] == "killer" else "innocent"
-        return f" [claim: {self.name(claim['subject'])} is {verdict}]"
+        text = f" [claim: {claim_words(claim, self.name(claim['subject']))}]"
+        return text + (" (unverified tag)" if claim.get("unverified") else "")
 
     def speaker_source(self, p: str, event: Event, depth: int, seen: frozenset) -> list[dict]:
         """Where did P get what P said at `event`? Always returns at least one step."""
@@ -134,6 +135,8 @@ def believer_entry(t: Tracer, record: dict) -> dict:
         "npc": npc, "name": t.name(npc), "tick": record["tick"],
         "of_what": record.get("of_what"), "sureness": record["sureness"],
         "thoughts": record["thoughts"], "hunch": record.get("hunch", False),
+        # Who it meant to accuse out loud (may differ from what it believes). Old records: None.
+        "will_accuse": record.get("will_accuse"),
         "chain": t.explain_record(record, 0, frozenset()),
     }  # fmt: skip
 
@@ -185,7 +188,7 @@ def own_claims(events: list[Event], log: BeliefLog, names: dict | None = None) -
     out = []
     for e in events:
         claim = e.data.get("claim") if e.type == "talk" else None
-        if claim and claim["kind"] == "killer":
+        if claim and kind_of(claim) == "accuses":
             t = Tracer(events, log, claim["subject"], names or {})
             if is_made_up(t.speaker_source(e.actor, e, 0, frozenset())):
                 out.append(e)

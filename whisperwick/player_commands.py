@@ -10,8 +10,8 @@ HELP = """Commands:
   move <loc>                 walk to a place, e.g. move loc_inn
   talk <npc> <message...>    say something to someone here
   tell <npc> <kind> <person> <message...>
-                             talk, and claim the person is the killer or innocent
-                             e.g. tell npc_bob killer npc_hal I saw him
+                             talk, and claim the person (kind: accuses or defends)
+                             e.g. tell npc_bob accuses npc_hal I saw him
   take <item>                pick up an item from the ground
   drop <item>                put an item down
   give <item> <npc>          hand an item to someone here

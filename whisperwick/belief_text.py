@@ -4,6 +4,7 @@ Pure text, no state changes. A villager's belief is shown in the villager's own 
 as it said them when it last thought. No numbers from code, no verdicts from code.
 """
 
+from whisperwick.claims import claim_words
 from whisperwick.clock import Clock
 from whisperwick.repeat_guard import ActionHistory, Record
 
@@ -12,8 +13,9 @@ MAX_QUOTE = 80  # longest quoted message in "last words"
 # Said once, after the lists, because the schema alone cannot explain it.
 # A claim is the villager choosing to speak out. It is not a belief change.
 CLAIM_RULE = (
-    "If you openly accuse or defend someone in a talk, also set claim_kind "
-    "(killer or innocent) and claim_subject (their id)."
+    "If your words openly accuse someone, set accuses to their id. "
+    "If your words openly defend someone, set defends to their id. "
+    "Otherwise leave both null."
 )
 
 
@@ -46,9 +48,11 @@ def belief_lines(world, record: dict | None, npc_id: str) -> list[str]:
     """My latest thoughts and trust, from my newest belief record. Empty if I never thought."""
     if record is None:
         return []
-    lines = [
-        f"What you think right now: {suspect_phrase(world, record, npc_id)}. {record['thoughts']}"
-    ]
+    phrase = suspect_phrase(world, record, npc_id)
+    # .get(): records written before will_accuse existed have no such key.
+    meant = record.get("will_accuse")
+    out_loud = f" You mean to accuse {who(world, meant)} out loud." if meant else ""
+    lines = [f"What you think right now: {phrase}.{out_loud} {record['thoughts']}"]
     # Only people who still exist in this world; the model's own words about each.
     feel = [
         f"{who(world, t['person'])} {t['level']}: {t['why']}"
@@ -68,7 +72,7 @@ def say_of(world, r: Record) -> str:
         text = (r.message or "")[:MAX_QUOTE]
         line = f'told {to} "{text}"'
         if r.claim:
-            line += f" (claim: {r.claim[0]} {who(world, r.claim[1])})"
+            line += f" (claim: {claim_words({'kind': r.claim[0]}, who(world, r.claim[1]))})"
         return f"{line} at {when}"
     item = world.items[r.item].name if r.item in world.items else r.item
     verb = "showed" if r.action == "show" else "gave"

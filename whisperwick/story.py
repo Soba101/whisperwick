@@ -6,6 +6,7 @@ Names are looked up from ids at the very end, only for display.
 
 from pathlib import Path
 
+from whisperwick.claims import claim_words
 from whisperwick.clock import MINUTES_PER_DAY, Clock
 from whisperwick.events import Event, EventLog
 from whisperwick.llm_run import stats_line
@@ -47,8 +48,9 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
         line = f'{hhmm(e.tick)}  {place} {who} -> {to}: "{e.data["message"]}"'
         # A claim is shown after the words, by display name (or id if none is known).
         if claim := e.data.get("claim"):
-            verdict = "the killer" if claim["kind"] == "killer" else "innocent"
-            line += f" [claim: {show(names, claim['subject'])} is {verdict}]"
+            line += f" [claim: {claim_words(claim, show(names, claim['subject']))}]"
+            if claim.get("unverified"):
+                line += " (unverified tag)"  # the words never mention them; shown for analysis
         return line
     if e.type == "move":
         src, dst = show(names, e.data["from"]), show(names, e.data["to"])

@@ -3,6 +3,7 @@
 Split out of memory.py to keep that file small. memory.py re-exports these names.
 """
 
+from whisperwick.claims import claim_words
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.world import World
@@ -18,12 +19,15 @@ def name_of(world: World, npc_id: str) -> str:
 
 
 def claim_text(event: Event, world: World) -> str:
-    """e.g. ' [claim: Hal (npc_hal) is the killer]', or '' when the talk had no claim."""
+    """e.g. ' [claim: accuses Hal (npc_hal)]', or '' when the talk had no claim.
+
+    An unverified tag (it names someone the words never mention) is not shown:
+    a listener just hears the words, so a bad tag cannot mislead anyone.
+    """
     claim = event.data.get("claim")
-    if not claim:
+    if not claim or claim.get("unverified"):
         return ""
-    verdict = "the killer" if claim["kind"] == "killer" else "innocent"
-    return f" [claim: {name_of(world, claim['subject'])} is {verdict}]"
+    return f" [claim: {claim_words(claim, name_of(world, claim['subject']))}]"
 
 
 def describe(event: Event, world: World, viewer_id: str) -> str:

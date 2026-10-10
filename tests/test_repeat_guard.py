@@ -18,7 +18,7 @@ def show(item="item_knife", target=None):
 def talk(message="hello", claim=None):
     reply = {"action": "talk", "target": "npc_victor", "item": None, "message": message}
     if claim:
-        reply.update(claim_kind=claim[0], claim_subject=claim[1])
+        reply.update(**{claim[0]: claim[1]})
     return reply
 
 
@@ -83,7 +83,7 @@ def test_same_claim_with_new_words_is_not_a_repeat():
     # Beliefs ignore a claim already heard from the same teller, so the guard lets it through.
     w = fresh_world()
     h, stats = ActionHistory(), {}
-    claim = ("killer", "npc_hal")
+    claim = ("accuses", "npc_hal")
     assert llm_agent.act(w, "npc_bob", FakeClient([talk("a", claim)]), stats=stats, history=h).ok
     w.clock.advance(1)
     assert llm_agent.act(w, "npc_bob", FakeClient([talk("b", claim)]), stats=stats, history=h).ok
@@ -93,11 +93,11 @@ def test_same_claim_with_new_words_is_not_a_repeat():
 def test_same_claim_same_words_is_still_a_repeat():
     w = fresh_world()
     h = ActionHistory()
-    claim = ("killer", "npc_hal")
+    claim = ("accuses", "npc_hal")
     assert llm_agent.act(w, "npc_bob", FakeClient([talk("same", claim)]), history=h).ok
     w.clock.advance(1)
     again = Intent(actor="npc_bob", action="talk", target="npc_victor", message="Same",
-                   claim=Claim(kind="killer", subject="npc_hal"))  # fmt: skip
+                   claim=Claim(kind="accuses", subject="npc_hal"))  # fmt: skip
     reason = llm_agent.repeat_reason(w, h, again)
     assert reason is not None and "said that to Victor (npc_victor)" in reason
 
@@ -129,7 +129,7 @@ def test_run_counts_repeats_and_blocks_repeated_talk():
                 return {"thoughts": "quiet"}
             if "(npc_bob)" in messages[0]["content"]:
                 return talk("same words")
-            return {**LOOK, "claim_kind": None, "claim_subject": None}
+            return {**LOOK, "accuses": None, "defends": None}
 
     stats = {}
     # Bob is due every hour; over 3 hours he may say it once, then the guard steps in.

@@ -25,7 +25,7 @@ def test_alice_from_bob_from_wren_who_made_it_up():
     result = trace.trace(world.log.all(), log, "npc_hal")
     assert [b["npc"] for b in result["believers"]] == ["npc_alice", "npc_bob"]
     lines = texts(chain_of(result, "npc_alice"))
-    assert lines[0].startswith('npc_bob said: "Hal did it" [claim: npc_hal is the killer]')
+    assert lines[0].startswith('npc_bob said: "Hal did it" [claim: accuses npc_hal]')
     assert f"event {e2.id}" in lines[0]
     # Bob's own belief just before event 2 cites what Wren said, and Wren had no source.
     assert lines[1].startswith('player said: "Hal did it"') and f"event {e1.id}" in lines[1]
@@ -187,7 +187,7 @@ def test_command_prints_the_chain_with_names(tmp_path):
     assert result.exit_code == 0, result.output
     out = result.output
     assert "Who suspects Hal (npc_hal)?" in out
-    assert 'Bob said: "Hal did it" [claim: Hal is the killer]' in out
+    assert 'Bob said: "Hal did it" [claim: accuses Hal]' in out
     assert "Wren had no source: made up (the player)" in out
     assert out.index("Alice:") < out.index("Bob:")  # same sureness, so by id
     assert "Trust in the player:" in out and "Bob: high: told me straight" in out

@@ -35,6 +35,8 @@ def render_believer(b: dict) -> list[str]:
     if len(thoughts) > THOUGHTS_SHOWN:
         thoughts = thoughts[: THOUGHTS_SHOWN - 3] + "..."
     head = [f"{b['name']}: {b['sureness']}{what}", f'  thinks: "{thoughts}"']
+    if b.get("will_accuse"):
+        head.append(f"  meant to accuse: {b['will_accuse']}")
     return [*head, *render_steps(b["chain"], "  ")]
 
 

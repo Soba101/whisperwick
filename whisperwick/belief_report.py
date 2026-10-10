@@ -75,10 +75,15 @@ def compare_lines(log: BeliefLog | None, events: list[Event], names: dict[str, s
         f"    {show(names, n).ljust(width)}{suspect_cell(log.latest(n), names)}" for n in people
     ]
     own = trace.own_claims(events, log, names)
+    # Claims whose tag names someone the words never mention (flagged by the engine).
+    unverified = sum(
+        1 for e in events if e.type == "talk" and e.data.get("claim", {}).get("unverified")
+    )
     hunches = sum(1 for r in log.records if r.get("hunch"))
     lines += [
         f"    {trust_line(log, names)}",
         f"    thoughts {len(log.records)}, hunches {hunches}, "
-        f"claims: {claims_by_actor(events, names)}; own-claims (no source): {len(own)}",
+        f"claims: {claims_by_actor(events, names)} (unverified {unverified}); "
+        f"own-claims (no source): {len(own)}",
     ]
     return lines
