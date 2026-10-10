@@ -21,7 +21,7 @@ while the story stays coherent and every belief stays traceable to its source?
 | 2 | Vertical slice (local model) | **Gate 1:** a readable murder story from 5 NPCs |
 | 3 | Player + real objects | Same seed, 3 player scripts, 3 different outcomes |
 | 4 | Beliefs and rumours | A player's lie can be traced: who believes it, and via whom |
-| 5 | Consequences + endings | Story ends in an engine-decided outcome (arrest, escape, wrong arrest) |
+| 5 | Consequences + endings | Story ends in an outcome the world records (right arrest, wrong arrest, killer free) |
 | 6 | Evaluate + playable demo | **Gate 2:** GO (front-end) / PIVOT / STOP |
 
 ### Week 3: player + real objects
@@ -38,8 +38,9 @@ while the story stays coherent and every belief stays traceable to its source?
 - Fixes #11 (no invented facts: a claim needs a source) and #12 (talk loops).
 
 ### Week 5: consequences and endings
-- An `accuse` action, and an `arrest` action for the guard. Hal decides whether and whom to arrest;
-  the world only carries it out. No rule arrests someone "when enough villagers agree".
+- An `arrest` / `release` action for whoever has authority (Hal). Hal decides whether and whom to arrest;
+  the world only carries it out. Accusations stay in talk (no `accuse` action). Escape waits for a fair physical rule.
+- Belief, intended accusation and speech are kept separate. Villagers may set their own short-term aims. No rule arrests someone "when enough villagers agree".
 - Outcomes are facts in the log: the right person arrested, the wrong person, or the killer escapes.
 - No pacing "director". The villagers drive the story; if it stalls, that is a finding.
 
