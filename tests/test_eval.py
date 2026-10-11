@@ -77,3 +77,15 @@ def test_eval_summary_divergence_and_memory(tmp_path):
 def test_missing_db_is_a_clean_error(tmp_path):
     out = CliRunner().invoke(cli.app, ["eval", str(tmp_path / "nope.db")])
     assert out.exit_code == 1 and "No such file" in out.output
+
+
+def test_divergence_keeps_memory_on_and_off_apart():
+    # A memory-off baseline ending differently must not count as a script making a difference.
+    from whisperwick.eval_summary import divergence
+
+    def run(script, memory, held):
+        return {"seed": 2, "memory": memory, "script": script, "held": held}
+
+    ms = [run("none", True, ["npc_victor"]), run("blame_hal", True, ["npc_victor"]),
+          run("none", False, [])]  # fmt: skip
+    assert divergence(ms)[-1] == "Seeds where the outcome differs by script: 0/1 = 0%"

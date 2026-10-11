@@ -10,21 +10,23 @@ def held_key(m: dict) -> tuple:
 
 
 def divergence(ms: list[dict]) -> list[str]:
-    """Per seed, how many different end outcomes appear across player scripts.
+    """Per seed and memory setting, how many different end outcomes appear across scripts.
 
-    Runs with no recorded seed (older runs) are treated as one group.
+    Runs with no recorded seed (older runs) are treated as one group. Memory on and off are
+    kept apart: a memory-off baseline ending differently is not a player script making a
+    difference (the first week 6 summary mixed them and over-counted divergence).
     """
-    by_seed: dict = {}
+    by_group: dict = {}
     for m in ms:
-        by_seed.setdefault(m["seed"], []).append(m)
-    rows = [["Seed", "Runs", "Scripts", "Distinct outcomes"]]
+        by_group.setdefault((m["seed"], m["memory"]), []).append(m)
+    rows = [["Seed", "Memory", "Runs", "Scripts", "Distinct outcomes"]]
     comparable = differ = 0
-    for seed, group in sorted(by_seed.items(), key=lambda kv: str(kv[0])):
+    for (seed, memory), group in sorted(by_group.items(), key=lambda kv: (str(kv[0][0]), kv[0][1])):
         scripts = {m["script"] for m in group}
         distinct = {held_key(m) for m in group}
-        rows.append(["-" if seed is None else str(seed), str(len(group)), str(len(scripts)),
-                     str(len(distinct))])  # fmt: skip
-        # Only a seed with two or more scripts can show a script making a difference.
+        rows.append(["-" if seed is None else str(seed), "on" if memory else "off",
+                     str(len(group)), str(len(scripts)), str(len(distinct))])  # fmt: skip
+        # Only a group with two or more scripts can show a script making a difference.
         if len(scripts) > 1:
             comparable += 1
             differ += len(distinct) > 1
