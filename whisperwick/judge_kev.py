@@ -14,7 +14,9 @@ from whisperwick.judge_run import DEFAULT_LIMIT, cited, pick, summarise
 from whisperwick.kev_client import MODEL
 from whisperwick.llm_client import LLMError
 
-MAX_STORY_CHARS = 100000  # Kev reads 65,536 tokens; this stays well under that
+# Kev's limit is 65,536 tokens, but on this GPU a day of 83,000 characters gave HTTP 500 and
+# 48,000 took 50 s, while 32,000 took 3.5 s. So a long day is judged in parts of this size.
+MAX_STORY_CHARS = 32000
 
 
 def p_yes(answer: dict) -> float:
@@ -121,11 +123,25 @@ def coherence_items(events, sidecar, names, client) -> list[dict]:
     refl = {"reflections": sidecar.get("reflections", {})}
     out = []
     for day in sorted(by_day):
-        text = story.format_story(by_day[day], names, refl)[:MAX_STORY_CHARS]
-        state = q.coherence_state(text)
-        answers, err = request(client, state, {"coherence": q.coherence_question()})
-        out.append(item({"day": day}, state, *parse(answers, "coherence", err, as_score)))
+        text = story.format_story(by_day[day], names, refl)
+        # Whole lines only, so no part starts or ends mid-sentence.
+        for n, part in enumerate(parts(text, MAX_STORY_CHARS)):
+            state = q.coherence_state(part)
+            answers, err = request(client, state, {"coherence": q.coherence_question()})
+            out.append(item({"day": day, "part": n}, state,
+                            *parse(answers, "coherence", err, as_score)))  # fmt: skip
     return out
+
+
+def parts(text: str, size: int) -> list[str]:
+    """Split text at line breaks into pieces of at most size characters (a longer line is cut)."""
+    out, cur = [], ""
+    for line in text.splitlines(keepends=True):
+        if cur and len(cur) + len(line) > size:
+            out.append(cur)
+            cur = ""
+        cur += line[:size]
+    return [*out, cur] if cur else out
 
 
 def judge(events, records, sidecar, names, client, limit=DEFAULT_LIMIT) -> dict:

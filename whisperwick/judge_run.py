@@ -108,7 +108,12 @@ def summarise(sections: dict[str, list[dict]]) -> dict:
     claims = answered(sections["claims"])
     scores = [a["score"] for a in answered(sections["support"])]
     reads = answered(sections["misreads"])
-    days = {i["day"]: i["answer"]["score"] for i in sections["coherence"] if i["answer"]}
+    # A long day may be judged in parts (Kev): the day's score is the mean of its parts.
+    parts: dict = {}
+    for i in sections["coherence"]:
+        if i["answer"]:
+            parts.setdefault(i["day"], []).append(i["answer"]["score"])
+    days = {d: sum(v) / len(v) for d, v in parts.items()}
     return {
         "claim_agreement": rate(sum(a["answer"] == "yes" for a in claims), len(claims)),
         "support_mean": sum(scores) / len(scores) if scores else None,

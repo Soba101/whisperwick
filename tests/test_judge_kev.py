@@ -171,3 +171,14 @@ def test_settings(tmp_path):
         settings.judge_server(env)
     assert settings.kev_url(env) == "http://k:8009" and settings.kev_api_key(env) == "abc"
     assert settings.judge_server(tmp_path / "none") == "same"
+
+
+def test_long_text_splits_at_lines_under_the_size():
+    # A long day is judged in parts; every part fits, and nothing is lost.
+    from whisperwick.judge_kev import parts
+
+    text = "".join(f"line {i:03d} xxxxxxxxxx\n" for i in range(100))
+    pieces = parts(text, 100)
+    assert all(len(p) <= 100 for p in pieces)
+    assert "".join(pieces) == text
+    assert all(p.endswith("\n") for p in pieces)
