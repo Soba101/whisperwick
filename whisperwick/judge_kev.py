@@ -16,7 +16,9 @@ from whisperwick.llm_client import LLMError
 
 # Kev's limit is 65,536 tokens, but on this GPU a day of 83,000 characters gave HTTP 500 and
 # 48,000 took 50 s, while 32,000 took 3.5 s. So a long day is judged in parts of this size.
-MAX_STORY_CHARS = 32000
+# In a full judging, 32,000-character parts still ran out of GPU memory once (oom_retries)
+# and stalled Kev, so parts are 16,000 (1.7 s each).
+MAX_STORY_CHARS = 16000
 
 
 def p_yes(answer: dict) -> float:

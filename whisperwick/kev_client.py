@@ -14,7 +14,9 @@ MODEL = "kev-latest"
 
 
 class KevClient:
-    def __init__(self, base_url: str, api_key: str | None = None, timeout: int = 120):
+    # Long wait on purpose: Kev keeps working on a request the client gave up on, so short
+    # timeouts piled up 43 stale requests in its queue and stalled the whole judging.
+    def __init__(self, base_url: str, api_key: str | None = None, timeout: int = 600):
         self.base = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
