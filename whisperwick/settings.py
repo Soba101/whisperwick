@@ -69,3 +69,24 @@ def agent_memory(env_path: Path = ENV_PATH) -> bool:
     if value not in ("on", "off"):
         raise ValueError(f'WHISPERWICK_MEMORY must be "on" or "off", got {value!r}')
     return value == "on"
+
+
+def judge_server(env_path: Path = ENV_PATH) -> str:
+    """Who judges a finished run (JUDGE_SERVER): "same" (the run's chat model) or "kev"."""
+    value = get("JUDGE_SERVER", env_path) or "same"
+    if value not in ("same", "kev"):
+        raise ValueError(f'JUDGE_SERVER must be "same" or "kev", got {value!r}')
+    return value
+
+
+def kev_url(env_path: Path = ENV_PATH) -> str:
+    """Where Kev listens (KEV_URL). Needed only when JUDGE_SERVER=kev."""
+    value = get("KEV_URL", env_path)
+    if not value:
+        raise ValueError("JUDGE_SERVER=kev needs KEV_URL, e.g. http://192.168.0.8:8009")
+    return value
+
+
+def kev_api_key(env_path: Path = ENV_PATH) -> str | None:
+    """Optional key (KEV_API_KEY), sent only if the Kev server has one set."""
+    return get("KEV_API_KEY", env_path)

@@ -191,12 +191,19 @@ def replay_command_(
 
 @app.command("judge")
 def judge_command_(
-    db: Annotated[Path, typer.Argument(help="Event log from a finished llm run.")],
+    db: Annotated[Path | None, typer.Argument(help="Event log from a finished llm run.")] = None,
     limit: Annotated[int, typer.Option(help="Items per question type.")] = 40,
+    check: Annotated[bool, typer.Option(help="Only check that the Kev judge answers.")] = False,
 ) -> None:
-    """Ask the model to grade a finished run. Run it only when no village run is going."""
-    if not db.is_file():
+    """Grade a finished run with the judge from .env. Run it only when no village run is going."""
+    client, model, judge = judge_client()
+    if check:
+        if model != "kev-latest":
+            typer.echo("--check is for JUDGE_SERVER=kev", err=True)
+            raise typer.Exit(1)
+        typer.echo(judge_command.check_kev(client))
+        return
+    if db is None or not db.is_file():
         typer.echo(f"No such file: {db}", err=True)
         raise typer.Exit(1)
-    client, model = judge_client()
-    typer.echo(judge_command.judge_run_command(db, client, model, limit))
+    typer.echo(judge_command.judge_run_command(db, client, model, judge, limit))

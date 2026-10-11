@@ -32,6 +32,7 @@ def patch_cli(monkeypatch, client):
     monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
     monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
     monkeypatch.setattr(llm_cli.settings, "llm_server", lambda: "ollama")
+    monkeypatch.setattr(llm_cli.settings, "judge_server", lambda: "same")  # not the local .env
     seen = []
 
     def make_client(server, url, model, temperature=0.7):

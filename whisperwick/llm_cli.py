@@ -5,9 +5,10 @@ from pathlib import Path
 
 import typer
 
-from whisperwick import llm_run, run_report, settings
+from whisperwick import judge_kev, judge_run, llm_run, run_report, settings
 from whisperwick.agent_log import AgentLog, sidecar_part
 from whisperwick.belief_log import BeliefLog
+from whisperwick.kev_client import MODEL, KevClient
 from whisperwick.llm_client import LlamaServerClient, OllamaClient
 from whisperwick.llm_sim import run_llm
 from whisperwick.notebook import Notebooks
@@ -115,11 +116,19 @@ def run_with_llm(
 
 
 def judge_client():
-    """The judge's model and client. Temperature 0, so the same run gets the same grades."""
-    base_url, model = llm_settings()
+    """The judge's client, model name and judge function.
+
+    "same" asks the run's chat model at temperature 0, so the same run gets the same
+    grades. "kev" asks the Kev judge server, which needs no chat settings.
+    """
     try:
+        which = settings.judge_server()
+        if which == "kev":
+            return KevClient(settings.kev_url(), settings.kev_api_key()), MODEL, judge_kev.judge
         server = settings.llm_server()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
-    return make_client(server, base_url, model, temperature=0.0), model
+    base_url, model = llm_settings()
+    client = make_client(server, base_url, model, temperature=0.0)
+    return client, model, judge_run.judge
