@@ -1,9 +1,12 @@
 """The play page: one HTML string, inline CSS and JS, no external anything.
 
 It opens offline. Every piece of game text goes in with textContent (see web_js.py),
-never innerHTML. The intro says only plain facts about the start: no plot, no hints.
+never innerHTML. The guide says only plain facts about the start: no plot, no hints.
 """
 
+import json
+
+from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS
 from whisperwick.web_js import JS
 
 # Same tokens as the replay page, so both pages look alike in light and dark.
@@ -48,23 +51,10 @@ button, select, input { font: inherit; padding: 6px 10px; max-width: 100%; }
 #intro p { margin: 6px 0; }
 pre { white-space: pre-wrap; margin: 0; font: inherit; }
 [hidden] { display: none !important; }
-"""
+""" + GUIDE_CSS
 
-# Plain facts only. The page fills in the clock and place from the game itself.
-INTRO = """
-<div id="intro" class="card">
-  <p><b>You are Wren, a newcomer who has just arrived in the village.</b>
-    <span id="start"></span></p>
-  <p>The villagers live their own lives and decide for themselves what they say and do;
-    nothing is scripted. You can move, look, talk, take, drop, give and show.</p>
-  <p>Time passes as you act or wait. When villagers talk, each reply takes a few seconds
-    to think up, so the page shows when they are acting.</p>
-  <button id="close">Got it</button>
-</div>
-"""
-
-BODY = INTRO + """
-<h1>Whisperwick <button id="help" aria-label="show the introduction">?</button></h1>
+BODY = GUIDE + """
+<h1>Whisperwick <button id="help" aria-label="How to play">How to play</button></h1>
 <div class="sub"><span id="clock"></span> &middot; <span id="where"></span></div>
 <div class="wrap">
   <div>
@@ -75,6 +65,7 @@ BODY = INTRO + """
     <div class="card"><h2>What you see and hear</h2>
       <ul id="feed"></ul><div id="busy" hidden>The villagers are acting...</div></div>
     <div class="card" id="bar">
+      <div id="hint"></div>
       <select id="action" aria-label="action"></select>
       <select id="target" aria-label="who or where"></select>
       <select id="item" aria-label="item"></select>
@@ -98,7 +89,7 @@ def render_page() -> str:
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>Whisperwick</title><style>{CSS}</style></head><body>{BODY}"
-        f"<script>{JS}</script></body></html>"
+        f"<script>const HINTS = {json.dumps(HINTS)};{JS}</script></body></html>"
     )
 
 

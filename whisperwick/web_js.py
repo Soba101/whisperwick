@@ -5,7 +5,7 @@ Text goes in via textContent only.
 
 JS = """
 const $ = id => document.getElementById(id);
-let have = 0, intro = false, lastActions = '', mapBuilt = false, quiet = true;
+let have = 0, intro = false, lastActions = '', mapBuilt = false, quiet = true, shown = null;
 
 function el(tag, cls, text) {
   const x = document.createElement(tag);
@@ -100,8 +100,16 @@ function drawBar(s) {
   $('busy').hidden = s.awaiting || s.finished;
   // The server says who is busy, but only in words that fit what Wren can see.
   $('busy').textContent = s.busy || 'The villagers are acting...';
+  drawHint(s);
   $('reject').hidden = !s.rejection;
   $('reject').textContent = s.rejection ? 'You cannot do that: ' + s.rejection : '';
+}
+// One plain line above the bar. HINTS comes from web_guide.py. A refusal has its own line.
+function drawHint(s) {
+  shown = s;
+  const a = JSON.parse(lastActions || '[]').find(x => x.action === $('action').value);
+  const needsText = s.awaiting && a && a.message && !$('message').value.trim();
+  $('hint').textContent = !s.awaiting ? HINTS.busy : needsText ? HINTS.message : HINTS.turn;
 }
 function drawEnd(s) {
   $('bar').hidden = s.finished;
@@ -117,7 +125,6 @@ function render(s) {
   if (!s.you.place) return;  // the game has not started yet
   if (!mapBuilt) {
     buildMap(s.places);
-    $('start').textContent = 'It is ' + s.you.clock + ', at the ' + s.you.place.name + '.';
     $('intro').hidden = intro;
   }
   drawYou(s.you); drawMap(s.you); drawFeed(s); drawBar(s); drawEnd(s);
@@ -136,7 +143,9 @@ async function post(path, body) {
   if (!r.ok) $('reject').textContent = (await r.json()).error;
   poll();
 }
-$('action').onchange = drawFields;
+// Redraw the hint at once when the choice or the typed text changes.
+$('action').onchange = () => { drawFields(); if (shown) drawHint(shown); };
+$('message').oninput = () => { if (shown) drawHint(shown); };
 $('send').onclick = () => post('/act', {action: $('action').value,
   target: $('target').hidden ? null : $('target').value,
   item: $('item').hidden ? null : $('item').value,

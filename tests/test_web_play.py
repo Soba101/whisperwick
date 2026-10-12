@@ -8,7 +8,7 @@ import pytest
 from helpers import SCENARIO, fresh_world
 from web_helpers import Client, game_server, patch_model, shut
 
-from whisperwick import web_page, web_state
+from whisperwick import web_guide, web_page, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID
 from whisperwick.player_web import WebPlayer, intent_from
@@ -165,3 +165,38 @@ def test_page_is_offline_and_has_no_plot_words():
         assert word not in html.lower()
     assert "You are Wren, a newcomer" in html
     assert html.count("innerHTML +=") == 1 and "innerHTML =" not in html  # svg lines only
+
+
+BANNED = ("murder", "mayor", "killer", "body", "crime", "mystery", "clue", "suspect", "detective")
+
+
+def test_guide_sections_and_button():
+    html = web_page.render_page()
+    for heading in ("How to play", "Who you are", "What this is", "The screen",
+                    "Taking a turn", "Time", "The end", "Try first"):
+        assert f">{heading}</h" in html
+    assert ">Start playing</button>" in html
+    assert 'aria-label="How to play">How to play</button>' in html
+
+
+def test_hint_lines_are_in_the_page():
+    html = web_page.render_page()
+    assert 'id="hint"' in html
+    for text in ("Your turn: choose what Wren does, then press Send.",
+                 "The villagers are acting. Wait a moment...",
+                 "Type what you want to say."):
+        assert text in html
+
+
+def test_action_labels_are_friendly():
+    labels = [a["label"] for a in web_state.actions_for(
+        {"people": [{"id": "p"}], "ground": [{"id": "g"}], "carried": [{"id": "c"}],
+         "exits": [{"id": "e"}]})]
+    assert labels == ["Go to", "Look around", "Talk to", "Take", "Drop", "Give", "Show"]
+
+
+def test_guide_has_no_plot_words():
+    # Checked on the guide text only: the page script and CSS legitimately say "body".
+    text = (web_guide.GUIDE + " ".join(web_guide.HINTS.values())).lower()
+    for word in BANNED:
+        assert not re.search(rf"\b{word}", text), word
