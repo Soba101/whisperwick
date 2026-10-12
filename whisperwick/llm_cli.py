@@ -14,6 +14,7 @@ from whisperwick.llm_sim import run_llm
 from whisperwick.notebook import Notebooks
 from whisperwick.player import PlayerSource
 from whisperwick.player_terminal import TerminalPlayer
+from whisperwick.player_web import WebPlayer
 from whisperwick.scenario import build_world
 
 
@@ -66,8 +67,8 @@ def run_with_llm(
     client = make_client(server, base_url, model)
     if server == "llama-server":
         model = f"{model} via llama-server"  # the sidecar says which server was used
-    # Hourly progress would clutter a human's screen, so terminal play skips it.
-    on_hour = None if isinstance(player, TerminalPlayer) else progress
+    # Hourly progress would clutter a human's screen, so terminal and web play skip it.
+    on_hour = None if isinstance(player, TerminalPlayer | WebPlayer) else progress
     stats = {"player_rejected": []} if player else {}
     # Every thought is also saved as a JSON line next to the db.
     belief_log = BeliefLog(llm_run.beliefs_path(db))

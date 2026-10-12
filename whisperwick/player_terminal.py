@@ -36,6 +36,16 @@ def view_lines(world: World) -> list[str]:
     return lines
 
 
+def player_lines(world: World, events: list) -> list[str]:
+    """Story lines for events the player did, saw or was spoken to in (terminal and web)."""
+    names = {i: x.name for d in (world.npcs, world.locations) for i, x in d.items()}
+    mine = [
+        e for e in events
+        if PLAYER_ID in (e.actor, e.data.get("to"), *e.witnesses)
+    ]  # fmt: skip
+    return [line for e in mine if (line := story.format_event(e, names))]
+
+
 class TerminalPlayer(PlayerSource):
     def __init__(
         self,
@@ -51,12 +61,7 @@ class TerminalPlayer(PlayerSource):
         """Events since the last prompt that the player did, saw, or was spoken to in."""
         events = world.log.all()
         fresh, self.seen = events[self.seen :], len(events)
-        names = {i: x.name for d in (world.npcs, world.locations) for i, x in d.items()}
-        mine = [
-            e for e in fresh
-            if PLAYER_ID in (e.actor, e.data.get("to"), *e.witnesses)
-        ]  # fmt: skip
-        return [line for e in mine if (line := story.format_event(e, names))]
+        return player_lines(world, fresh)
 
     def turn(self, world: World) -> list[Intent] | None:
         if self.wait_left > 0:
