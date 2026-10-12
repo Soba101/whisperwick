@@ -18,6 +18,12 @@ from whisperwick.world import World
 # Actions the page may send. Arrest and release are for the authority, not for Wren.
 ALLOWED = ("move", "look", "talk", "take", "drop", "give", "show")
 WAIT_CHOICES = (10, 60)  # minutes
+# After Wren acts, she waits on her own for a reply. The scheduler gives a villager a
+# 5-minute cooldown before it may act again, so a reply can take about that long; 10
+# minutes covers it twice without leaving her stuck if nobody ever answers.
+AUTO_WAIT_MAX = 10  # minutes
+NIGHT_START = 22 * 60  # villagers sleep from 22:00 to 06:00
+NIGHT_END = 6 * 60
 POLL_SECONDS = 0.2  # how often turn() looks up, so quit and stop are noticed
 
 
@@ -30,6 +36,9 @@ class WebPlayer(PlayerSource):
         self.stopped = False
         self.finished = False
         self.wait_left = 0  # quiet minutes still to pass before the next prompt
+        self.auto_left = 0  # minutes of automatic waiting left after Wren's last action
+        self.others = 0  # lines Wren can see that she did not cause (counted as they arrive)
+        self.others_at_act = 0  # that count when she last acted
         self.rejection: str | None = None  # the engine's reason for the last refused action
         self.feed: list[str] = []
         self.seen = 0  # how many log events were already looked at for the feed
@@ -47,7 +56,9 @@ class WebPlayer(PlayerSource):
     def submit(self, kind: str, data) -> bool:
         """Queue one thing for Wren. False if it is not Wren's turn, so a late click is ignored."""
         with self.cv:
-            if not self.awaiting or self.finished or self.stopped:
+            # Quit is also taken while Wren is quietly waiting, so she can always leave.
+            quiet = kind == "quit" and (self.auto_left > 0 or self.wait_left > 0)
+            if not (self.awaiting or quiet) or self.finished or self.stopped:
                 return False
             self.inbox.append((kind, data))
             self.awaiting = False  # the page shows "villagers are acting" at once
@@ -72,6 +83,7 @@ class WebPlayer(PlayerSource):
                 "actions": self.actions,
                 "places": self.places,
                 "awaiting": self.awaiting and not self.finished,
+                "auto_wait": self.auto_left > 0 and not self.awaiting and not self.finished,
                 "busy": "" if self.awaiting or self.finished else self.busy,
                 "finished": self.finished,
                 "rejection": self.rejection,
@@ -89,7 +101,11 @@ class WebPlayer(PlayerSource):
         it goes by position in the log, so no event is ever added twice. Lock held."""
         events = world.log.all()
         fresh, self.seen = events[self.seen :], len(events)
-        self.feed += player_terminal.player_lines(world, fresh)
+        for event in fresh:
+            lines = player_terminal.player_lines(world, [event])
+            self.feed += lines
+            if lines and event.actor != PLAYER_ID:
+                self.others += 1  # something Wren can see that someone else did or said
 
     def _refresh(self, world: World) -> None:
         """Take a new picture of what Wren sees. Lock held by the caller."""
@@ -133,9 +149,18 @@ class WebPlayer(PlayerSource):
     def turn(self, world: World) -> list[Intent] | None:
         with self.cv:
             self._refresh(world)
+            if self.wait_left > 0 or self.auto_left > 0:
+                if self.inbox and self.inbox[0][0] == "quit" or self.stopped:
+                    self.inbox.clear()
+                    self.finish()
+                    return None
             if self.wait_left > 0:
                 self.wait_left -= 1
                 return []  # villagers keep acting, Wren is not asked
+            if self.auto_left > 0 and self._keep_auto_waiting(world):
+                self.auto_left -= 1
+                return []  # Wren spoke or acted; give the others time to answer
+            self.auto_left = 0
             self.awaiting = True
             while not self.inbox and not self.stopped:
                 self.cv.wait(POLL_SECONDS)
@@ -147,11 +172,21 @@ class WebPlayer(PlayerSource):
             if kind == "wait":
                 self.wait_left = data - 1  # this minute is the first one
                 return []
+            self.auto_left = AUTO_WAIT_MAX  # she acted: wait for a reply before asking again
+            self.others_at_act = self.others
             return [data]
+
+    def _keep_auto_waiting(self, world: World) -> bool:
+        """True until someone else is seen or heard, it is night, or the time is up."""
+        minute = world.clock.tick % 1440
+        night = minute >= NIGHT_START or minute < NIGHT_END
+        return self.others == self.others_at_act and not night
 
     def report(self, intent: Intent, result: ActionResult) -> None:
         with self.cv:
             self.rejection = None if result.ok else result.reason
+            if not result.ok:
+                self.auto_left = 0  # show the reason now, do not wait
 
 
 def intent_from(body: dict) -> Intent | None:

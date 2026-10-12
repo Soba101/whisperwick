@@ -109,7 +109,8 @@ function drawHint(s) {
   shown = s;
   const a = JSON.parse(lastActions || '[]').find(x => x.action === $('action').value);
   const needsText = s.awaiting && a && a.message && !$('message').value.trim();
-  $('hint').textContent = !s.awaiting ? HINTS.busy : needsText ? HINTS.message : HINTS.turn;
+  $('hint').textContent = s.auto_wait ? HINTS.auto : !s.awaiting ? HINTS.busy
+    : needsText ? HINTS.message : HINTS.turn;
 }
 function drawEnd(s) {
   $('bar').hidden = s.finished;

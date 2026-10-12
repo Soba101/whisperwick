@@ -30,6 +30,7 @@ def test_act_wait_and_quit():
     w, p = fresh_world(), WebPlayer(SC)
     intent = Intent(actor=PLAYER_ID, action="look")
     assert ask(p, w, "act", intent) == [intent]
+    p.auto_left = 0  # (the automatic wait after an action has its own tests)
     # A wait of 3 minutes: three quiet turns, and nobody is asked in between.
     assert ask(p, w, "wait", 3) == []
     assert p.turn(w) == [] and p.turn(w) == []
@@ -117,7 +118,7 @@ def game(monkeypatch, tmp_path):
 
 
 def test_full_loop_over_http(game):
-    c = game(5)
+    c = game(30)  # long enough for the automatic wait after an action
     s = c.until(lambda s: s["awaiting"])
     assert s["you"]["place"]["id"] == "loc_market"
     # Late or odd requests are refused, and not queued.

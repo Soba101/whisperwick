@@ -23,7 +23,9 @@ body { font: 15px system-ui, sans-serif; background: var(--bg); color: var(--fg)
 h1 { font-size: 18px; margin: 0 0 4px; }
 h2 { font-size: 14px; margin: 0 0 6px; color: var(--muted); }
 .sub { color: var(--muted); margin-bottom: 12px; }
+/* Cap the width and center it: on a very wide window the two columns stay together. */
 .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+body > h1, .sub, .wrap { max-width: 1200px; margin-left: auto; margin-right: auto; }
 @media (max-width: 700px) { .wrap { grid-template-columns: 1fr; } }
 .card { background: var(--box); border: 1px solid var(--line); border-radius: 8px;
   padding: 10px; margin-bottom: 12px; overflow-wrap: anywhere; }

@@ -8,6 +8,7 @@ themselves. The words are fixed text, so the page needs no model and no network.
 HINTS = {
     "turn": "Your turn: choose what Wren does, then press Send.",
     "busy": "The villagers are acting. Wait a moment...",
+    "auto": "Waiting for a reply...",
     "message": "Type what you want to say.",
 }
 
