@@ -84,6 +84,9 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
     may do and what each action needs, and that villagers decide for themselves and time passes while you wait.
   - Live: lines appear as villagers act, a "thinking..." marker while the model works, wait 10 min / 1 hour.
   - At the end (or on demand): the outcome from world facts (`outcome`).
+  - Built 2026-10-12, then extended: one game per device (cookie, max 3 at once, 30 min idle timeout), a secret
+    key for shared links, `--allow-host`, live lines and who is acting. Shared with friends over a Tailscale
+    Funnel on port 8443 (the Mac's other Funnel, Docker on 8000, is separate and untouched).
 
 Gate 2 is Donovan's call after playing the demo. The numbers and thresholds below are inputs to it.
 
