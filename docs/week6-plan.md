@@ -87,6 +87,10 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
   - Built 2026-10-12, then extended: one game per device (cookie, max 3 at once, 30 min idle timeout), a secret
     key for shared links, `--allow-host`, live lines and who is acting. Shared with friends over a Tailscale
     Funnel on port 8443 (the Mac's other Funnel, Docker on 8000, is separate and untouched).
+  - Conversational turn-taking (2026-10-12, Donovan's call after play): someone spoken to answers the next
+    minute; the speaker waits up to 5 minutes for the answer. Applies to villagers with each other too.
+    Only the timing changes, never what anyone says. Runs from here on are not directly comparable with the
+    week 6 runs (more lines per conversation, more model calls).
 
 Gate 2 is Donovan's call after playing the demo. The numbers and thresholds below are inputs to it.
 
