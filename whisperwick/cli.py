@@ -88,12 +88,25 @@ def play(
     db: Annotated[str | None, typer.Option(help="SQLite file for the event log.")] = None,
     web: Annotated[bool, typer.Option(help="Play in a local web page instead.")] = False,
     port: Annotated[int, typer.Option(help="Port for --web (127.0.0.1 only).")] = 8000,
+    key: Annotated[
+        str | None,
+        typer.Option(
+            help="--web: key every visitor needs (?key=KEY once).", envvar="WHISPERWICK_WEB_KEY"
+        ),
+    ] = None,
+    allow_host: Annotated[
+        list[str] | None, typer.Option(help="--web: extra Host name to accept (needs --key).")
+    ] = None,
+    max_games: Annotated[int, typer.Option(help="--web: games running at once.")] = 3,
 ) -> None:
     """Play Wren in the village (terminal or --web), or run a player script. Needs a model."""
     sc = load_scenario(scenario)
     if web:
         db_path = db or llm_run.default_db_path(sc.name)
-        return web_play.serve(sc, scenario, db_path, seed, days * 24 * 60, port)
+        return web_play.serve(
+            sc, scenario, db_path, seed, days * 24 * 60, port, key, tuple(allow_host or ()),
+            max_games,
+        )
     try:
         player = load_script(script) if script else TerminalPlayer()
     except (ValueError, OSError) as e:

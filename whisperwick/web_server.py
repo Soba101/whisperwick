@@ -1,8 +1,10 @@
-"""A tiny local web server for the play page. Standard library only.
+"""A tiny web server for the play page. Standard library only.
 
-It binds to 127.0.0.1, so only this computer can reach it. It never touches the world:
-GET /state reads the player's cached picture, and the POSTs only queue a request that
+It binds to 127.0.0.1, so only this computer can reach it directly (a tunnel may forward
+a public name to it, see web_auth for the key and Host rules). It never touches the world:
+GET /state reads the caller's cached picture, and the POSTs only queue a request that
 the engine then judges like any other. The page is never trusted to decide anything.
+Each browser has its own game (see web_games).
 """
 
 import json
@@ -10,46 +12,88 @@ import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from whisperwick.player_web import WAIT_CHOICES, WebPlayer, intent_from
-from whisperwick.web_page import render_page
+from whisperwick import web_auth
+from whisperwick.player_web import WAIT_CHOICES, intent_from
+from whisperwick.web_games import Game, GameManager
+from whisperwick.web_page import plain_page, render_page
 
 MAX_BODY = 20_000  # bytes; a message is at most a few hundred characters
 
 
 class Handler(BaseHTTPRequestHandler):
-    player: WebPlayer  # set on the subclass made by make_server
+    games: GameManager  # set on the subclass made by make_server
+    key: str | None
+    hosts: set[str]
 
     def log_message(self, *args) -> None:
         pass  # keep the terminal quiet: it shows the game's own progress
 
-    def send(self, code: int, body: bytes, kind: str) -> None:
+    def send(self, code: int, body: bytes, kind: str, cookies: list[str] | None = None) -> None:
         self.send_response(code)
+        for c in cookies or []:
+            self.send_header("Set-Cookie", c)
         self.send_header("Content-Type", kind)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
-    def send_json(self, code: int, data: dict) -> None:
-        self.send(code, json.dumps(data).encode(), "application/json")
+    def send_json(self, code: int, data: dict, cookies: list[str] | None = None) -> None:
+        self.send(code, json.dumps(data).encode(), "application/json", cookies)
+
+    def send_text(self, code: int, text: str, cookies: list[str] | None = None) -> None:
+        self.send(code, plain_page(text).encode(), "text/html; charset=utf-8", cookies)
 
     def host_ok(self) -> bool:
-        """Only our own address as Host. Stops another website from using this server."""
-        port = self.server.server_address[1]
-        return self.headers.get("Host") in (f"127.0.0.1:{port}", f"localhost:{port}")
+        """Only our own address (or an allowed name) as Host. Stops other sites using this."""
+        return (self.headers.get("Host") or "").lower() in self.hosts
+
+    def secure(self) -> bool:
+        """Cookies are Secure when the page came in through a public (HTTPS) name."""
+        return not web_auth.is_local(self.headers.get("Host"))
+
+    def cookies(self) -> dict[str, str]:
+        return web_auth.parse_cookies(self.headers.get("Cookie"))
+
+    def game_cookie(self, game: Game) -> list[str]:
+        return [web_auth.cookie_header(web_auth.GAME_COOKIE, game.token, self.secure())]
+
+    def key_cookie_ok(self) -> bool:
+        return web_auth.key_ok(self.key, self.cookies().get(web_auth.KEY_COOKIE))
 
     def do_GET(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
         url = urlparse(self.path)
+        query = parse_qs(url.query)
+        if not self.key_cookie_ok():
+            # The link with the key sets the cookie, then drops the key from the address bar.
+            if url.path == "/" and web_auth.key_ok(self.key, query.get("key", [""])[0]):
+                cookie = web_auth.cookie_header(web_auth.KEY_COOKIE, self.key, self.secure())
+                self.send_response(302)
+                self.send_header("Location", "/")
+                self.send_header("Set-Cookie", cookie)
+                self.send_header("Content-Length", "0")
+                return self.end_headers()
+            if url.path == "/":
+                return self.send_text(403, "Ask for the link with the key.")
+            return self.send_json(403, {"error": "key needed"})
+        token = self.cookies().get(web_auth.GAME_COOKIE)
         if url.path == "/":
-            return self.send(200, render_page().encode(), "text/html; charset=utf-8")
+            game = self.games.open(token)  # a new browser starts its own game here
+            if game is None:
+                return self.send_text(503, "All seats are taken, try again later.")
+            cookies = self.game_cookie(game) if game.token != token else None
+            return self.send(200, render_page().encode(), "text/html; charset=utf-8", cookies)
         if url.path == "/state":
+            game = self.games.get(token)
+            if game is None:
+                return self.send_json(200, {"gone": True})  # the page then reloads itself
             try:
-                since = max(0, int(parse_qs(url.query).get("since", ["0"])[0]))
+                since = max(0, int(query.get("since", ["0"])[0]))
             except ValueError:
                 since = 0
-            return self.send_json(200, self.player.snapshot(since))
+            return self.send_json(200, game.player.snapshot(since))
         self.send_json(404, {"error": "not found"})
 
     def read_body(self) -> dict | None:
@@ -66,19 +110,31 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
+        if not self.key_cookie_ok():
+            return self.send_json(403, {"error": "key needed"})
         body = self.read_body()
         if body is None:
             return self.send_json(400, {"error": "bad request"})
         path = urlparse(self.path).path
+        token = self.cookies().get(web_auth.GAME_COOKIE)
+        if path == "/newgame":
+            game = self.games.replace(token)
+            if game is None:
+                return self.send_json(503, {"error": "All seats are taken, try again later."})
+            return self.send_json(200, {"ok": True}, self.game_cookie(game))
+        game = self.games.get(token)
+        if game is None:
+            return self.send_json(409, {"error": "no game here, reload the page"})
+        player = game.player
         if path == "/act":
             intent = intent_from(body)
             if intent is None:
                 return self.send_json(400, {"error": "that action is not available"})
-            sent = self.player.submit("act", intent)
+            sent = player.submit("act", intent)
         elif path == "/wait" and body.get("minutes") in WAIT_CHOICES:
-            sent = self.player.submit("wait", body["minutes"])
+            sent = player.submit("wait", body["minutes"])
         elif path == "/quit":
-            sent = self.player.submit("quit", None)
+            sent = player.submit("quit", None)
         else:
             return self.send_json(404, {"error": "not found"})
         if not sent:
@@ -99,9 +155,15 @@ class LocalServer(ThreadingHTTPServer):
         self.server_name, self.server_port = host, port
 
 
-def make_server(player: WebPlayer, port: int) -> ThreadingHTTPServer:
+def make_server(
+    games: GameManager, port: int, key: str | None = None, allow_hosts: tuple[str, ...] = ()
+) -> ThreadingHTTPServer:
     """A server on 127.0.0.1 only. Port 0 picks a free port (tests use that)."""
-    handler = type("PlayHandler", (Handler,), {"player": player})
-    server = LocalServer(("127.0.0.1", port), handler)
+    server = LocalServer(("127.0.0.1", port), Handler)
+    # The real port is only known after binding (port 0), and the Host rule needs it.
+    real_port = server.server_address[1]
+    hosts = web_auth.allowed_hosts(real_port, allow_hosts)
+    handler = type("PlayHandler", (Handler,), {"games": games, "key": key or None, "hosts": hosts})
+    server.RequestHandlerClass = handler
     server.daemon_threads = True  # open page polls must not keep the process alive
     return server

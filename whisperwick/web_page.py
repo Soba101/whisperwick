@@ -86,7 +86,8 @@ BODY = INTRO + """
     </div>
     <div class="card" id="end" hidden><h2>The game is over</h2><pre id="outcome"></pre>
       <div id="secretbox" hidden><h2>Scenario secret (shown only now, not part of the world)</h2>
-        <pre id="secret"></pre></div><div id="err" class="warn"></div></div>
+        <pre id="secret"></pre></div><div id="err" class="warn"></div>
+      <div class="row"><button id="again">New game</button></div></div>
   </div>
 </div>
 """
@@ -98,4 +99,13 @@ def render_page() -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>Whisperwick</title><style>{CSS}</style></head><body>{BODY}"
         f"<script>{JS}</script></body></html>"
+    )
+
+
+def plain_page(text: str) -> str:
+    """A bare page with one sentence (no key, or no free seat)."""
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        f"<title>Whisperwick</title></head><body><p>{text}</p></body></html>"
     )

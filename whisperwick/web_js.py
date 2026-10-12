@@ -1,8 +1,11 @@
-"""The play page script. Polls /state once a second and draws it. Text via textContent only."""
+"""The play page script. Polls /state (fast while villagers act) and draws it.
+
+Text goes in via textContent only.
+"""
 
 JS = """
 const $ = id => document.getElementById(id);
-let have = 0, intro = false, lastActions = '', mapBuilt = false;
+let have = 0, intro = false, lastActions = '', mapBuilt = false, quiet = true;
 
 function el(tag, cls, text) {
   const x = document.createElement(tag);
@@ -95,6 +98,8 @@ function drawBar(s) {
   ['action', 'target', 'item', 'message', 'send', 'w10', 'w60'].forEach(i => $(i).disabled = off);
   $('quit').disabled = s.finished;
   $('busy').hidden = s.awaiting || s.finished;
+  // The server says who is busy, but only in words that fit what Wren can see.
+  $('busy').textContent = s.busy || 'The villagers are acting...';
   $('reject').hidden = !s.rejection;
   $('reject').textContent = s.rejection ? 'You cannot do that: ' + s.rejection : '';
 }
@@ -107,6 +112,8 @@ function drawEnd(s) {
   $('err').textContent = s.error || '';
 }
 function render(s) {
+  if (s.gone) { location.reload(); return; }  // the game was stopped or is unknown here
+  quiet = s.awaiting || s.finished;
   if (!s.you.place) return;  // the game has not started yet
   if (!mapBuilt) {
     buildMap(s.places);
@@ -140,6 +147,15 @@ $('w60').onclick = () => post('/wait', {minutes: 60});
 $('quit').onclick = () => { if (confirm('Leave the game?')) post('/quit'); };
 $('close').onclick = () => { intro = true; $('intro').hidden = true; };
 $('help').onclick = () => { $('intro').hidden = !$('intro').hidden; };
-setInterval(poll, 1000);
-poll();
+$('again').onclick = async () => {
+  const r = await fetch('/newgame', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: '{}'});
+  if (r.ok) location.reload(); else $('err').textContent = (await r.json()).error;
+};
+// Slow polling while it is Wren's turn, quick while villagers act, so lines appear at once.
+async function loop() {
+  await poll();
+  setTimeout(loop, quiet ? 1000 : 500);
+}
+loop();
 """

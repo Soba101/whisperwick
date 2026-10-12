@@ -42,6 +42,8 @@ def run_with_llm(
     minutes: int,
     player: PlayerSource | None = None,
     player_name: str | None = None,
+    on_event=None,  # optional live-display hooks, passed to run_llm
+    on_turn=None,
 ) -> None:
     """The LLM run: one progress line per game hour, then a sidecar next to the db.
 
@@ -89,6 +91,8 @@ def run_with_llm(
         agent_memory=agent_memory,
         notebooks=notebooks,
         agent_log=agent_log,
+        on_event=on_event,
+        on_turn=on_turn,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
     extra = run_report.after_run(world, memories, client, stats)

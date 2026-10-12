@@ -3,14 +3,12 @@
 import http.client
 import json
 import re
-import threading
-import time
 
 import pytest
 from helpers import SCENARIO, fresh_world
-from test_play import LookClient
+from web_helpers import Client, game_server, patch_model, shut
 
-from whisperwick import llm_cli, web_page, web_play, web_state
+from whisperwick import web_page, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID
 from whisperwick.player_web import WebPlayer, intent_from
@@ -101,92 +99,60 @@ def test_finish_view_has_outcome_and_secret():
 
 # ---- a real local server and a short game ----
 
-def call(port, path, body=None, headers=None):
-    """One request with http.client (urllib looks up system proxies, which is slow here)."""
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-    head = dict(headers or {})
-    data = None
-    if body is not None:
-        data, head["Content-Type"] = json.dumps(body), "application/json"
-    conn.request("POST" if body is not None else "GET", path, data, head)
-    r = conn.getresponse()
-    out = r.status, r.read()
-    conn.close()
-    return out
-
-
-def state(port, since=0):
-    return json.loads(call(port, f"/state?since={since}")[1])
-
-
-def until(port, test):
-    for _ in range(100):
-        s = state(port)
-        if test(s):
-            return s
-        time.sleep(0.1)
-    raise AssertionError("timed out")
-
-
 @pytest.fixture
 def game(monkeypatch, tmp_path):
-    monkeypatch.setattr(llm_cli.settings, "llm_base_url", lambda: "http://x")
-    monkeypatch.setattr(llm_cli.settings, "llm_model", lambda: "m")
-    monkeypatch.setattr(llm_cli, "make_client", lambda server, url, model: LookClient())
-    games = []
+    patch_model(monkeypatch)
+    servers = []
 
     def start(minutes):
-        g = web_play.start(SC, SCENARIO, str(tmp_path / "w.db"), None, minutes, 0)
-        server, player, thread = g
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        games.append(g)
-        return server.server_address[1]
+        server, manager = game_server(tmp_path, minutes)
+        servers.append((server, manager))
+        browser = Client(server.server_address[1])
+        browser.request("/")  # opening the page starts this browser's game
+        return browser
 
     yield start
-    for server, player, thread in games:
-        player.stop()
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+    for server, manager in servers:
+        shut(server, manager)
 
 
 def test_full_loop_over_http(game):
-    port = game(5)
-    s = until(port, lambda s: s["awaiting"])
+    c = game(5)
+    s = c.until(lambda s: s["awaiting"])
     assert s["you"]["place"]["id"] == "loc_market"
     # Late or odd requests are refused, and not queued.
-    assert call(port, "/act", {"action": "arrest", "target": "npc_bob"})[0] == 400
-    assert call(port, "/wait", {"minutes": 7})[0] == 404
-    code, _ = call(port, "/act", {"action": "talk", "target": "npc_bob", "message": "hello"})
+    assert c.request("/act", {"action": "arrest", "target": "npc_bob"})[0] == 400
+    assert c.request("/wait", {"minutes": 7})[0] == 404
+    code, _ = c.request("/act", {"action": "talk", "target": "npc_bob", "message": "hello"})
     assert code == 200
     # The engine judges the next one: the knife is not at the Market.
-    until(port, lambda s: s["awaiting"] and any("hello" in x for x in s["feed"]))
-    call(port, "/act", {"action": "take", "item": "item_knife"})
-    s = until(port, lambda s: s["awaiting"] and s["rejection"])
+    c.until(lambda s: s["awaiting"] and any("hello" in x for x in s["feed"]))
+    c.request("/act", {"action": "take", "item": "item_knife"})
+    s = c.until(lambda s: s["awaiting"] and s["rejection"])
     assert s["rejection"]  # the engine's own reason, shown as given
     # Only new lines come back when `since` is given.
-    assert state(port, since=s["feed_total"])["feed"] == []
-    assert call(port, "/wait", {"minutes": 60})[0] == 200
-    s = until(port, lambda s: s["finished"])
+    assert c.state(since=s["feed_total"])["feed"] == []
+    assert c.request("/wait", {"minutes": 60})[0] == 200
+    s = c.until(lambda s: s["finished"])
     assert s["outcome"] and s["secret"].startswith("murderer = ")
     assert not s["awaiting"]
 
 
 def test_quit_over_http(game):
-    port = game(100)
-    until(port, lambda s: s["awaiting"])
-    assert state(port)["outcome"] is None and state(port)["secret"] is None
-    assert call(port, "/quit", {})[0] == 200
-    assert until(port, lambda s: s["finished"])["outcome"]
+    c = game(100)
+    c.until(lambda s: s["awaiting"])
+    assert c.state()["outcome"] is None and c.state()["secret"] is None
+    assert c.request("/quit", {})[0] == 200
+    assert c.until(lambda s: s["finished"])["outcome"]
 
 
 def test_server_refuses_foreign_hosts_and_form_posts(game):
-    port = game(5)
-    until(port, lambda s: s["awaiting"])
-    assert call(port, "/state", headers={"Host": "evil.test"})[0] == 403
+    c = game(5)
+    c.until(lambda s: s["awaiting"])
+    assert c.request("/state", headers={"Host": "evil.test"})[0] == 403
     # A POST without the JSON content type (like a plain cross-site form) is refused.
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-    conn.request("POST", "/quit", "{}")
+    conn = http.client.HTTPConnection("127.0.0.1", c.port, timeout=5)
+    conn.request("POST", "/quit", "{}", {"Cookie": f"ww_game={c.cookies['ww_game']}"})
     assert conn.getresponse().status == 400
 
 

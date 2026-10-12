@@ -9,6 +9,7 @@ from whisperwick import llm_agent, memory, thought_memory
 from whisperwick.agent_log import AgentLog
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import MINUTES_PER_DAY
+from whisperwick.events import Event
 from whisperwick.memory import Memories
 from whisperwick.notebook import Notebooks
 from whisperwick.player import PLAYER_ID, PlayerSource
@@ -47,6 +48,12 @@ def run_llm(
     agent_memory: bool = True,
     notebooks: Notebooks | None = None,  # kept by the caller to read at the end
     agent_log: AgentLog | None = None,  # recall searches, in memory if no path
+    # Optional read-only hooks for a live display. They never change the run.
+    # on_event(world, event): a villager's event was just applied.
+    on_event: Callable[[World, Event], None] | None = None,
+    # on_turn(world, npc_id): a model call is about to start. npc_id is None for the
+    # thinking phase.
+    on_turn: Callable[[World, str | None], None] | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -73,6 +80,8 @@ def run_llm(
         # this same minute. Order is sorted ids, so it is still deterministic
         # for a given model output.
         for npc in scheduler.due(tick):
+            if on_turn:
+                on_turn(world, npc)
             lines = llm_agent.memory_lines(memories[npc], tick, world, npc)
             result = llm_agent.act(
                 world, npc, client, lines, stats,
@@ -84,6 +93,8 @@ def run_llm(
                 # Remember right away, before anyone else moves (see Memories.observe).
                 memories.observe(result.event, world)
                 scheduler.notice(result.event)
+                if on_event:
+                    on_event(world, result.event)
             if result.observation:
                 memories.observe_look(npc, result.observation, tick, world)
         if stats.get("errors_in_a_row", 0) >= MAX_ERRORS_IN_A_ROW:
@@ -100,6 +111,8 @@ def run_llm(
             # A thought only reads its own villager's memories, the villager's last belief
             # and the world (which does not change now). So the model calls can overlap.
             # Prepared and applied in sorted ids, so the result matches a one-by-one run.
+            if on_turn:
+                on_turn(world, None)
             thought_memory.think_all(
                 living, memories, world, client, personalities, belief_log, now, parallel,
                 stats, notebooks if agent_memory else None, agent_log,

@@ -33,6 +33,7 @@ class WebPlayer(PlayerSource):
         self.rejection: str | None = None  # the engine's reason for the last refused action
         self.feed: list[str] = []
         self.seen = 0  # how many log events were already looked at for the feed
+        self.busy = ""  # what the page says while the villagers act (never names strangers)
         self.view: dict = {}
         self.actions: list[dict] = []
         self.world: World | None = None
@@ -50,6 +51,7 @@ class WebPlayer(PlayerSource):
                 return False
             self.inbox.append((kind, data))
             self.awaiting = False  # the page shows "villagers are acting" at once
+            self.busy = ""
             self.rejection = None
             self.cv.notify_all()
             return True
@@ -70,6 +72,7 @@ class WebPlayer(PlayerSource):
                 "actions": self.actions,
                 "places": self.places,
                 "awaiting": self.awaiting and not self.finished,
+                "busy": "" if self.awaiting or self.finished else self.busy,
                 "finished": self.finished,
                 "rejection": self.rejection,
                 "feed": self.feed[since:],
@@ -81,12 +84,17 @@ class WebPlayer(PlayerSource):
 
     # ---- called from the run loop thread ----
 
-    def _refresh(self, world: World) -> None:
-        """Take a new picture of what Wren sees. Lock held by the caller."""
-        self.world = world
+    def _catch_up(self, world: World) -> None:
+        """Add feed lines for log events not looked at yet. Safe to call at any time:
+        it goes by position in the log, so no event is ever added twice. Lock held."""
         events = world.log.all()
         fresh, self.seen = events[self.seen :], len(events)
         self.feed += player_terminal.player_lines(world, fresh)
+
+    def _refresh(self, world: World) -> None:
+        """Take a new picture of what Wren sees. Lock held by the caller."""
+        self.world = world
+        self._catch_up(world)
         self.view = web_state.you_view(world)
         self.actions = web_state.actions_for(self.view)
 
@@ -101,6 +109,26 @@ class WebPlayer(PlayerSource):
                 self.outcome, self.secret = web_state.finish_view(self.world, self.sc)
             self.finished, self.awaiting = True, False
             self.cv.notify_all()
+
+    def on_event(self, world: World, event) -> None:
+        """Run-loop hook: a villager event was just applied. Show it now if Wren may see it."""
+        with self.cv:
+            self._catch_up(world)  # the event is already in the log; same filter as always
+
+    def on_turn(self, world: World, npc_id: str | None) -> None:
+        """Run-loop hook: a model call starts (npc_id None = the day's thinking phase).
+
+        The label names a villager only when that villager is where Wren is, so the
+        page never shows who is where outside Wren's view.
+        """
+        with self.cv:
+            self._catch_up(world)  # also shows Wren's own action right away
+            if npc_id is None:
+                self.busy = "The villagers are thinking about the day..."
+            elif world.npcs[npc_id].location == world.npcs[PLAYER_ID].location:
+                self.busy = f"{world.npcs[npc_id].name} is thinking..."
+            else:
+                self.busy = "Someone elsewhere is acting..."
 
     def turn(self, world: World) -> list[Intent] | None:
         with self.cv:
