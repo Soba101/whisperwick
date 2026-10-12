@@ -2,7 +2,7 @@
 
 from whisperwick.clock import Clock
 from whisperwick.events import Event
-from whisperwick.scheduler import COOLDOWN, ROUTINE_EVERY, Scheduler
+from whisperwick.scheduler import ANSWER_WAIT, COOLDOWN, ROUTINE_EVERY, Scheduler
 
 IDS = ["npc_carol", "npc_alice", "npc_bob"]
 NOON = Clock.at(1, 12).tick  # well inside waking hours
@@ -66,5 +66,78 @@ def test_scheduler_only_schedules_the_ids_it_is_given():
     """The run loop hands it living NPCs only, so a dead one is never due or woken."""
     s = Scheduler(["npc_alice", "npc_bob"])  # npc_mayor is dead, so not passed in
     s.notice(talk(NOON, to="npc_mayor", witnesses=["npc_mayor"]))
-    assert s.due(NOON) == ["npc_alice", "npc_bob"]
-    assert "npc_mayor" not in s.woken
+    # Alice spoke to the dead mayor, so she waits for an answer that never comes.
+    assert s.due(NOON) == ["npc_bob"]
+    assert "npc_mayor" not in s.woken and "npc_mayor" not in s.answer_at
+
+
+def settle(s, tick):
+    """Everyone has just decided at this tick."""
+    for npc in IDS:
+        s.acted(npc, tick)
+
+
+def test_spoken_to_answers_next_minute_despite_cooldown():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob"))
+    assert s.due(NOON + 1) == []  # same minute: not yet
+    assert s.due(NOON + 2) == ["npc_bob"]  # cooldown (5) ignored
+
+
+def test_speaker_waits_until_target_does_anything():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob"))
+    assert "npc_alice" not in s.due(NOON + 3)
+    move = Event(tick=NOON + 3, type="move", actor="npc_bob", location="loc_inn",
+                 data={}, witnesses=["npc_alice"])  # fmt: skip
+    s.notice(move)
+    # Released by any event from Bob, and she saw it, so the wake-up counts again.
+    assert s.waiting == {}
+    assert "npc_alice" in s.due(NOON + 1 + COOLDOWN)
+
+
+def test_speaker_gives_up_after_answer_wait():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob"))
+    assert "npc_alice" not in s.due(NOON + 1 + ANSWER_WAIT - 1)
+    s.notice(talk(NOON + 1 + ANSWER_WAIT - 1, actor="npc_carol", to=None, witnesses=["npc_alice"]))
+    assert "npc_alice" not in s.due(NOON + 1 + ANSWER_WAIT - 1)  # wake-up held back too
+    assert "npc_alice" in s.due(NOON + 1 + ANSWER_WAIT)
+
+
+def test_being_spoken_to_beats_waiting():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob"))
+    s.notice(talk(NOON + 2, actor="npc_carol", to="npc_alice"))
+    assert "npc_alice" in s.due(NOON + 3)
+
+
+def test_talk_to_nobody_makes_no_one_wait():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to=None))
+    assert "npc_alice" not in s.waiting
+
+
+def test_bystanders_still_respect_cooldown():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob", witnesses=["npc_carol"]))
+    assert s.due(NOON + 2) == ["npc_bob"]  # Carol overheard but is on cooldown
+    assert "npc_carol" in s.due(NOON + COOLDOWN)
+
+
+def test_player_is_waited_on_and_night_drops_answers():
+    s = Scheduler(IDS)
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, actor="npc_alice", to="player"))
+    assert "player" not in s.answer_at and "npc_alice" in s.waiting
+    s.notice(talk(NOON + 1, actor="player", to="npc_alice"))
+    assert s.waiting == {} and s.answer_at == {"npc_alice": NOON + 2}
+    night = Clock.at(1, 23).tick
+    assert s.due(night) == []
+    assert s.answer_at == {} and s.waiting == {}

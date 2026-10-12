@@ -136,3 +136,49 @@ def test_one_good_answer_resets_the_error_count():
     stats = {}
     run_llm(fresh_world(), Flaky(), 120, stats=stats)
     assert "stopped" not in stats
+
+
+class TalkBack(LookClient):
+    """Bob always talks to Wren; everyone else just looks."""
+
+    def chat(self, messages, schema):
+        if "(npc_bob)" in messages[0]["content"] and "thoughts" not in schema["properties"]:
+            return {"action": "talk", "target": "player", "message": "Yes?"}
+        return super().chat(messages, schema)
+
+
+class WrenSpeaksAt:
+    """A player stand-in: says hello to Bob on the second minute, then stays quiet."""
+
+    def __init__(self):
+        self.minute = 0
+
+    def turn(self, world):
+        self.minute += 1
+        if self.minute != 2:
+            return []
+        return [{"actor": "player", "action": "talk", "target": "npc_bob", "message": "Hi"}]
+
+    def report(self, intent, result):
+        pass
+
+
+def bob_turns(seed=42):
+    """Run 12 minutes from 08:00. Returns the ticks Bob was asked, and Bob's talk ticks."""
+    world, asked = fresh_world(seed), []
+    on_turn = lambda w, npc: asked.append(w.clock.tick) if npc == "npc_bob" else None  # noqa: E731
+    run_llm(world, TalkBack(), 12, player=WrenSpeaksAt(), on_turn=on_turn)
+    talks = [e.tick for e in world.log.all() if e.actor == "npc_bob" and e.type == "talk"]
+    return asked, talks
+
+
+def test_spoken_to_villager_answers_the_next_minute_not_after_the_cooldown():
+    asked, _ = bob_turns()
+    start = fresh_world().clock.tick
+    # Bob decides at 08:00 (first turn). Wren talks to him at 08:01; he answers at 08:02,
+    # where the 5-minute cooldown used to hold him until 08:05.
+    assert asked[:2] == [start, start + 2]
+
+
+def test_same_replies_give_the_same_events():
+    assert bob_turns() == bob_turns()

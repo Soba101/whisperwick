@@ -18,9 +18,9 @@ from whisperwick.world import World
 # Actions the page may send. Arrest and release are for the authority, not for Wren.
 ALLOWED = ("move", "look", "talk", "take", "drop", "give", "show")
 WAIT_CHOICES = (10, 60)  # minutes
-# After Wren acts, she waits on her own for a reply. The scheduler gives a villager a
-# 5-minute cooldown before it may act again, so a reply can take about that long; 10
-# minutes covers it twice without leaving her stuck if nobody ever answers.
+# After Wren acts, she waits on her own for a reply. Whoever she speaks to is asked
+# again the next minute (no cooldown), so a reply is quick; 10 minutes still keeps
+# her from being stuck if nobody ever answers.
 AUTO_WAIT_MAX = 10  # minutes
 NIGHT_START = 22 * 60  # villagers sleep from 22:00 to 06:00
 NIGHT_END = 6 * 60

@@ -8,7 +8,13 @@ from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.events import Event
 
 ROUTINE_EVERY = 60  # minutes: even a quiet NPC gets a turn this often
-COOLDOWN = 5  # minimum minutes between two decisions by one NPC (stops talk ping-pong)
+# Minimum minutes between two decisions by one NPC. It now only slows routine and
+# overheard wake-ups (stops idle ping-pong between bystanders). Someone spoken to
+# skips it: they answer next minute.
+COOLDOWN = 5
+# A speaker waits this long for an answer, then gives up (the other side went quiet,
+# or chose to leave without a word).
+ANSWER_WAIT = 5  # minutes
 SLEEP_START = 22  # hour of day when the village goes to bed
 SLEEP_END = 6  # hour of day when it wakes up
 
@@ -19,6 +25,11 @@ class Scheduler:
         self.last: dict[str, int | None] = {npc_id: None for npc_id in npc_ids}
         # NPCs that something happened to since their last decision.
         self.woken: set[str] = set()
+        # Spoken to: npc -> first tick it may answer (the minute after the talk).
+        self.answer_at: dict[str, int] = {}
+        # Speaker -> (who it spoke to, tick it spoke). It is not asked again until the
+        # other side does anything, or ANSWER_WAIT passes.
+        self.waiting: dict[str, tuple[str, int]] = {}
 
     def notice(self, event: Event) -> None:
         """Wake whoever an event is about: the talk, give or show target and every witness.
@@ -32,6 +43,19 @@ class Scheduler:
         affected.discard(event.actor)
         # Ignore ids we do not schedule. A stray id must never create a turn.
         self.woken |= affected & self.last.keys()
+        # Anyone waiting on the actor got something back: stop waiting.
+        for npc_id in [n for n, (to, _) in self.waiting.items() if to == event.actor]:
+            del self.waiting[npc_id]
+        to = event.data.get("to")
+        if event.type == "talk" and to:
+            if to in self.last and to != event.actor:
+                # Spoken to: answer next minute, cooldown or not. Being spoken to
+                # also beats any wait of its own.
+                self.answer_at[to] = event.tick + 1
+                self.waiting.pop(to, None)
+            if event.actor in self.last and to != event.actor:
+                # The speaker waits for the answer. "to" may be the player.
+                self.waiting[event.actor] = (to, event.tick)
 
     def asleep(self, tick: int) -> bool:
         """True from 22:00 until 06:00."""
@@ -43,10 +67,21 @@ class Scheduler:
         if self.asleep(tick):
             # Night is quiet. Wake-ups are dropped, not saved for the morning: the murder
             # at night is injected by the scenario, not by agents.
+            # Pending answers and waits go the same way: nobody carries a talk to bed.
             self.woken.clear()
+            self.answer_at.clear()
+            self.waiting.clear()
             return []
         ready = []
         for npc_id in sorted(self.last):
+            if npc_id in self.answer_at:
+                if tick >= self.answer_at[npc_id]:
+                    ready.append(npc_id)  # spoken to: no cooldown, no wait
+                continue
+            if npc_id in self.waiting:
+                if tick - self.waiting[npc_id][1] < ANSWER_WAIT:
+                    continue  # still hoping for an answer: no routine or wake-up turn
+                del self.waiting[npc_id]  # gave up
             last = self.last[npc_id]
             if last is not None and tick - last < COOLDOWN:
                 continue  # decided too recently, even if woken
@@ -58,3 +93,4 @@ class Scheduler:
         """Record a decision. The NPC is no longer waiting on whatever woke it."""
         self.last[npc_id] = tick
         self.woken.discard(npc_id)
+        self.answer_at.pop(npc_id, None)
