@@ -74,6 +74,17 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
 - A visual replay preview: one self-contained HTML page per run that replays the event log
   (who is where, who says what, arrests), to see what a front-end could show. Read-only, world facts only.
 
+- A web page to play the demo (`whisperwick play --web`, http://localhost:8000), because the terminal is hard
+  to follow and feels slow. Added 2026-10-12 at Donovan's request.
+  - Same rules as the terminal: clicks become the same player intents; the engine decides; villagers unchanged.
+  - Wren sees only what Wren sees: people and items where she is, events she did, saw or was spoken to in.
+    The map shows all places but people only where Wren is (no omniscience).
+  - Context for the player, plain facts only (no hints about the murder or who did it): who you are (Wren,
+    a newcomer, just arrived), where and when you are, who is here and what they do, what you carry, what you
+    may do and what each action needs, and that villagers decide for themselves and time passes while you wait.
+  - Live: lines appear as villagers act, a "thinking..." marker while the model works, wait 10 min / 1 hour.
+  - At the end (or on demand): the outcome from world facts (`outcome`).
+
 Gate 2 is Donovan's call after playing the demo. The numbers and thresholds below are inputs to it.
 
 ## Gate 2 (proposed thresholds, yours to change)
