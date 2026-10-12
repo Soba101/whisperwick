@@ -33,7 +33,13 @@ def start(sc: Scenario, scenario: Path, db: str, seed: int | None, minutes: int,
 def serve(sc: Scenario, scenario: Path, db: str, seed: int | None, minutes: int, port: int) -> None:
     """Play until Ctrl-C. The page stays up after the game so the outcome can be read."""
     llm_settings()  # stops early, with a hint, if the model server is not set up
-    server, player, _ = start(sc, scenario, db, seed, minutes, port)
+    try:
+        server, player, _ = start(sc, scenario, db, seed, minutes, port)
+    except OSError as e:
+        # Another program has the port (Docker Desktop holds 8000 on this Mac).
+        hint = f"whisperwick play --web --port {port + 1}"
+        typer.echo(f"Port {port} is in use ({e.strerror}). Try: {hint}")
+        raise typer.Exit(1) from e
     typer.echo(f"Play Wren at http://127.0.0.1:{server.server_address[1]}  (Ctrl-C to stop)")
     try:
         server.serve_forever()
