@@ -9,7 +9,7 @@ beliefs and eval tools are generic; only the scenario, arrest actions and outcom
 
 "Working" means five checks, each measured, not felt. Bars set before the runs, so results cannot be read to fit:
 - Coherent: no loops or self-contradiction; a reader can follow what happened.
-  Bar: loop measure at or above healthy-run levels; no multi-day loop.
+  Bar: at least 1 new claim per day after an arrest (every week 6 run fails it, #61).
 - Grounded: nearly every belief cites a real memory; few hunches. Bar: >= 95% cite a real memory.
 - Not a pushover: villagers do not simply believe whatever the player says.
 - Decisive: Hal acts on his doubt (moves, asks, looks) instead of standing still for days.
@@ -51,10 +51,12 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
   | w6-s1-none | 810 | 92 |
   | w6-s2-none | 1040 | 91 |
   | w6-s1-accuse_victor | 1298 | 131 |
-- It is weak on its own (s5-none and s3-none-off are low too). Add a second signal: new claim subjects,
-  items or places mentioned per hour after the arrest.
-- Do not tune on one loop run. First hand-mark 3-4 more week 6 runs as loop / no loop (one-line reason
-  each, Donovan checks one), then keep the signal that matches the hand marks.
+- It is weak on its own (s5-none and s3-none-off are low too).
+- Hand marks (2026-10-14): s5-none, s3-none-off, s1-none loop; s1-accuse_victor a weak no-loop. No signal
+  separated them (non-talk, new words, top talk pairs, moves). By claims every run loops: ~99% of talk
+  after the arrest repeats a claim the speaker already made (#61). There is no healthy run to compare to.
+- So the measure is `new_claims_per_day` after the last arrest (speaker, kind, subject not used before by
+  that speaker), shown with non-talk events and top-2 talk pair share. Bar: >= 1 per day.
 - Also a stall measure for "Decisive": longest stretch of waking hours, while the case is open,
   with no Hal move/take/show/look.
 - Add to `eval_measures.py` (new small file if it grows past ~200 lines); show in `eval` and `compare`.
