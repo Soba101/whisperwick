@@ -12,7 +12,11 @@ from whisperwick import belief_text
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.llm_client import LLMError
 from whisperwick.llm_intent import exits_and_people, intent_schema, item_lines
-from whisperwick.memory_view import memory_lines  # noqa: F401  (re-exported)
+from whisperwick.memory_view import (  # noqa: F401  (re-exported)
+    memory_block,
+    memory_lines,
+    memory_parts,
+)
 from whisperwick.recall import Private, Recall, act_lines, clean_words, search
 from whisperwick.repeat_guard import ActionHistory, repeat_reason
 from whisperwick.world import World
@@ -37,6 +41,7 @@ def build_messages(
     # Week 6, optional: private notebook and recall lines, and whether recall is offered.
     private_lines: Sequence[str] = (),
     recall: bool = False,
+    evidence: Sequence[str] = (),  # starting evidence, shown under its own heading (#56)
 ) -> list[dict]:
     """One compact system message: who I am, where I am, who and what is around."""
     me = world.npcs[npc_id]
@@ -73,9 +78,7 @@ def build_messages(
     # What I already said to the people in front of me, so I can see when I repeat myself.
     lines += belief_text.last_words(world, history, npc_id, people)
     lines.append(belief_text.CLAIM_RULE)
-    if memories:
-        lines.append("You remember:")
-        lines += [f"- {m}" for m in memories]
+    lines += memory_block(evidence, memories)
     # Notebook and what a recall just found: private to this villager.
     lines += private_lines
     if feedback:
@@ -101,6 +104,7 @@ def decide(
     history: ActionHistory | None = None,
     private_lines: Sequence[str] = (),
     recall: bool = False,
+    evidence: Sequence[str] = (),
 ) -> Intent | Recall:
     """Ask the model for an intent. Anything unusable becomes a harmless look.
 
@@ -113,7 +117,7 @@ def decide(
             client.chat(
                 build_messages(
                     world, npc_id, memories, feedback, personality, belief, history,
-                    private_lines, recall,
+                    private_lines, recall, evidence,
                 ),
                 intent_schema(world, npc_id, recall),
             )
@@ -164,6 +168,7 @@ def act(
     belief: dict | None = None,
     history: ActionHistory | None = None,
     private: Private | None = None,  # recall and notebook; None = neither (memory off)
+    evidence: Sequence[str] = (),
 ) -> ActionResult:
     """Decide and act. One retry with the engine's reason, then fall back to look.
 
@@ -177,7 +182,7 @@ def act(
     for _ in range(2):
         intent = decide(
             world, npc_id, client, memories, feedback, stats, personality, belief, history,
-            notebook, recall=private is not None,
+            notebook, recall=private is not None, evidence=evidence,
         )
         if isinstance(intent, Recall):
             # Search its own memory, then ask again in the same turn. Recall is not offered
@@ -187,7 +192,7 @@ def act(
             private.log.recall(world.clock.tick, npc_id, "act", intent.words, [i for i, _ in found])
             intent = decide(
                 world, npc_id, client, memories, feedback, stats, personality, belief, history,
-                [*notebook, *act_lines(intent.words, found)],
+                [*notebook, *act_lines(intent.words, found)], evidence=evidence,
             )
         # Repeat guard (#12): refuse a pointless repeat before the engine sees it.
         # It counts as a rejection, so the one-retry flow below stays the same.

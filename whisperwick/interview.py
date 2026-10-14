@@ -45,9 +45,10 @@ def messages(world: World, npc_id: str, stream: MemoryStream) -> list[dict]:
     ]  # fmt: skip
     # k=12, more than a normal turn's 8: the answer should rest on the whole run,
     # not only on the last few hours.
-    mem = llm_agent.memory_lines(stream, world.clock.tick, world, npc_id, k=12, query=MEMORY_QUERY)
-    if mem:
-        lines += ["You remember:", *(f"- {m}" for m in mem)]
+    evidence, mem = llm_agent.memory_parts(
+        stream, world.clock.tick, world, npc_id, k=12, query=MEMORY_QUERY
+    )
+    lines += llm_agent.memory_block(evidence, mem)
     return [
         {"role": "system", "content": "\n".join(lines)},
         {"role": "user", "content": QUESTION},

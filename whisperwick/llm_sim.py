@@ -82,11 +82,12 @@ def run_llm(
         for npc in scheduler.due(tick):
             if on_turn:
                 on_turn(world, npc)
-            lines = llm_agent.memory_lines(memories[npc], tick, world, npc)
+            evidence, lines = llm_agent.memory_parts(memories[npc], tick, world, npc)
             result = llm_agent.act(
                 world, npc, client, lines, stats,
                 personalities.get(npc), belief_log.latest(npc), history,
                 Private(memories[npc], notebooks, agent_log) if agent_memory else None,
+                evidence,
             )  # fmt: skip
             scheduler.acted(npc, tick)
             if result.event:

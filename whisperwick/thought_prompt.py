@@ -27,12 +27,17 @@ def messages(
     # No line saying "the mayor was killed": a real villager only knows that if it saw
     # the body or was told. What it knows is in its memories, nowhere else.
     _, trusted = people_ids(world, npc_id)
+    evid = [(i, m) for i, m in shown.items() if m.kind == "evidence"]
+    rest = [(i, m) for i, m in shown.items() if m.kind != "evidence"]
     lines = [
         f"You are {me.name} ({me.id}), the village {me.occupation}. Stay in character.",
         *belief_text.character_lines(personality),
         "People you may have met: " + ", ".join(belief_text.who(world, n) for n in trusted),
-        "Your memories, each with its id:",
-        *(f"[{mid}] {m.text}" for mid, m in shown.items()),
+        # Starting evidence under its own heading (#56). Ids stay as they are.
+        *(["What you knew before today, each with its id:"] if evid else []),
+        *(f"[{mid}] {m.text}" for mid, m in evid),
+        *(["Your memories, each with its id:"] if rest else []),
+        *(f"[{mid}] {m.text}" for mid, m in rest),
     ]
     if recall_note:
         lines.append(recall_note)
