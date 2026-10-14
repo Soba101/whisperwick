@@ -28,13 +28,17 @@ def run_rows(ms: list[dict], names: dict[str, str]) -> list[str]:
 
 def measure_rows(ms: list[dict]) -> list[str]:
     rows = [["Run", "Calls", "Rejected", "Talk", "Recalls a/t", "Sourced", "BadCite",
-             "Aims n/d/x", "Arrest", "Release", "Stalls"]]  # fmt: skip
+             "Aims n/d/x", "Arrest", "Release", "Stalls", "NewClaims/d",
+             "ClaimGap h", "NotTalk"]]  # fmt: skip
     for m in ms:
         a = m["aims"]
         rows.append([m["name"], str(m["calls"]), pct(m["rejection"]), pct(m["talk_share"]),
                      recalls_cell(m), pct(m["valid_share"]), str(m["bad_citations"]),
                      f"{a['new']}/{a['done']}/{a['dropped']}", str(m["arrests"]),
-                     str(m["releases"]), str(m["stalls"])])  # fmt: skip
+                     str(m["releases"]), str(m["stalls"]), num(m["new_claims_per_day"]),
+                     "-" if m["longest_claim_gap_hours"] is None
+                     else f"{m['longest_claim_gap_hours']:.0f}",
+                     count(m["not_talk_after_arrest"])])  # fmt: skip
     return table(rows)
 
 
@@ -53,3 +57,7 @@ def judge_rows(ms: list[dict]) -> list[str]:
 
 def num(x: float | None) -> str:
     return "-" if x is None else f"{x:.2f}"
+
+
+def count(x: int | None) -> str:
+    return "-" if x is None else str(x)

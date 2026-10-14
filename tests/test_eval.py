@@ -8,6 +8,9 @@ from typer.testing import CliRunner
 
 from whisperwick import cli, eval_measures, llm_run
 from whisperwick.compare import load_run
+from whisperwick.eval_loop import loop_measures
+from whisperwick.events import Event
+from whisperwick.player import PLAYER_ID
 
 
 def measure(db):
@@ -89,3 +92,43 @@ def test_divergence_keeps_memory_on_and_off_apart():
     ms = [run("none", True, ["npc_victor"]), run("blame_hal", True, ["npc_victor"]),
           run("none", False, [])]  # fmt: skip
     assert divergence(ms)[-1] == "Seeds where the outcome differs by script: 0/1 = 0%"
+
+
+def _talk(tick, actor, kind="accuses", subject="npc_victor", to="npc_x"):
+    claim = {"kind": kind, "subject": subject} if kind else None
+    return Event(tick=tick, type="talk", actor=actor, location="loc_inn",
+                 data={"message": "m", "to": to, "claim": claim})  # fmt: skip
+
+
+def _ev(tick, type_, actor="npc_bob"):
+    return Event(tick=tick, type=type_, actor=actor, location="loc_inn")
+
+
+def test_loop_measures_after_arrest():
+    events = [
+        _talk(10, "npc_bob"),  # before the arrest: makes this claim old for Bob
+        _ev(100, "arrest", "npc_hal"),
+        _talk(110, "npc_bob"),  # repeat of an old claim: not new
+        _talk(120, "npc_alice"),  # same claim, different speaker: new
+        _talk(130, "npc_alice"),  # Alice repeating herself: not new
+        _talk(140, "npc_bob", kind=None),  # no claim: skipped
+        _talk(150, "npc_bob", subject="npc_hal"),  # a different subject: new
+        _ev(160, "move"),
+        _ev(170, "look"),  # looking changes nothing
+        _ev(180, "take", PLAYER_ID),  # the player is not a villager
+    ]
+    m = loop_measures(events, 100 + 1440)  # exactly one day after the arrest
+    assert m["new_claims_after_arrest"] == 2
+    assert m["new_claims_per_day"] == 2.0
+    assert m["not_talk_after_arrest"] == 1
+    assert m["events_after_arrest"] == 7
+    # Pairs after the arrest: bob->x 3, alice->x 2, so both pairs cover all 5 talks.
+    assert m["top_pair_share"] == 1.0
+    # Last new claim at 150 (02:30), run end at 1540 (01:40 next day). Between them only
+    # 06:00-22:00 of day one counts, so the gap is 16 waking hours, not 23.
+    assert m["longest_claim_gap_hours"] == 16.0
+
+
+def test_loop_measures_none_without_arrest():
+    m = loop_measures([_talk(10, "npc_bob")], 1440)
+    assert set(m.values()) == {None}

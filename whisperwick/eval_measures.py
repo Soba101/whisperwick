@@ -9,11 +9,11 @@ from pathlib import Path
 
 from whisperwick import outcome
 from whisperwick.clock import MINUTES_PER_DAY, Clock
+from whisperwick.eval_loop import AWAKE_HOURS, loop_measures
 from whisperwick.llm_run import rejection_rate
 from whisperwick.player import PLAYER_ID
 from whisperwick.scenario import load_scenario
 
-AWAKE_HOURS = range(6, 22)  # 06:00 to 22:00, when villagers are expected to be active
 DEFAULT_START = 8 * 60  # the scenario starts at 08:00 on day 1
 
 
@@ -41,11 +41,17 @@ def start_tick(sidecar: dict) -> int:
     return DEFAULT_START
 
 
+def run_end(events, sidecar: dict) -> int:
+    """The tick the run stopped at: start plus minutes played, else the last event."""
+    start = start_tick(sidecar)
+    return start + sidecar.get("minutes", max((e.tick for e in events), default=start) - start)
+
+
 def stalls(events, sidecar: dict) -> int:
     """Game hours between 06:00 and 22:00 in which no villager did anything at all."""
     npc_events = [e for e in events if e.actor != PLAYER_ID]
     start = start_tick(sidecar)
-    end = start + sidecar.get("minutes", max((e.tick for e in events), default=start) - start)
+    end = run_end(events, sidecar)
     busy = {e.tick // 60 for e in npc_events}
     hours = range(start // 60, -(-end // 60))
     return sum(1 for h in hours if (h % 24) in AWAKE_HOURS and h not in busy)
@@ -100,5 +106,6 @@ def measure(run: dict, db: Path) -> dict:
         "arrests": sum(e.type == "arrest" for e in events),
         "releases": sum(e.type == "release" for e in events),
         "stalls": stalls(events, side),
+        **loop_measures(events, run_end(events, side)),
         "judge": load_judge(db),
     }
