@@ -41,7 +41,7 @@ def mean(values: list[float]) -> float | None:
 def memory_rows(ms: list[dict]) -> list[str]:
     """Averages of the main measures, memory on versus off."""
     rows = [["Memory", "Runs", "Rejected", "Talk", "Sourced", "Arrests", "Stalls", "Aims new",
-             "NewClaims/d", "ClaimGap h", "NotTalk", "Right"]]  # fmt: skip
+             "NewClaims/d", "ClaimGap h", "NotTalk", "GuardStall h", "Right"]]  # fmt: skip
     for flag, label in ((True, "on"), (False, "off")):
         g = [m for m in ms if m["memory"] is flag]
         if not g:
@@ -57,5 +57,7 @@ def memory_rows(ms: list[dict]) -> list[str]:
                                if m["longest_claim_gap_hours"] is not None])),
                      num(mean([m["not_talk_after_arrest"] for m in g
                                if m["not_talk_after_arrest"] is not None])),
+                     num(mean([m["guard_stall_hours"] for m in g
+                               if m["guard_stall_hours"] is not None])),
                      pct(mean([m["verdict"] == "right" for m in g]))])  # fmt: skip
     return table(rows)

@@ -10,6 +10,7 @@ from pathlib import Path
 from whisperwick import outcome
 from whisperwick.clock import MINUTES_PER_DAY, Clock
 from whisperwick.eval_loop import AWAKE_HOURS, loop_measures
+from whisperwick.eval_stall import authority_of, stall_measures
 from whisperwick.llm_run import rejection_rate
 from whisperwick.player import PLAYER_ID
 from whisperwick.scenario import load_scenario
@@ -107,5 +108,6 @@ def measure(run: dict, db: Path) -> dict:
         "releases": sum(e.type == "release" for e in events),
         "stalls": stalls(events, side),
         **loop_measures(events, run_end(events, side)),
+        **stall_measures(events, authority_of(side), start_tick(side), run_end(events, side)),
         "judge": load_judge(db),
     }

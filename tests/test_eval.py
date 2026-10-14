@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 from whisperwick import cli, eval_measures, llm_run
 from whisperwick.compare import load_run
 from whisperwick.eval_loop import loop_measures
+from whisperwick.eval_stall import authority_of, stall_measures
 from whisperwick.events import Event
 from whisperwick.player import PLAYER_ID
 
@@ -132,3 +133,44 @@ def test_loop_measures_after_arrest():
 def test_loop_measures_none_without_arrest():
     m = loop_measures([_talk(10, "npc_bob")], 1440)
     assert set(m.values()) == {None}
+
+
+# Guard stall: pure function, authority/start/end passed in. Day 1 starts at tick 0 here, so
+# waking hours are ticks 360-1320 of each 1440-minute day.
+def test_stall_arrest_closes_case_early():
+    events = [_ev(420, "move", "npc_hal"), _ev(480, "arrest", "npc_hal")]
+    m = stall_measures(events, ["npc_hal"], 360, 360 + 3 * 1440)
+    assert m["guard_stall_hours"] == 1.0  # 07:00 to 08:00, the days after do not count
+    assert m["guard_acts_open"] == 2
+
+
+def test_stall_no_arrest_runs_to_the_end():
+    m = stall_measures([_ev(400, "take", "npc_hal")], ["npc_hal"], 360, 360 + 960)
+    assert m["guard_stall_hours"] == (960 - 40) / 60  # whole awake day minus the first 40 min
+    assert m["guard_acts_open"] == 1
+
+
+def test_stall_night_minutes_do_not_count():
+    # 21:00 on day 1 to 07:00 on day 2: one waking hour (21-22) plus one (06-07).
+    events = [_ev(21 * 60, "move", "npc_hal"), _ev(1440 + 7 * 60, "move", "npc_hal")]
+    m = stall_measures(events, ["npc_hal"], 21 * 60, 1440 + 7 * 60)
+    assert m["guard_stall_hours"] == 2.0
+
+
+def test_stall_talk_does_not_break_it():
+    events = [_talk(500, "npc_hal"), _talk(600, "npc_hal")]
+    m = stall_measures(events, ["npc_hal"], 480, 480 + 600)
+    assert m["guard_stall_hours"] == 10.0
+    assert m["guard_acts_open"] == 0
+
+
+def test_stall_ignores_non_arresters():
+    m = stall_measures([_ev(500, "move", "npc_bob")], ["npc_hal"], 480, 480 + 600)
+    assert m["guard_stall_hours"] == 10.0
+    assert m["guard_acts_open"] == 0
+
+
+def test_stall_none_without_scenario():
+    assert authority_of({"scenario": "/no/such/file.yaml"}) == []
+    m = stall_measures([], [], 0, 100)
+    assert m["guard_stall_hours"] is None

@@ -59,8 +59,10 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
   either (0.70-3.83; the s42 loop scores 1.40). New claims come in bursts, so the measure is the longest
   waking gap with no new claim after the last arrest (`longest_claim_gap_hours`): 23-35 h in the three
   clear loops, 9-15 h elsewhere. Per day and non-talk events are shown too.
-- Also a stall measure for "Decisive": longest stretch of waking hours, while the case is open,
-  with no Hal move/take/show/look.
+- Also a stall measure for "Decisive" (`guard_stall_hours`, "GuardStall h"): longest stretch of waking
+  hours, while the case is open, with no move/take/show/give/drop/look/arrest/release by the scenario's
+  arresters. Week 6: 7 of 19 runs over 6 h (s4-blame_hal 48, s5-blame_hal 45, s2-none-off 36, 7-12 in four
+  more). The loop gap is 16 h or more in 8 of the 16 runs with an arrest.
 - Add to `eval_measures.py` (new small file if it grows past ~200 lines); show in `eval` and `compare`.
 - Check: unit tests with a fake event list; then the table above reproduced by the code.
 
