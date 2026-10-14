@@ -55,10 +55,11 @@ own reply away: only with Donovan's OK.
   and 3, memory on, both layouts.
 
 ## Options for Donovan
-- Kev judging: Kev's PyTorch on the PC is now CPU-only. Fix it (reinstall the CUDA build) or drop
-  the Kev scores and rely on the code measures.
+- Kev judging: fixed (CUDA PyTorch reinstalled, see the wiki Model Server page); week 7 runs being judged.
 - Which speed items to run first (suggested order: 1, 2, 3, then 4; 5 only if they are not enough).
 - Which behaviour items, if any, this week.
+- Later, not this week: players bring their own model key (OpenAI-style endpoint) so games run in the
+  cloud in parallel. Open questions on the wiki (Open Questions): cost per game, behaviour per model, key safety.
 
 ## Exit check
 Per speed item: calls per run, seconds per call, total time, and the five checks vs baseline.
