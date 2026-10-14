@@ -135,6 +135,21 @@ def test_loop_measures_none_without_arrest():
     assert set(m.values()) == {None}
 
 
+def test_loop_measures_late_last_arrest_has_no_claim_gap():
+    # An earlier arrest gives plenty of time, but only the last arrest sets the window.
+    arrest = 3 * 1440 + 7 * 60 + 16
+    events = [_ev(360, "arrest"), _ev(arrest, "arrest"), _ev(arrest + 10, "move")]
+    m = loop_measures(events, arrest + 60)
+    assert m["longest_claim_gap_hours"] is None
+    assert m["new_claims_after_arrest"] == 0 and m["new_claims_per_day"] == 0
+    assert m["not_talk_after_arrest"] == 1 and m["events_after_arrest"] == 1
+    assert m["top_pair_share"] is None
+    # A whole calendar day is still too short if it lacks a full waking day.
+    assert loop_measures([_ev(22 * 60, "arrest")], 1440 + 21 * 60)[
+        "longest_claim_gap_hours"
+    ] is None
+
+
 # Guard stall: pure function, authority/start/end passed in. Day 1 starts at tick 0 here, so
 # waking hours are ticks 360-1320 of each 1440-minute day.
 def test_stall_arrest_closes_case_early():

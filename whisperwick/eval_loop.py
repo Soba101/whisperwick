@@ -11,6 +11,8 @@ from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.player import PLAYER_ID
 
 AWAKE_HOURS = range(6, 22)  # 06:00 to 22:00, when villagers are expected to be active
+# Short windows can look like a pass, so require one waking day (06:00-22:00).
+MIN_CLAIM_GAP_WINDOW_MINUTES = 16 * 60
 
 NO_LOOP = {
     "longest_claim_gap_hours": None,
@@ -73,8 +75,9 @@ def loop_measures(events, end: int) -> dict:
     new = len(new_ticks)
     # Points are the arrest, every new claim and the end, so the end closes the last gap.
     points = [arrest, *new_ticks, max(end, arrest)]
+    enough_time = waking_minutes(arrest, end) >= MIN_CLAIM_GAP_WINDOW_MINUTES
     return {
-        "longest_claim_gap_hours": longest_gap_hours(points),
+        "longest_claim_gap_hours": longest_gap_hours(points) if enough_time else None,
         "new_claims_per_day": new / days if days > 0 else None,
         "new_claims_after_arrest": new,
         # Looking changes nothing, so it does not count as the story moving on.

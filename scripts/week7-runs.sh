@@ -1,13 +1,15 @@
 #!/bin/zsh
 # Week 7 control runs (docs/week7-plan.md section 4): the `none` script only,
 # seeds 1 2 3 4 5 42, each with villager memory on, then off.
-# Two runs at a time: two runs share the PC.
+# One run at a time: the week 7 batch showed two runs sharing one llama-server
+# are slower in total (~4.2 s per call vs 1.7 s alone). Prompt reading does not overlap.
+# See issue #59.
 # Usage: scripts/week7-runs.sh DATA_DIR [JOBS_AT_ONCE]
 # Run it from a separate checkout (a git worktree): runs load the code they start with,
 # so the main checkout stays free for work. DATA_DIR should be the main repo's data/.
 set -u
 DATA=${1:?give the data directory}
-AT_ONCE=${2:-2}
+AT_ONCE=${2:-1}
 DAYS=3
 HERE=${0:A:h}
 
