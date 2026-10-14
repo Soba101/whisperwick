@@ -1,7 +1,18 @@
 # Week 7 plan: make the villagers work (draft, for review)
 
-Goal: find out why villagers loop, arrest on weak evidence and leak secrets, using measures first.
-Gate 2 waits. The NPC layer comes before any front-end.
+Goal: make the NPC layer work before anything else (Donovan, 2026-10-12). Find out why villagers loop,
+arrest on weak evidence and leak secrets, using measures first. Gate 2 waits; no front-end.
+If the NPC layer cannot be made to work, Donovan may repurpose the engine (the scheduler, memory, cited
+beliefs and eval tools are generic; only the scenario, arrest actions and outcome reader are murder-specific).
+
+"Working" means five checks, each measured, not felt:
+- Coherent: no loops or self-contradiction; a reader can follow what happened.
+- Grounded: nearly every belief cites a real memory; few hunches.
+- Not a pushover: villagers do not simply believe whatever the player says.
+- Decisive: Hal reaches his own decision (arrest or not) instead of stalling ("cannot tell whose seal",
+  "waiting for a magistrate", seen in s2-none-off, s4-blame_hal, s5-blame_hal).
+- Different story, same seed: what the player does changes what happens.
+Donovan's own read after week 6: "not that interesting" - Victor ends up held whatever the player does.
 
 What week 6 showed (issues #53-#60):
 - After an arrest the village loops for about 3 days: 604 more talk events, Hal repeating one line
@@ -43,6 +54,10 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
   Week 6 memory-on runs are not a fair baseline any more (see above), so each seed gets a fresh pair.
 - The seed-42 memory-off run (#60) already ran on the current code (with turn-taking), so it counts as one of them.
 - Report held person, the loop measure and arrest reasons per run. No code change while runs go.
+- First fix the batch and judge scripts: they treat a stopped or half-failed run as finished (a sidecar
+  exists). A run that stopped early must be rerun, not counted.
+- Check the s3-none-off mismatch: its log shows HTTP 400 errors, but the wiki says 0 model errors.
+  Count model errors per run from the logs, and correct the wiki if needed.
 - About 11 runs, 2 at a time on the PC: about 8-10 hours, overnight.
 
 ## 3. The killer leak (#56): look first, change later
@@ -52,6 +67,7 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
   propose a neutral rewording. No "do not confess" instruction. Donovan decides before any change.
 
 ## Options for Donovan to decide (not built unless approved)
+- Log real request counts, tokens and latency per run (cheap). Needed before any speed claim.
 - Code carries out the aims villagers choose (walk the route, find the person) instead of one model call
   per step. The villager still decides the aim; code only does the steps. Fewer model calls, faster runs.
 - Playtest notes from the web demo: add here once written down.
