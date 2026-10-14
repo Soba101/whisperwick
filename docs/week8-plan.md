@@ -38,6 +38,17 @@ call logging (requests, tokens, latency). Each idea below is tested alone agains
 7. Clean-up: a code audit for dead code (e.g. the `memory_lines` wrapper, the Ollama client if no
    run uses it), done by Codex; delete what is unused.
 
+Checked first (2026-10-15), before building:
+- Item 1 is small and risky: a routine turn only fires after 60 quiet minutes, so "nothing changed" means
+  dropping routine turns. At most 5 villagers x 16 waking hours x 3 days = 240 calls (<15% of a run), and
+  routine turns are Hal's only unprompted chance to act (the Decisive check). Moved to last.
+- Item 2 is small when safe: a rendered mid-run Hal prompt is ~985 tokens; cuts that keep every fact save
+  ~100-150 (~10%, ~4-5% of a call). Bigger cuts (last-words list ~100, recall results that repeat memories
+  ~200) change what the model sees. The reply schema is applied by the server, not read as prompt text.
+- So the order is now 3 (prompt reuse), then 4 (level of detail), then 2 (safe cuts only, folded into 3's
+  reorder), then 1. Measuring calls by reason (answer, overheard wake-up, routine) comes first: it says
+  where the calls actually go.
+
 Not taking: Kev as a router for simple decisions (over 90% of calls are talk, which needs the main
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
 so it has witnesses and a log; it would not cut calls). Group turns (one call writes a short
