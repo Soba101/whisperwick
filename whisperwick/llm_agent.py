@@ -105,6 +105,7 @@ def decide(
     """Ask the model for an intent. Anything unusable becomes a harmless look.
 
     stats, if given, counts {"errors"} and keeps "last_error", so failures are not silent.
+    It also counts "error_reasons" by kind ("HTTP 400", "timeout", ...) and prints one line each.
     With recall=True the model may ask to search its memory: that comes back as a Recall.
     """
     try:
@@ -139,6 +140,12 @@ def decide(
         if stats is not None:
             stats["errors"] = stats.get("errors", 0) + 1
             stats["last_error"] = str(e)
+            # Why, in a short stable label, so a run can count the kinds of failure.
+            reason = getattr(e, "reason", "bad reply")
+            reasons = stats.setdefault("error_reasons", {})
+            reasons[reason] = reasons.get(reason, 0) + 1
+            # One line per error in the run output, so nothing fails silently.
+            print(f"{world.clock.label()}  model error for {npc_id}: {reason}", flush=True)
             # Counted so the run can stop when the model server is gone (#34).
             stats["errors_in_a_row"] = stats.get("errors_in_a_row", 0) + 1
         return Intent(actor=npc_id, action="look")

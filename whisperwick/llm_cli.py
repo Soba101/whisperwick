@@ -110,7 +110,8 @@ def run_with_llm(
     # Minutes actually played: a quit can end the run early.
     played = world.clock.tick - start_tick
     data = llm_run.sidecar_data(
-        scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path
+        scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path,
+        client,
     )
     data.update(extra)
     # The seed lets `eval` group runs that differ only in the player script.

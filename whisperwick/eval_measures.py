@@ -109,5 +109,6 @@ def measure(run: dict, db: Path) -> dict:
         "stalls": stalls(events, side),
         **loop_measures(events, run_end(events, side)),
         **stall_measures(events, authority_of(side), start_tick(side), run_end(events, side)),
+        "usage": side.get("usage"),  # None for runs before call logging
         "judge": load_judge(db),
     }

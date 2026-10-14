@@ -67,6 +67,7 @@ def sidecar_data(
     memories: Memories,
     player: str | None = None,
     belief_log: str | Path | None = None,
+    client=None,
 ) -> dict:
     """Everything the story command needs besides the events. Ids only, no names."""
     reflections = {}
@@ -86,6 +87,10 @@ def sidecar_data(
         "reflections": reflections,
         "final_memories": final,
     }
+    # What each model call cost. Stub runs have no recorder, and old sidecars lack this key.
+    usage = getattr(client, "usage", None)
+    if usage is not None:
+        data["usage"] = usage.summary()
     # Only play runs say who played: a script name, or "terminal".
     if player:
         data["player"] = player

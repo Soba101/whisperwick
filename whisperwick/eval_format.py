@@ -44,6 +44,20 @@ def measure_rows(ms: list[dict]) -> list[str]:
     return table(rows)
 
 
+def call_rows(ms: list[dict]) -> list[str]:
+    """Model-call cost per run, kept apart from the wide measures table. '-' for old runs."""
+    rows = [["Run", "Requests", "Errors", "OutTok/req", "p90 s"]]
+    for m in ms:
+        u = m["usage"] or {}
+        reqs, out = u.get("requests"), u.get("output_tokens")
+        per_req = out / reqs if reqs and out is not None else None
+        p90 = u.get("latency_p90_s")
+        rows.append([m["name"], count(reqs), count(u.get("errors")),
+                     "-" if per_req is None else f"{per_req:.0f}",
+                     "-" if p90 is None else f"{p90:.1f}"])  # fmt: skip
+    return table(rows)
+
+
 def judge_rows(ms: list[dict]) -> list[str]:
     """Judge numbers, only for runs that have a .judge.json file."""
     rows = [["Run", "Claims ok", "Support", "Support>=3", "Misreads", "Coherence"]]

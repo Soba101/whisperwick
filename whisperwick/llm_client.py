@@ -5,12 +5,55 @@ and gives back the parsed JSON reply.
 """
 
 import json
+import time
 import urllib.error
 import urllib.request
 
+from whisperwick.call_usage import UsageRecorder, llama_numbers, ollama_numbers
+
 
 class LLMError(Exception):
-    """The model server failed, or its reply was not usable JSON."""
+    """The model server failed, or its reply was not usable JSON.
+
+    reason is a short, stable label ("HTTP 400", "timeout", ...) so runs can count them.
+    """
+
+    def __init__(self, message: str, reason: str = "error"):
+        super().__init__(message)
+        self.reason = reason
+
+
+def send(request, timeout: int, usage: UsageRecorder, numbers, content):
+    """Do one HTTP call, time it, record it (even when it fails), return the parsed reply.
+
+    numbers(reply) reads the token counts; content(reply) digs out the model's JSON text.
+    """
+    start = time.monotonic()
+    nums: dict = {}
+    reason = None
+    try:
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                reply = json.load(response)
+            nums = numbers(reply)  # kept even if the content below is unusable
+            return json.loads(content(reply))
+        except urllib.error.HTTPError as e:
+            # The body usually says why the server refused. It used to be lost.
+            reason = f"HTTP {e.code}"
+            body = e.read()[:200].decode(errors="replace")
+            raise LLMError(f"chat failed: {reason}: {body}", reason) from e
+        except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
+            # OSError covers URLError and timeouts. ValueError covers bad JSON.
+            timed_out = isinstance(e, TimeoutError) or isinstance(
+                getattr(e, "reason", None), TimeoutError
+            )
+            reason = (
+                "timeout" if timed_out else "connection" if isinstance(e, OSError)
+                else "bad JSON" if isinstance(e, ValueError) else "bad reply"
+            )  # fmt: skip
+            raise LLMError(f"chat failed: {e}", reason) from e
+    finally:
+        usage.record(time.monotonic() - start, reason, **nums)
 
 
 def chat_url(base_url: str) -> str:
@@ -33,6 +76,7 @@ class OllamaClient:
         self.model = model
         self.keep_alive = keep_alive  # keeps the model loaded between turns
         self.timeout = timeout
+        self.usage = UsageRecorder()  # what each call cost, for the sidecar
 
     def chat(self, messages: list[dict], schema: dict) -> dict:
         body = {
@@ -47,13 +91,9 @@ class OllamaClient:
         request = urllib.request.Request(
             self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                reply = json.load(response)
-            return json.loads(reply["message"]["content"])
-        except (OSError, ValueError, KeyError, TypeError) as e:
-            # OSError covers URLError, HTTPError and timeouts. ValueError covers bad JSON.
-            raise LLMError(f"chat failed: {e}") from e
+        return send(
+            request, self.timeout, self.usage, ollama_numbers, lambda r: r["message"]["content"]
+        )
 
 
 def completions_url(base_url: str) -> str:
@@ -73,6 +113,7 @@ class LlamaServerClient:
         self.temperature = temperature
         self.model = model  # llama-server ignores it, other OpenAI-style servers use it
         self.timeout = timeout
+        self.usage = UsageRecorder()  # shared by all threads, so it has a lock
 
     def chat(self, messages: list[dict], schema: dict) -> dict:
         body = {
@@ -90,13 +131,11 @@ class LlamaServerClient:
         request = urllib.request.Request(
             self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                reply = json.load(response)
-            return json.loads(reply["choices"][0]["message"]["content"])
-        except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
-            # Same catch as OllamaClient, plus IndexError for an empty choices list.
-            raise LLMError(f"chat failed: {e}") from e
+        # IndexError (an empty choices list) is caught inside send.
+        return send(
+            request, self.timeout, self.usage, llama_numbers,
+            lambda r: r["choices"][0]["message"]["content"],
+        )  # fmt: skip
 
 
 class FakeClient:
