@@ -77,6 +77,11 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
 - `--spec-draft-n-max 2`, then context checkpoints with a small min step and one slot per villager.
 - Measure with the new call logging on the same short run. Keep the faster setting for all runs below.
 - No code change. Needs the PC with nobody playing; the PC session ("week 7 pc") may restart llama-server.
+- Result (2026-10-14, #59): neither helps. Draft 2: ~4% faster per token on 31 calls, within noise.
+  Checkpoints: 0 cached tokens, because each prompt starts with the villager's name and belief and the
+  time comes early; reuse needs a prompt reorder plus one slot per villager (a code change, not this week).
+- The control runs use the server as it was left: the standard command plus `--ctx-checkpoints 8
+  --checkpoint-min-step 256` (a restart was blocked on the PC; the flags reuse nothing, so no effect).
 
 ## 4. Control runs, to learn if recall and the notebook cause the better behaviour (#54)
 - After 1-3 are done. Memory on AND off, `none` script, seeds 1-5 and 42: 12 fresh runs.
