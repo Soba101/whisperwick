@@ -11,7 +11,7 @@ from whisperwick.repeat_guard import ActionHistory, Record
 
 MAX_QUOTE = 80  # longest quoted message in "last words"
 
-# Said once, after the lists, because the schema alone cannot explain it.
+# Said once, because the schema alone cannot explain it.
 # A claim is the villager choosing to speak out. It is not a belief change.
 CLAIM_RULE = (
     "If your words openly accuse someone, set accuses to their id. "
@@ -124,8 +124,8 @@ def custody_facts(world, npc_id: str) -> list[str]:
     return [f for f in facts if f]
 
 
-def custody_lines(world, npc_id: str) -> list[str]:
-    """Custody facts for this villager's prompt."""
+def custody_rules(world, npc_id: str) -> list[str]:
+    """Fixed custody rules can stay near the start of the act prompt."""
     me = world.npcs[npc_id]
     lines = [WORDS_RULE]
     if npc_id in world.authority:
@@ -138,8 +138,20 @@ def custody_lines(world, npc_id: str) -> list[str]:
             "For either, message may give your reason in your own words. "
             "Saying someone is under arrest does nothing by itself."
         )
-        if holding_line(world, npc_id):
-            lines.append(holding_line(world, npc_id))
+    return lines
+
+
+def custody_status(world, npc_id: str) -> list[str]:
+    """These facts change when people are held, released or moved."""
+    me = world.npcs[npc_id]
+    lines = []
+    if npc_id in world.authority and holding_line(world, npc_id):
+        lines.append(holding_line(world, npc_id))
     if me.held_by is not None:
         lines.append(f"{held_by_line(world, npc_id)} You cannot move, take, drop or give.")
     return lines
+
+
+def custody_lines(world, npc_id: str) -> list[str]:
+    """Custody facts for this villager's prompt."""
+    return custody_rules(world, npc_id) + custody_status(world, npc_id)

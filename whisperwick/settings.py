@@ -90,3 +90,17 @@ def kev_url(env_path: Path = ENV_PATH) -> str:
 def kev_api_key(env_path: Path = ENV_PATH) -> str | None:
     """Optional key (KEV_API_KEY), sent only if the Kev server has one set."""
     return get("KEV_API_KEY", env_path)
+
+
+def llm_slots(env_path: Path = ENV_PATH) -> int | None:
+    """Optional act slots (LLM_SLOTS). Unset leaves server caching choices alone."""
+    raw = get("LLM_SLOTS", env_path)
+    if raw is None:
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 0
+    if value < 1:
+        raise ValueError(f"LLM_SLOTS must be a whole number >= 1, got {raw!r}")
+    return value

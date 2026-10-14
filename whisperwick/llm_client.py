@@ -78,7 +78,7 @@ class OllamaClient:
         self.timeout = timeout
         self.usage = UsageRecorder()  # what each call cost, for the sidecar
 
-    def chat(self, messages: list[dict], schema: dict) -> dict:
+    def chat(self, messages: list[dict], schema: dict, slot: int | None = None) -> dict:
         body = {
             "model": self.model,
             "messages": messages,
@@ -115,7 +115,7 @@ class LlamaServerClient:
         self.timeout = timeout
         self.usage = UsageRecorder()  # shared by all threads, so it has a lock
 
-    def chat(self, messages: list[dict], schema: dict) -> dict:
+    def chat(self, messages: list[dict], schema: dict, slot: int | None = None) -> dict:
         body = {
             "model": self.model,
             "messages": messages,
@@ -128,6 +128,9 @@ class LlamaServerClient:
             "chat_template_kwargs": {"enable_thinking": False},  # no hidden reasoning
             "stream": False,
         }
+        if slot is not None:
+            # Keep each villager's cached prefix in a predictable server slot.
+            body.update(id_slot=slot, cache_prompt=True)
         request = urllib.request.Request(
             self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
         )
@@ -145,7 +148,7 @@ class FakeClient:
         self.replies = list(replies)
         self.calls: list[dict] = []
 
-    def chat(self, messages: list[dict], schema: dict) -> dict:
+    def chat(self, messages: list[dict], schema: dict, slot: int | None = None) -> dict:
         self.calls.append({"messages": messages, "schema": schema})
         if not self.replies:
             raise LLMError("no queued reply")

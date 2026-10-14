@@ -55,6 +55,7 @@ def run_with_llm(
         parallel = settings.parallel()
         server = settings.llm_server()
         agent_memory = settings.agent_memory()
+        slots = settings.llm_slots()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
@@ -88,6 +89,7 @@ def run_with_llm(
         personalities=sc.personality,
         belief_log=belief_log,
         parallel=parallel,
+        slots=slots,
         agent_memory=agent_memory,
         notebooks=notebooks,
         agent_log=agent_log,

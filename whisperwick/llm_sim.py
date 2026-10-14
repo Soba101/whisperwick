@@ -54,6 +54,7 @@ def run_llm(
     # on_turn(world, npc_id): a model call is about to start. npc_id is None for the
     # thinking phase.
     on_turn: Callable[[World, str | None], None] | None = None,
+    slots: int | None = None,  # optional llama-server act slots; thinking stays unassigned
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -64,6 +65,10 @@ def run_llm(
     # Only the living are scheduled or think. The dead never get a model call.
     # The player is left out too: no model calls, no memory stream, no thinking.
     living = sorted(n for n in world.npcs if world.npcs[n].alive and n != PLAYER_ID)
+    if slots is not None and slots < 1:
+        raise ValueError("slots must be >= 1")
+    # Assign once so a villager keeps its prefix throughout this run.
+    act_slots = {npc: i % slots for i, npc in enumerate(living)} if slots else {}
     scheduler = Scheduler(living)
     personalities = personalities or {}
     belief_log = belief_log if belief_log is not None else BeliefLog()
@@ -93,7 +98,7 @@ def run_llm(
                 world, npc, client, lines, stats,
                 personalities.get(npc), belief_log.latest(npc), history,
                 Private(memories[npc], notebooks, agent_log) if agent_memory else None,
-                evidence,
+                evidence, **({"slot": act_slots[npc]} if slots else {}),
             )  # fmt: skip
             scheduler.acted(npc, tick)
             if result.event:
