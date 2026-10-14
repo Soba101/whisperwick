@@ -78,5 +78,5 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
 - Player influence (#55), speed code changes (#53, #59), Kev judge accuracy (#58), claim tags (#51), aims (#52), 3D.
 
 ## Exit check
-A table over 11+ runs with the loop measure, held person, and a written finding on whether
+A table over 11+ runs scoring the five "working" checks (with the loop measure and held person), and a written finding on whether
 memory is what changes Hal's arrest choice. Each finding gets a GitHub issue (label `finding`) and a wiki update.
