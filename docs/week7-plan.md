@@ -96,6 +96,8 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
 - Count confessions to non-held people in the week 6 and week 7 runs.
 - Only if the cause is a plain wording fact (e.g. a secret shown in the same block as things to say),
   propose a neutral rewording. No "do not confess" instruction. Donovan decides before any change.
+- Week 6 result (#56): real confessions in 3 of 19 runs, not 6 of 15. In s1-accuse_victor Hal heard six and
+  ignored them. Possible neutral change: starting evidence under its own heading ("Only you know:").
 
 ## Out of scope
 - Code walking villagers' chosen routes: dropped (grilled 2026-10-14). The map is 4 places, at most 2 steps;
