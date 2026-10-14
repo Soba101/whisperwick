@@ -1,11 +1,13 @@
 #!/bin/zsh
 # Judge every finished run with Kev, one after another (Kev has the GPU to itself).
-# Usage: scripts/judge-runs.sh [PREFIX]   e.g. scripts/judge-runs.sh w6-   (default: every run)
+# Usage: scripts/judge-runs.sh [PREFIX] [DAYS]   e.g. scripts/judge-runs.sh w6-   (default: every run)
 # Restartable: a run that already has its .judge.json is skipped.
+# DAYS (default 3) is the planned length: a run that stopped early or played fewer days is skipped.
 # Kev and qwen do not fit on the GPU together, so stop llama-server and start Kev first.
 set -u
 cd "$(dirname "$0")/.."
 PREFIX=${1:-}
+DAYS=${2:-3}
 
 # Kev's address and key come from .env (the key is never printed).
 KEV_URL=$(grep '^KEV_URL=' .env | cut -d= -f2-)
@@ -26,6 +28,11 @@ for sidecar in data/${PREFIX}*.json(N); do
   [[ -f $db ]] || continue
   if [[ -f ${sidecar%.json}.judge.json ]]; then
     echo "skip $db (already judged)"
+    continue
+  fi
+  # A stopped or short run still has a sidecar, but must be rerun, never judged.
+  if reason=$(python3 -I scripts/run-complete.py "$sidecar" $DAYS); then :; else
+    echo "skip $db (incomplete: $reason)"
     continue
   fi
   if ! kev_ready; then

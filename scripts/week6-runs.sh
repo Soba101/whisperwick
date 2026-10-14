@@ -1,4 +1,5 @@
 #!/bin/zsh
+# NOTE: a sidecar alone does not mean a run finished; see scripts/run-complete.py and week7-runs.sh.
 # Week 6 runs (docs/week6-plan.md section 4), several at once.
 # llama-server on the PC has 4 slots, so 4 runs share the GPU at a time.
 # Usage: scripts/week6-runs.sh DATA_DIR [JOBS_AT_ONCE]
