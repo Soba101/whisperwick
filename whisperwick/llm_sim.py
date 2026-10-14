@@ -58,6 +58,9 @@ def run_llm(
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
     stats = stats if stats is not None else {}
+    turn_reasons = stats.setdefault("turn_reasons", dict.fromkeys(
+        ("answer", "woken", "first", "routine"), 0
+    ))
     # Only the living are scheduled or think. The dead never get a model call.
     # The player is left out too: no model calls, no memory stream, no thinking.
     living = sorted(n for n in world.npcs if world.npcs[n].alive and n != PLAYER_ID)
@@ -80,6 +83,9 @@ def run_llm(
         # this same minute. Order is sorted ids, so it is still deterministic
         # for a given model output.
         for npc in scheduler.due(tick):
+            # Count scheduled turns once, regardless of retries or recall calls.
+            reason = scheduler.reasons[npc]
+            turn_reasons[reason] = turn_reasons.get(reason, 0) + 1
             if on_turn:
                 on_turn(world, npc)
             evidence, lines = llm_agent.memory_parts(memories[npc], tick, world, npc)

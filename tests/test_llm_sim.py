@@ -33,6 +33,9 @@ def test_two_hours_make_one_call_per_npc_per_hour():
     # The dead mayor gets no turns, so count only the living.
     living = [n for n in world.npcs.values() if n.alive and n.id != "player"]
     assert client.intent_calls == 2 * len(living) == stats["calls"]
+    assert stats["turn_reasons"] == {
+        "answer": 0, "woken": 0, "first": len(living), "routine": len(living),
+    }
     assert world.clock.label() == "day 1 10:00"
 
 

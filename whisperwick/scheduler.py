@@ -30,6 +30,8 @@ class Scheduler:
         # Speaker -> (who it spoke to, tick it spoke). It is not asked again until the
         # other side does anything, or ANSWER_WAIT passes.
         self.waiting: dict[str, tuple[str, int]] = {}
+        # Reasons describe the latest due list, even if events arrive while it acts.
+        self.reasons: dict[str, str] = {}
 
     def notice(self, event: Event) -> None:
         """Wake whoever an event is about: the talk, give or show target and every witness.
@@ -64,6 +66,7 @@ class Scheduler:
 
     def due(self, tick: int) -> list[str]:
         """Sorted ids that should get a model call now."""
+        self.reasons.clear()
         if self.asleep(tick):
             # Night is quiet. Wake-ups are dropped, not saved for the morning: the murder
             # at night is injected by the scenario, not by agents.
@@ -77,6 +80,7 @@ class Scheduler:
             if npc_id in self.answer_at:
                 if tick >= self.answer_at[npc_id]:
                     ready.append(npc_id)  # spoken to: no cooldown, no wait
+                    self.reasons[npc_id] = "answer"
                 continue
             if npc_id in self.waiting:
                 if tick - self.waiting[npc_id][1] < ANSWER_WAIT:
@@ -87,6 +91,10 @@ class Scheduler:
                 continue  # decided too recently, even if woken
             if last is None or npc_id in self.woken or tick - last >= ROUTINE_EVERY:
                 ready.append(npc_id)
+                # Label only after selection, so priority cannot change who acts.
+                self.reasons[npc_id] = (
+                    "woken" if npc_id in self.woken else "first" if last is None else "routine"
+                )
         return ready
 
     def acted(self, npc_id: str, tick: int) -> None:

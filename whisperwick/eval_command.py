@@ -22,7 +22,8 @@ def eval_runs(dbs: list[Path]) -> str:
         "villager event):",
         *eval_format.measure_rows(ms),
     ]
-    out += ["", "Calls (from the sidecar's usage; - means an older run):",
+    out += ["", "Calls (from the sidecar's usage and stats; - means an older run; "
+            "Turns a/w/f/r = answer/woken/first/routine):",
             *eval_format.call_rows(ms)]  # fmt: skip
     judged = eval_format.judge_rows(ms)
     if judged:

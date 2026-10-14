@@ -132,11 +132,17 @@ def test_eval_calls_table_with_and_without_usage(tmp_path):
     path = llm_run.sidecar_path(db)
     data = json.loads(path.read_text())
     data["usage"] = {"requests": 10, "errors": 1, "output_tokens": 250, "latency_p90_s": 4.26}
+    data["stats"]["turn_reasons"] = {"answer": 8, "woken": 3, "first": 5, "routine": 2}
     path.write_text(json.dumps(data))
     old = make_run(tmp_path, "old")
+    old_path = llm_run.sidecar_path(old)
+    old_data = json.loads(old_path.read_text())
+    old_data["stats"].pop("turn_reasons")
+    old_path.write_text(json.dumps(old_data))
     text = eval_command.eval_runs([Path(db), Path(old)])
     block = text.split("Calls (")[1].split("\n\n")[0]
     new_row = next(line for line in block.splitlines() if line.startswith("new.db"))
     old_row = next(line for line in block.splitlines() if line.startswith("old.db"))
-    assert new_row.split() == ["new.db", "10", "1", "25", "4.3"]
-    assert old_row.split() == ["old.db", "-", "-", "-", "-"]
+    assert "Turns a/w/f/r" in block
+    assert new_row.split() == ["new.db", "10", "1", "25", "4.3", "8/3/5/2"]
+    assert old_row.split() == ["old.db", "-", "-", "-", "-", "-"]

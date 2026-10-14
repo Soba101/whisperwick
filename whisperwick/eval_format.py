@@ -46,15 +46,19 @@ def measure_rows(ms: list[dict]) -> list[str]:
 
 def call_rows(ms: list[dict]) -> list[str]:
     """Model-call cost per run, kept apart from the wide measures table. '-' for old runs."""
-    rows = [["Run", "Requests", "Errors", "OutTok/req", "p90 s"]]
+    rows = [["Run", "Requests", "Errors", "OutTok/req", "p90 s", "Turns a/w/f/r"]]
     for m in ms:
         u = m["usage"] or {}
         reqs, out = u.get("requests"), u.get("output_tokens")
         per_req = out / reqs if reqs and out is not None else None
         p90 = u.get("latency_p90_s")
+        reasons = m.get("turn_reasons")
+        turns = "-" if reasons is None else "/".join(
+            str(reasons.get(reason, 0)) for reason in ("answer", "woken", "first", "routine")
+        )
         rows.append([m["name"], count(reqs), count(u.get("errors")),
                      "-" if per_req is None else f"{per_req:.0f}",
-                     "-" if p90 is None else f"{p90:.1f}"])  # fmt: skip
+                     "-" if p90 is None else f"{p90:.1f}", turns])  # fmt: skip
     return table(rows)
 
 

@@ -141,3 +141,23 @@ def test_player_is_waited_on_and_night_drops_answers():
     night = Clock.at(1, 23).tick
     assert s.due(night) == []
     assert s.answer_at == {} and s.waiting == {}
+
+
+def test_scripted_due_sequence_keeps_the_same_turns():
+    s = Scheduler(IDS)
+    assert s.due(NOON) == ["npc_alice", "npc_bob", "npc_carol"]
+    settle(s, NOON)
+    s.notice(talk(NOON + 1, witnesses=["npc_carol"]))
+    assert s.due(NOON + 1) == []
+    assert s.due(NOON + 2) == ["npc_bob"]
+    s.acted("npc_bob", NOON + 2)
+    s.notice(Event(tick=NOON + 2, type="move", actor="npc_bob", location="loc_inn",
+                   witnesses=["npc_alice"]))  # fmt: skip
+    assert s.due(NOON + 4) == []
+    assert s.due(NOON + COOLDOWN) == ["npc_alice", "npc_carol"]
+    s.acted("npc_alice", NOON + COOLDOWN)
+    s.acted("npc_carol", NOON + COOLDOWN)
+    assert s.due(NOON + 2 + ROUTINE_EVERY - 1) == []
+    assert s.due(NOON + 2 + ROUTINE_EVERY) == ["npc_bob"]
+    assert s.due(Clock.at(1, 22).tick) == []
+    assert s.due(Clock.at(2, 6).tick) == ["npc_alice", "npc_bob", "npc_carol"]
