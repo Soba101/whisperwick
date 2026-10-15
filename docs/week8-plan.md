@@ -63,6 +63,10 @@ than talk happens), up to ~30% of calls. Bigger lever, needs Donovan's OK: group
 Fewer bystander wake-ups (6a50ee5): talk wakes only the listener and named bystanders. Seed 1: requests
 1,884 -> 601 (-68%), 73 -> 31 min, but Hal stalled 24 h and Bob was held (baseline: Victor, 2 h). One run
 each, so a check on seeds 2-5 and 42, both versions, one at a time (data/w8-wake-*, w8-base-*), decides.
+Result (seeds 1-5, memory on; seed 42 lost to a server outage): requests ~1,320 -> ~990 (-25%, not -68%),
+right person 5/5 -> 2/5 (Bob 1, nobody 2), Decisive 4/5 -> 1/5 (stalls of 24-47 h). Fewer wake-ups means
+fewer chances for Hal to act. Reverted. Side result: the code before it (with the evidence heading) held
+Victor in 5/5 seeds, including seed 3 (week 7: Bob); one run per seed, so check before trusting it.
 
 Not taking: Kev as a router for simple decisions (over 90% of calls are talk, which needs the main
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
