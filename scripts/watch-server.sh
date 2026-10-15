@@ -11,6 +11,9 @@ LOG=${2:-data/server-watch.log}
 KEV_STATE='powershell -NoProfile -Command "(Get-ScheduledTask -TaskName \"Whisperwick Kev\").State"'
 PC=donov@100.75.187.23
 START='powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\donov\whisperwick-servers\start-llama.ps1'
+# While this file exists the heartbeat only watches: another model is being tested on the
+# same port, and restarting the usual one would put two models on the GPU.
+PAUSE=data/server-watch.pause
 state=unknown
 down_for=0      # minutes in a row the server has been down
 last_restart=0  # epoch seconds of our last restart, so we try at most once per 15 minutes
@@ -29,7 +32,9 @@ while true; do
   else
     (( down_for++ ))
     # Down for 3 minutes and no restart in the last 15 minutes: ask whether Kev is running.
-    if (( down_for >= 3 )) && (( $(date +%s) - last_restart > 900 )); then
+    if [[ -e $PAUSE ]]; then
+      kev=paused
+    elif (( down_for >= 3 )) && (( $(date +%s) - last_restart > 900 )); then
       kev=$(ssh -o ConnectTimeout=10 -o BatchMode=yes $PC "$KEV_STATE" 2>/dev/null | tr -d '\r')
     else
       kev=skip
