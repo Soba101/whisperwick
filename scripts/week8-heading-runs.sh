@@ -34,6 +34,7 @@ run_one() {
   for ext in db json beliefs.jsonl agent.jsonl log; do
     [[ -e "$base.$ext" ]] && mv "$base.$ext" "$base.$ext.incomplete-$stamp"
   done
+  "$HERE/wait-server.sh"  # never start a run on a dead server
   (cd "$3" && WHISPERWICK_MEMORY=on uv run whisperwick play --script players/none.yaml \
     --days $DAYS --seed $2 --db "$base.db" > "$base.log" 2>&1)
   if reason=$(python3 -I "$HERE/run-complete.py" "$base.json" $DAYS); then
