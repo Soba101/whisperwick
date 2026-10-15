@@ -1,4 +1,4 @@
-# Week 8 plan (draft, for review)
+# Week 8 plan (approved 2026-10-15, in progress)
 
 Two tracks. Behaviour: fix causes week 7 found. Speed: make a game fast enough for real players,
 with many villagers. Donovan (2026-10-15): one game takes far too long; a real game has many

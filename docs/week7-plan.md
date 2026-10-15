@@ -1,4 +1,4 @@
-# Week 7 plan: find out why the villagers fail
+# Week 7 plan: find out why the villagers fail (done 2026-10-15; results in #61, #62)
 
 Goal: make the NPC layer work before anything else (Donovan, 2026-10-12). This week finds causes only:
 why villagers loop, arrest on weak evidence, stall and leak secrets, using measures. No behaviour fixes;
