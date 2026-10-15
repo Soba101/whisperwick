@@ -114,3 +114,4 @@ which qwen3.8 cannot. Guess: ~0.4-0.7 s per call, ~15-25 min per run. Not measur
    It is a new behaviour baseline: speed alone does not decide.
 6. If ~3x faster and the checks hold: the seeds 1-5 grid on it, then try LLM_SLOTS prompt reuse.
 Also check: does it fit on the GPU next to Kev (would end the server swap)?
+Tracked in #63. After it: the same model on vLLM for several games at once (#64), one change at a time.
