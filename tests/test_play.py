@@ -105,7 +105,7 @@ def test_scheduler_is_woken_by_a_player_event():
     from whisperwick.memory import Memories
 
     assert apply_player_turn(w, player, Memories(), sched, {})
-    assert sched.woken == {"npc_bob"}  # Victor hears it, but is not named.
+    assert sched.woken == {"npc_bob", "npc_victor"}
 
 
 def test_player_none_changes_nothing():

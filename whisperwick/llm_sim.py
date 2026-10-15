@@ -6,7 +6,6 @@ Each minute the scheduler picks who gets a model call. Everyone else waits.
 from collections.abc import Callable
 
 from whisperwick import llm_agent, memory, thought_memory
-from whisperwick.actions import mentions
 from whisperwick.agent_log import AgentLog
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import MINUTES_PER_DAY
@@ -105,12 +104,7 @@ def run_llm(
             if result.event:
                 # Remember right away, before anyone else moves (see Memories.observe).
                 memories.observe(result.event, world)
-                named = frozenset(
-                    npc for npc in sorted(result.event.witnesses)
-                    if result.event.type == "talk"
-                    and mentions(result.event.data["message"], npc, world)
-                )
-                scheduler.notice(result.event, named=named)
+                scheduler.notice(result.event)
                 if on_event:
                     on_event(world, result.event)
             if result.observation:

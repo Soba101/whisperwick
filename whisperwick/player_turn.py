@@ -1,11 +1,10 @@
 """One minute of player input for the run loop.
 
 The player's intents go through World.act like any NPC's. A good one is logged,
-remembered and can wake the villagers who saw it. A bad one is NOT fatal: the player
+remembered and wakes the villagers who saw it. A bad one is NOT fatal: the player
 gets the reason and the run goes on.
 """
 
-from whisperwick.actions import mentions
 from whisperwick.memory import Memories
 from whisperwick.player import PlayerSource
 from whisperwick.scheduler import Scheduler
@@ -26,14 +25,9 @@ def apply_player_turn(
     for intent in intents:
         result = world.act(intent)
         if result.event:
-            # Same as an NPC event: remember it right away before choosing whom to wake.
+            # Same as an NPC event: remember it right away and wake the witnesses.
             memories.observe(result.event, world)
-            named = frozenset(
-                npc for npc in sorted(result.event.witnesses)
-                if result.event.type == "talk"
-                and mentions(result.event.data["message"], npc, world)
-            )
-            scheduler.notice(result.event, named=named)
+            scheduler.notice(result.event)
         if not result.ok:
             # Kept in the stats so a run can be checked afterwards.
             stats.setdefault("player_rejected", []).append(
