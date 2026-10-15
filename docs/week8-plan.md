@@ -100,6 +100,10 @@ each seed with the heading (current code) and without it (week 7 code, 78daf17; 
 difference). scripts/week8-heading-runs.sh, data/w8h-*. Seen so far, one run per seed: with the
 heading Victor was held in 5/5 (seeds 1-5) and 4 of 5 arrests came on day 1 before noon; week 7
 without it held Victor in 4/5 (seed 3: Bob), with later arrests.
+Result (2026-10-16, #66): Victor alone held in 8/10 seeds (1-10) with the heading vs 4/10 without; better
+on 4 seeds, worse on none. Bob held in 3/10 without it, 0/10 with. Decisive 7/10 vs 5/10; Coherent 2/8 vs
+0/5; Grounded 95-100% both. Seeds 7 and 8 with the heading still stall (nobody held). A lead, not proof.
+The heading stays (already in main).
 
 ## Next: a mixture-of-experts model test (approved 2026-10-15, after the heading check)
 Why: one call takes ~1.5-2.3 s; a 3-day run is 50-75 min. A MoE model (e.g. Qwen3-30B-A3B, ~3B
