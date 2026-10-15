@@ -8,7 +8,7 @@ threads can share one client.
 import json
 import urllib.request
 
-from whisperwick.llm_client import LLMError
+from whisperwick.llm_client import LLMError, encode_body
 
 MODEL = "kev-latest"
 
@@ -28,7 +28,7 @@ class KevClient:
         return h
 
     def call(self, path: str, body: dict | None = None) -> dict:
-        data = json.dumps(body).encode() if body is not None else None
+        data = encode_body(body) if body is not None else None
         request = urllib.request.Request(self.base + path, data, self.headers())
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:

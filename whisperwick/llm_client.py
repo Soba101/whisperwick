@@ -23,6 +23,26 @@ class LLMError(Exception):
         self.reason = reason
 
 
+def clean_json(value):
+    """Replace lone surrogates in JSON strings, including object keys."""
+    if isinstance(value, str):
+        # 2026-10-15: broken model escapes poisoned memories and caused HTTP 400s.
+        # UTF-16 preserves valid pairs and replaces each lone half with U+FFFD.
+        return value.encode("utf-16-le", errors="surrogatepass").decode(
+            "utf-16-le", errors="replace"
+        )
+    if isinstance(value, list):
+        return [clean_json(item) for item in value]
+    if isinstance(value, dict):
+        return {clean_json(key): clean_json(item) for key, item in value.items()}
+    return value
+
+
+def encode_body(body: dict) -> bytes:
+    # 2026-10-15: old memories may still contain lone surrogates rejected by llama-server.
+    return json.dumps(clean_json(body), ensure_ascii=False).encode("utf-8")
+
+
 def send(request, timeout: int, usage: UsageRecorder, numbers, content):
     """Do one HTTP call, time it, record it (even when it fails), return the parsed reply.
 
@@ -36,7 +56,7 @@ def send(request, timeout: int, usage: UsageRecorder, numbers, content):
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 reply = json.load(response)
             nums = numbers(reply)  # kept even if the content below is unusable
-            return json.loads(content(reply))
+            return clean_json(json.loads(content(reply)))
         except urllib.error.HTTPError as e:
             # The body usually says why the server refused. It used to be lost.
             reason = f"HTTP {e.code}"
@@ -89,7 +109,7 @@ class OllamaClient:
             "options": {"temperature": self.temperature},
         }
         request = urllib.request.Request(
-            self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
+            self.url, encode_body(body), {"Content-Type": "application/json"}
         )
         return send(
             request, self.timeout, self.usage, ollama_numbers, lambda r: r["message"]["content"]
@@ -132,7 +152,7 @@ class LlamaServerClient:
             # Keep each villager's cached prefix in a predictable server slot.
             body.update(id_slot=slot, cache_prompt=True)
         request = urllib.request.Request(
-            self.url, json.dumps(body).encode(), {"Content-Type": "application/json"}
+            self.url, encode_body(body), {"Content-Type": "application/json"}
         )
         # IndexError (an empty choices list) is caught inside send.
         return send(
