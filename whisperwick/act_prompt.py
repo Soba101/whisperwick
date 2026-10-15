@@ -1,4 +1,4 @@
-"""Act prompt text, ordered so a villager can reuse its stable beginning."""
+"""Act prompt text in Week 7 order."""
 
 from collections.abc import Sequence
 
@@ -34,10 +34,15 @@ def build_messages(
     me = world.npcs[npc_id]
     exits, people = exits_and_people(world, npc_id)
     here = world.locations[me.location]
+    # Hybrid llama-server reuses only exact repeats, not part of a prompt.
+    # Tested 2026-10-15: a shared 1,700-token start reused 0 tokens.
+    # Reordering gave no speed and changed model input; keep Week 7 order
+    # so behaviour stays comparable.
     lines = [
         f"You are {me.name} ({me.id}), the village {me.occupation}.",
         # Who I am as a person, then what I last worked out, in my own words.
         *belief_text.character_lines(personality),
+        *belief_text.belief_lines(world, belief, npc_id),
         "Reply only with JSON. Use exact ids, never names.",
         # The trial run invented ledgers, letters and gold. Facts belong to the engine.
         "Only claim things you saw or were told. Never invent objects, records or events.",
@@ -48,14 +53,7 @@ def build_messages(
         " take/drop (item = an item id), give (item + target = a person id),"
         " show (item, target = a person id, or null for everyone here)."
         + (" recall (message = words to search your own memory for)." if recall else ""),
-        *belief_text.custody_rules(world, npc_id),
-        belief_text.CLAIM_RULE,
-        *memory_block(evidence, ()),
-        *belief_text.belief_lines(world, belief, npc_id),
-        # Notebook and what a recall just found: private to this villager.
-        *private_lines,
-        # Custody facts change with who is held and where they are, so keep them late.
-        *belief_text.custody_status(world, npc_id),
+        *belief_text.custody_lines(world, npc_id),
         f"Time: {world.clock.label()}.",
         f"You are at {here.id} ({here.name}).",
         "Exits: " + ", ".join(f"{e} ({world.locations[e].name})" for e in exits),
@@ -70,7 +68,10 @@ def build_messages(
         lines.append("Lying dead here: " + ", ".join(f"{b} ({world.npcs[b].name})" for b in bodies))
     # What I already said to the people in front of me, so I can see when I repeat myself.
     lines += belief_text.last_words(world, history, npc_id, people)
-    lines += memory_block((), memories)
+    lines.append(belief_text.CLAIM_RULE)
+    lines += memory_block(evidence, memories)
+    # Notebook and what a recall just found: private to this villager.
+    lines += private_lines
     if feedback:
         # The engine's own words, so the model can fix its mistake.
         lines.append(f"Your last action was rejected: {feedback}. Choose again.")

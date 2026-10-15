@@ -42,19 +42,16 @@ def reply(**kw):
 # ---- the prompt ----
 
 
-def test_character_follows_identity_and_thoughts_follow_fixed_rules():
+def test_character_comes_right_after_identity_then_own_thoughts():
     w = fresh_world()
     lines = prompt(w, "npc_bob", PERSONALITY["npc_bob"], BOB_THOUGHT).split("\n")
     assert lines[0].startswith("You are Bob")
     assert lines[1] == "Your character: " + PERSONALITY["npc_bob"]
-    assert lines[2] == "Reply only with JSON. Use exact ids, never names."
-    i = next(i for i, line in enumerate(lines) if line.startswith("What you think"))
-    assert lines[i - 1].startswith("If your words openly accuse")
-    assert lines[i] == (
+    assert lines[2] == (
         "What you think right now: you suspect Victor (npc_victor), fairly sure. "
         "I saw him hurry away from the Town Hall."
     )
-    assert lines[i + 1] == (
+    assert lines[3] == (
         "How you feel about people: Victor (npc_victor) low: he talks too smoothly; "
         "Hal (npc_hal) high: an honest guard"
     )

@@ -11,7 +11,7 @@ from whisperwick.repeat_guard import ActionHistory, Record
 
 MAX_QUOTE = 80  # longest quoted message in "last words"
 
-# Said once, because the schema alone cannot explain it.
+# Said once, after the lists, because the schema alone cannot explain it.
 # A claim is the villager choosing to speak out. It is not a belief change.
 CLAIM_RULE = (
     "If your words openly accuse someone, set accuses to their id. "
@@ -125,7 +125,7 @@ def custody_facts(world, npc_id: str) -> list[str]:
 
 
 def custody_rules(world, npc_id: str) -> list[str]:
-    """Fixed custody rules can stay near the start of the act prompt."""
+    """Custody rules, shown before custody status in the act prompt."""
     me = world.npcs[npc_id]
     lines = [WORDS_RULE]
     if npc_id in world.authority:

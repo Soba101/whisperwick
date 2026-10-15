@@ -26,8 +26,7 @@ def test_act_prompt_has_heading_then_ordinary_memories():
     lines = split_lines(text)
     i = lines.index(HEAD)
     assert lines[i + 1] == "- I killed the mayor."
-    assert i < lines.index("Time: day 1 08:00.") < lines.index("You remember:")
-    assert lines[lines.index("You remember:") + 1] == "- Bob said hello"
+    assert lines[i + 2 :][:2] == ["You remember:", "- Bob said hello"]
 
 
 def test_no_evidence_means_no_heading():
