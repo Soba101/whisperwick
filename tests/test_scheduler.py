@@ -23,12 +23,14 @@ def test_everyone_is_due_at_first_then_routine_every_hour():
     assert s.due(NOON + ROUTINE_EVERY) == ["npc_alice", "npc_bob", "npc_carol"]
 
 
-def test_talk_wakes_target_and_witnesses_but_not_actor():
+def test_talk_wakes_target_and_named_witnesses_but_not_actor():
     s = Scheduler(IDS)
     for npc in IDS:
         s.acted(npc, NOON)
-    s.notice(talk(NOON, witnesses=["npc_carol", "npc_alice"]))
-    # Alice acted, so she stays asleep to the scheduler. Bob (target) and Carol (witness) wake.
+    s.notice(talk(NOON, witnesses=["npc_carol", "npc_alice"]),
+             named=frozenset({"npc_carol", "npc_alice", "npc_bob"}))
+    # Alice acted, so she stays asleep to the scheduler.
+    # Bob (target) and Carol (named witness) wake.
     assert s.due(NOON + COOLDOWN) == ["npc_bob", "npc_carol"]
 
 
@@ -103,7 +105,8 @@ def test_speaker_gives_up_after_answer_wait():
     settle(s, NOON)
     s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob"))
     assert "npc_alice" not in s.due(NOON + 1 + ANSWER_WAIT - 1)
-    s.notice(talk(NOON + 1 + ANSWER_WAIT - 1, actor="npc_carol", to=None, witnesses=["npc_alice"]))
+    s.notice(talk(NOON + 1 + ANSWER_WAIT - 1, actor="npc_carol",
+                  to=None, witnesses=["npc_alice"]), named=frozenset({"npc_alice"}))
     assert "npc_alice" not in s.due(NOON + 1 + ANSWER_WAIT - 1)  # wake-up held back too
     assert "npc_alice" in s.due(NOON + 1 + ANSWER_WAIT)
 
@@ -126,7 +129,8 @@ def test_talk_to_nobody_makes_no_one_wait():
 def test_bystanders_still_respect_cooldown():
     s = Scheduler(IDS)
     settle(s, NOON)
-    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob", witnesses=["npc_carol"]))
+    s.notice(talk(NOON + 1, actor="npc_alice", to="npc_bob", witnesses=["npc_carol"]),
+             named=frozenset({"npc_carol"}))
     assert s.due(NOON + 2) == ["npc_bob"]  # Carol overheard but is on cooldown
     assert "npc_carol" in s.due(NOON + COOLDOWN)
 
@@ -147,7 +151,7 @@ def test_scripted_due_sequence_keeps_the_same_turns():
     s = Scheduler(IDS)
     assert s.due(NOON) == ["npc_alice", "npc_bob", "npc_carol"]
     settle(s, NOON)
-    s.notice(talk(NOON + 1, witnesses=["npc_carol"]))
+    s.notice(talk(NOON + 1, witnesses=["npc_carol"]), named=frozenset({"npc_carol"}))
     assert s.due(NOON + 1) == []
     assert s.due(NOON + 2) == ["npc_bob"]
     s.acted("npc_bob", NOON + 2)
