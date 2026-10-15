@@ -94,3 +94,9 @@ own reply away: only with Donovan's OK.
 ## Exit check
 Per speed item: calls per run, seconds per call, total time, and the five checks vs baseline.
 A written answer to: how long does one 3-day game take now, and what is the next biggest saving.
+
+Evidence heading check (option 1, started 2026-10-15): seeds 6-10, memory on, one run at a time,
+each seed with the heading (current code) and without it (week 7 code, 78daf17; the only prompt
+difference). scripts/week8-heading-runs.sh, data/w8h-*. Seen so far, one run per seed: with the
+heading Victor was held in 5/5 (seeds 1-5) and 4 of 5 arrests came on day 1 before noon; week 7
+without it held Victor in 4/5 (seed 3: Bob), with later arrests.
