@@ -2,7 +2,7 @@
 
 Long-term goal: a Skyrim-like world where agents keep a story moving,
 and the player's actions change where it goes.
-This 6-week prototype proves the "brain" in text. Graphics come later (v0.2+).
+This prototype proves the "brain" in text. Graphics come later (v0.2+).
 
 ## The question (updated after week 2)
 
@@ -22,7 +22,10 @@ while the story stays coherent and every belief stays traceable to its source?
 | 3 | Player + real objects | Same seed, 3 player scripts, 3 different outcomes |
 | 4 | Beliefs and rumours | A player's lie can be traced: who believes it, and via whom |
 | 5 | Consequences + endings | Story ends in an outcome the world records (right arrest, wrong arrest, killer free) |
-| 6 | Evaluate + playable demo | **Gate 2:** GO (front-end) / PIVOT / STOP |
+| 6 | Evaluate + playable demo | Done: villager memory, evaluation runs, terminal and web demo |
+| 7 | Why villagers fail | Done (2026-10-15): five checks measured, see [week7-plan.md](week7-plan.md) |
+| 8 | Behaviour + speed | In progress, see [week8-plan.md](week8-plan.md) |
+| later | **Gate 2** | GO (front-end) / PIVOT / STOP, deferred until the villagers work |
 
 ### Week 3: player + real objects
 - The player is an actor like any NPC. Their intents come from the terminal

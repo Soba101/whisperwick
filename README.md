@@ -4,9 +4,10 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 4 done — villagers think for themselves.** Each villager has a personality, forms its own beliefs
-> and trust, and cites the memories behind them. A player's lie can be traced (`whisperwick trace`).
-> See [docs/week4-plan.md](docs/week4-plan.md). Week 5 (consequences and endings) is next.
+> Status: **Week 7 done, week 8 in progress.** Weeks 1-6 built the engine, the player, cited beliefs,
+> arrests and endings, and a playable demo (`whisperwick play --web`, `whisperwick replay`).
+> Week 7 measured why villagers fail; week 8 works on their behaviour and on speed.
+> Gate 2 and the 3D front-end wait until the villagers work. See [docs/week8-plan.md](docs/week8-plan.md).
 
 ## The question
 
@@ -82,7 +83,7 @@ docs/            design notes and the proposal
 data/            local SQLite event logs (git-ignored)
 ```
 
-## Roadmap (6 weeks)
+## Roadmap
 
 | Week | Focus | Exit check |
 |---|---|---|
@@ -91,9 +92,12 @@ data/            local SQLite event logs (git-ignored)
 | 3 | Player + real objects | Same seed, 3 player scripts, 3 different outcomes |
 | 4 | Beliefs and rumours | A player's lie can be traced: who believes it, and via whom |
 | 5 | Consequences + endings | Story ends in an engine-decided outcome |
-| 6 | Evaluate + playable demo | **Gate 2:** GO / PIVOT / STOP |
+| 6 | Evaluate + playable demo | Done: villager memory, evaluation runs, terminal and web demo |
+| 7 | Why villagers fail | Done: five checks measured (#61, #62) |
+| 8 | Behaviour + speed | In progress: [week8-plan.md](docs/week8-plan.md) |
+| later | **Gate 2** | GO (front-end) / PIVOT / STOP, once the villagers work |
 
-Everything runs locally (Ollama on an RTX 5090). No paid APIs.
+Everything runs locally (a local model on an RTX 5090, served by llama-server). No paid APIs.
 
 ## License
 
