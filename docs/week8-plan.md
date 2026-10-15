@@ -125,3 +125,28 @@ MoE result (2026-10-16, #63): Qwen3.6-35B-A3B Q4_K_M, seed 1, memory on (data/w8
 so the run took 43 min vs 60 (1.4x). Hal held Bob ("sudden appearance at the scene"), arrested Victor
 for obstruction and released him. Decisive and Coherent pass on this seed; right person fails. Below the
 3x bar and fails a check, so no seed grid. Its draft model is downloaded but not tried.
+
+## Exit answer (2026-10-16)
+How long does one 3-day game take now? On qwen3.8 27B, one game at a time: ~1,100-2,100 model requests
+at ~2.3 s each, so **about 45-75 minutes** (week 8 seeds 1-10: 1,107-2,099 requests). Unchanged from
+week 7: every speed item tried this week was dropped or failed a check.
+
+| item | calls | s per call | run time | five checks | kept? |
+|---|---|---|---|---|---|
+| skip routine turns | -7% at most | same | - | Decisive at risk | no (not built) |
+| prompt diet | same | ~-5% | - | - | no (too small) |
+| prompt reuse (#59) | same | same (0 tokens reused) | - | - | no; LLM_SLOTS kept, off |
+| fewer bystander wake-ups | -25% | same | -25% | right person 2/5 vs 5/5, Decisive 1/5 vs 4/5 | no, reverted |
+| Qwen3.6-35B-A3B (#63) | +56% | 1.03 vs 2.34 | 43 vs 60 min | right person fails (seed 1), 30% rejected | no |
+
+Behaviour: the evidence heading holds the right person in 8/10 seeds vs 4/10 (#66). It stays.
+Reliability: the heartbeat now restarts llama-server after 3 minutes down; batches wait for the server.
+
+What is the next biggest saving?
+1. Several games at once (#64, vLLM). It does not make one game faster, but it is what real players need:
+   llama-server loses throughput with two games (4.2 vs 1.7 s per call), vLLM batches them.
+2. Group turns for conversations (62% of calls are replies). The biggest cut per game, but it partly takes
+   a villager's own reply away: only with Donovan's OK.
+3. A model screen: replay a few hundred saved turns against a candidate model and count parse failures,
+   engine rejections and time, in minutes instead of a 45-60 minute run per seed. It does not judge
+   behaviour, but would have shown the MoE model's 30% rejections at once. New code: Donovan decides.
