@@ -119,3 +119,9 @@ which qwen3.8 cannot. Guess: ~0.4-0.7 s per call, ~15-25 min per run. Not measur
 6. If ~3x faster and the checks hold: the seeds 1-5 grid on it, then try LLM_SLOTS prompt reuse.
 Also check: does it fit on the GPU next to Kev (would end the server swap)?
 Tracked in #63. After it: the same model on vLLM for several games at once (#64), one change at a time.
+
+MoE result (2026-10-16, #63): Qwen3.6-35B-A3B Q4_K_M, seed 1, memory on (data/w8-moe-s1). Per request
+1.03 s vs 2.34 s (prompt read 259 vs 745 ms), but 56% more requests (30% of actions rejected vs 6%),
+so the run took 43 min vs 60 (1.4x). Hal held Bob ("sudden appearance at the scene"), arrested Victor
+for obstruction and released him. Decisive and Coherent pass on this seed; right person fails. Below the
+3x bar and fails a check, so no seed grid. Its draft model is downloaded but not tried.
