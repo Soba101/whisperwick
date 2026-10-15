@@ -60,6 +60,10 @@ woken 516 (31%), routine 124 (7%), first 5; 1,884 requests, 2.34 s each, 73 min.
 the cost. Rule-safe lever: wake bystanders less often (only when spoken to, named, or something other
 than talk happens), up to ~30% of calls. Bigger lever, needs Donovan's OK: group turns for conversations.
 
+Fewer bystander wake-ups (6a50ee5): talk wakes only the listener and named bystanders. Seed 1: requests
+1,884 -> 601 (-68%), 73 -> 31 min, but Hal stalled 24 h and Bob was held (baseline: Victor, 2 h). One run
+each, so a check on seeds 2-5 and 42, both versions, one at a time (data/w8-wake-*, w8-base-*), decides.
+
 Not taking: Kev as a router for simple decisions (over 90% of calls are talk, which needs the main
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
 so it has witnesses and a log; it would not cut calls). Group turns (one call writes a short
