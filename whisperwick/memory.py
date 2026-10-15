@@ -13,7 +13,6 @@ from whisperwick.memory_text import (  # noqa: F401 (re-exported)
     describe,
     importance_of,
     look_text,
-    name_of,
 )
 from whisperwick.player import PLAYER_ID
 from whisperwick.world import World

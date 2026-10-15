@@ -34,12 +34,6 @@ def memory_parts(
     return pinned, [m.text for m in recalled[:k]]
 
 
-def memory_lines(*args, **kwargs) -> list[str]:
-    """The same memories as one flat list, evidence first. Kept for older callers."""
-    pinned, others = memory_parts(*args, **kwargs)
-    return pinned + others
-
-
 def memory_block(evidence: Sequence[str], others: Sequence[str]) -> list[str]:
     """Prompt lines. Starting evidence under its own heading: in week 6 it sat among
     ordinary memories (#56). A heading is only written when it has lines under it."""

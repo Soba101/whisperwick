@@ -8,13 +8,12 @@ from collections.abc import Sequence
 
 from pydantic import ValidationError
 
-from whisperwick.act_prompt import build_messages, people_label  # noqa: F401 (re-exported)
+from whisperwick.act_prompt import build_messages  # noqa: F401 (re-exported)
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.llm_client import LLMError
 from whisperwick.llm_intent import intent_schema
 from whisperwick.memory_view import (  # noqa: F401  (re-exported)
     memory_block,
-    memory_lines,
     memory_parts,
 )
 from whisperwick.recall import Private, Recall, act_lines, clean_words, search

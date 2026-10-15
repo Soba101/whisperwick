@@ -118,12 +118,14 @@ def test_good_reply_counts_no_errors():
     assert "errors" not in stats
 
 
-def test_memory_lines_use_people_and_place_as_query():
+def test_memory_parts_use_people_and_place_as_query():
     world = fresh_world()
     stream = MemoryStream()
     stream.add(0, "Victor owes me coins", 5)
     stream.add(0, "the weather was mild", 5)
-    assert llm_agent.memory_lines(stream, 0, world, "npc_bob", k=1) == ["Victor owes me coins"]
+    evidence, others = llm_agent.memory_parts(stream, 0, world, "npc_bob", k=1)
+    assert evidence == []
+    assert others == ["Victor owes me coins"]
 
 
 def test_prompt_shows_bodies_here():
@@ -140,6 +142,6 @@ def test_evidence_is_always_shown_first():
     stream.add(0, "I killed the mayor.", 9, "evidence")
     for t in range(1, 40):
         stream.add(t * 60, f"Chatted at minute {t}", 6)
-    lines = llm_agent.memory_lines(stream, 3000, world, "npc_victor", k=5)
-    assert lines[0] == "I killed the mayor."
-    assert len(lines) == 6
+    evidence, others = llm_agent.memory_parts(stream, 3000, world, "npc_victor", k=5)
+    assert evidence == ["I killed the mayor."]
+    assert len(others) == 5
