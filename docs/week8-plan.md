@@ -55,6 +55,11 @@ reuses a prompt only when the exact same prompt repeats (95 ms vs 787 ms), not a
 undone (behaviour stays comparable with week 7); the LLM_SLOTS option stays, off by default, for a
 standard model or a newer server. Calls by reason are now logged (answer / woken / first / routine).
 
+Where calls go (2026-10-15, 3-day run, seed 1, memory on, data/w8-base-s1): answer 1,043 turns (62%),
+woken 516 (31%), routine 124 (7%), first 5; 1,884 requests, 2.34 s each, 73 min. So: conversations are
+the cost. Rule-safe lever: wake bystanders less often (only when spoken to, named, or something other
+than talk happens), up to ~30% of calls. Bigger lever, needs Donovan's OK: group turns for conversations.
+
 Not taking: Kev as a router for simple decisions (over 90% of calls are talk, which needs the main
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
 so it has witnesses and a log; it would not cut calls). Group turns (one call writes a short
