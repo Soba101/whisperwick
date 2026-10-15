@@ -100,3 +100,17 @@ each seed with the heading (current code) and without it (week 7 code, 78daf17; 
 difference). scripts/week8-heading-runs.sh, data/w8h-*. Seen so far, one run per seed: with the
 heading Victor was held in 5/5 (seeds 1-5) and 4 of 5 arrests came on day 1 before noon; week 7
 without it held Victor in 4/5 (seed 3: Bob), with later arrests.
+
+## Next: a mixture-of-experts model test (approved 2026-10-15, after the heading check)
+Why: one call takes ~1.5-2.3 s; a 3-day run is 50-75 min. A MoE model (e.g. Qwen3-30B-A3B, ~3B
+active, ~18 GB at 4-bit) works through ~3B weights per token instead of 27B, so replies should be
+written several times faster, and as a standard-attention model it should reuse prompt starts (#59),
+which qwen3.8 cannot. Guess: ~0.4-0.7 s per call, ~15-25 min per run. Not measured.
+1. Wait for the heading batch (data/w8h-*) to finish: it must stay on qwen3.8 to be comparable.
+2. Download one MoE model on the PC (Donovan picks; needs his OK for the download).
+3. A llama-server start script for it next to llama.cmd (Donovan creates or changes the task).
+4. One timed 3-day run, seed 1, memory on (data/w8-moe-s1). Calls, s per call, total time.
+5. Read it against the five checks (Coherent, Grounded, Not a pushover, Decisive, Different story).
+   It is a new behaviour baseline: speed alone does not decide.
+6. If ~3x faster and the checks hold: the seeds 1-5 grid on it, then try LLM_SLOTS prompt reuse.
+Also check: does it fit on the GPU next to Kev (would end the server swap)?
