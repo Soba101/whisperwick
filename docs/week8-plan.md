@@ -49,6 +49,12 @@ Checked first (2026-10-15), before building:
   reorder), then 1. Measuring calls by reason (answer, overheard wake-up, routine) comes first: it says
   where the calls actually go.
 
+Result of item 3 (2026-10-15): no gain on this model. qwen3.8 is a hybrid model; this llama-server build
+reuses a prompt only when the exact same prompt repeats (95 ms vs 787 ms), not a shared start: a shared
+1,700-token start reused 0 tokens, with or without a slot per villager and checkpoints. The reorder was
+undone (behaviour stays comparable with week 7); the LLM_SLOTS option stays, off by default, for a
+standard model or a newer server. Calls by reason are now logged (answer / woken / first / routine).
+
 Not taking: Kev as a router for simple decisions (over 90% of calls are talk, which needs the main
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
 so it has witnesses and a log; it would not cut calls). Group turns (one call writes a short
