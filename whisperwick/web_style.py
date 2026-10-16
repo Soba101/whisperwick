@@ -87,6 +87,8 @@ button:disabled,select:disabled,input:disabled { background:var(--soft); color:v
   border-color:var(--line); opacity:.6; cursor:not-allowed; filter:none; }
 #bar select { margin:0 var(--s1) var(--s2) 0; }
 #message { display:block; width:100%; }
+/* Who the message goes to, right above the box, so a talk is not sent to the wrong person. */
+#talkto { margin:var(--s1) 0 var(--s2); font-weight:600; color:var(--accent); }
 #quit { margin-left:auto; color:var(--warn); border-color:var(--warn); }
 #reject,#err { margin-top:var(--s3); }
 #secretbox { margin-top:var(--s6); padding-top:var(--s4); border-top:1px solid var(--line); }

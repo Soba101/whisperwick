@@ -30,6 +30,7 @@ BODY = GUIDE + """
       <select id="action" aria-label="action"></select>
       <select id="target" aria-label="who or where"></select>
       <select id="item" aria-label="item"></select>
+      <div id="talkto" hidden></div>
       <input id="message" aria-label="What do you say?"
         placeholder="What do you say?" maxlength="500">
       <div class="row"><button id="send">Send</button>

@@ -89,6 +89,15 @@ function drawFields() {
   if (!a) return;
   if (a.targets !== null) fill($('target'), a.targets, a.target_required ? '' : 'everyone here');
   if (a.items !== null) fill($('item'), a.items);
+  drawTalkTo();
+}
+// Say plainly who a message goes to: the who-menu keeps its last choice between turns.
+function drawTalkTo() {
+  const t = $('target'), on = $('action').value === 'talk' && !t.hidden && t.value;
+  const name = on ? t.options[t.selectedIndex].text : '';
+  $('talkto').hidden = !on;
+  $('talkto').textContent = on ? 'You are talking to ' + name : '';
+  $('message').placeholder = on ? 'Say something to ' + name + '...' : 'What do you say?';
 }
 function drawBar(s) {
   const text = JSON.stringify(s.actions);
@@ -153,6 +162,7 @@ async function post(path, body) {
 // Redraw the hint at once when the choice or the typed text changes.
 $('action').onchange = () => { drawFields(); if (shown) drawHint(shown); };
 $('message').oninput = () => { if (shown) drawHint(shown); };
+$('target').onchange = drawTalkTo;
 $('send').onclick = () => post('/act', {action: $('action').value,
   target: $('target').hidden ? null : $('target').value,
   item: $('item').hidden ? null : $('item').value,
