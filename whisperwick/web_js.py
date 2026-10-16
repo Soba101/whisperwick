@@ -76,8 +76,11 @@ function drawYou(y) {
 }
 function drawFeed(s) {
   const ul = $('feed'), stick = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 30;
-  s.feed.forEach(t => ul.appendChild(el('li', '', t)));
-  have = s.feed_total;
+  // Two polls can be in flight at once (Send also polls), and both bring the same new lines.
+  // The answer's lines start at feed_total - feed.length; skip any line already on the page.
+  const start = s.feed_total - s.feed.length;
+  s.feed.forEach((t, i) => { if (start + i >= have) ul.appendChild(el('li', '', t)); });
+  have = Math.max(have, s.feed_total);
   if (stick) ul.scrollTop = ul.scrollHeight;
 }
 // Only the fields the chosen action needs are shown.
