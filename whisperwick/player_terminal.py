@@ -36,13 +36,21 @@ def view_lines(world: World) -> list[str]:
     return lines
 
 
-def player_lines(world: World, events: list) -> list[str]:
-    """Story lines for events the player did, saw or was spoken to in (terminal and web)."""
+def player_lines(world: World, events: list, claims: bool = True) -> list[str]:
+    """Story lines for events the player did, saw or was spoken to in (terminal and web).
+
+    claims=False leaves out the [claim: ...] tags: they are bookkeeping for the measures,
+    and on the web a player should only read the words, like anyone standing there.
+    """
     names = {i: x.name for d in (world.npcs, world.locations) for i, x in d.items()}
     mine = [
         e for e in events
         if PLAYER_ID in (e.actor, e.data.get("to"), *e.witnesses)
     ]  # fmt: skip
+    if not claims:
+        # A copy without the tag: the logged event itself is never changed.
+        mine = [e.model_copy(update={"data": {k: v for k, v in e.data.items() if k != "claim"}})
+                for e in mine]  # fmt: skip
     return [line for e in mine if (line := story.format_event(e, names))]
 
 

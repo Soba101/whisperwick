@@ -105,7 +105,7 @@ class WebPlayer(PlayerSource):
         events = world.log.all()
         fresh, self.seen = events[self.seen :], len(events)
         for event in fresh:
-            lines = player_terminal.player_lines(world, [event])
+            lines = player_terminal.player_lines(world, [event], claims=False)  # words only
             self.feed += lines
             if lines and event.actor != PLAYER_ID:
                 self.others += 1  # something Wren can see that someone else did or said
