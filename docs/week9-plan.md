@@ -164,3 +164,9 @@ Only after 1 and 2. Uses the screen first to pick a model that vLLM can serve. S
 ## Exit check
 Screen: the bars above, met or not, with the table for both models. Group turns: the five checks table,
 requests and minutes per game vs baseline, and a plain answer: does it fit the rules, and is it kept?
+
+## Result of item 1 (2026-10-16, #67)
+Model screen built (`whisperwick screen check|pick|run|table`, ed5bee6). Every bar met. Replay rebuilds 11 of 11
+runs exactly. qwen3.8 rejects 5.1% on qwen's turns, MoE 17.0-18.1% (3.3-3.5x), each screen 10-14 minutes.
+On its own run's turns MoE rejects 32.7%, close to the run's 30.4%: about half of that is its own loop
+(re-arresting Bob), half are malformed actions it makes anywhere. Use 127.0.0.1, not localhost, on the PC.
