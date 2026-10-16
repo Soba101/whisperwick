@@ -188,4 +188,11 @@ Not kept. The code stays, off; keeping or deleting it is Donovan's call.
   So conversation replies stay one villager, one call.
 - One 3-day game still takes ~45-75 minutes on qwen3.8 27B. What is left for speed: several games at once
   (item 3, vLLM, #64), or a faster model that passes the screen and then the five checks.
-- Item 3 (vLLM) is not started: it needs Donovan (WSL2 or Docker on the PC, a model download, scheduled tasks).
+- Item 3 (vLLM, #64): tested 2026-10-17, not adopted (thoughts time out; no total gain with 4 games).
+
+## Result of item 3 (2026-10-17, #64)
+vLLM v0.30.0 in Docker on the PC (WSL2 needed SVM on in the BIOS and the WSL 2.7.14 package), serving our own
+qwen3.8 27B as 4-bit AWQ. Tested with the screen: 4 clients at once vs one. Under load vLLM answers act calls
+~25% faster (3.3 vs 4.3 s), but 10-16% of its thoughts time out at 120 s, so 4 screens took 42 min vs 35 on
+llama-server. Alone it is slower (2.49 vs 1.68 s). It is rejected less (2.0% vs 5.1%). Not adopted for now.
+llama-server with 4 clients gives 1.6x the throughput of one game alone.
