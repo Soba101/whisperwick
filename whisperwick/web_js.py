@@ -5,7 +5,7 @@ Text goes in via textContent only.
 
 JS = """
 const $ = id => document.getElementById(id);
-let have = 0, intro = false, lastActions = '', mapBuilt = false, quiet = true, shown = null;
+let have = 0, lastActions = '', mapBuilt = false, quiet = true, shown = null;
 
 function el(tag, cls, text) {
   const x = document.createElement(tag);
@@ -126,7 +126,6 @@ function render(s) {
   if (!s.you.place) return;  // the game has not started yet
   if (!mapBuilt) {
     buildMap(s.places);
-    $('intro').hidden = intro;
   }
   drawYou(s.you); drawMap(s.you); drawFeed(s); drawBar(s); drawEnd(s);
 }
@@ -155,8 +154,26 @@ $('message').onkeydown = e => { if (e.key === 'Enter') $('send').click(); };
 $('w10').onclick = () => post('/wait', {minutes: 10});
 $('w60').onclick = () => post('/wait', {minutes: 60});
 $('quit').onclick = () => { if (confirm('Leave the game?')) post('/quit'); };
-$('close').onclick = () => { intro = true; $('intro').hidden = true; };
-$('help').onclick = () => { $('intro').hidden = !$('intro').hidden; };
+// Inert keeps pointer and keyboard interaction inside the open guide.
+function guide(open) {
+  $('intro').hidden = !open;
+  document.querySelectorAll('.page-head, .wrap').forEach(x => x.inert = open);
+  document.body.classList.toggle('modal-open', open);
+  (open ? $('close') : $('help')).focus({preventScroll: true});
+}
+$('close').onclick = $('dismiss').onclick = () => guide(false);
+$('help').onclick = () => guide(true);
+$('intro').onclick = e => { if (e.target === $('intro')) guide(false); };
+// There are only two guide controls; wrap Tab in both directions.
+document.addEventListener('keydown', e => {
+  if ($('intro').hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); guide(false); }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    (document.activeElement === $('close') ? $('dismiss') : $('close')).focus();
+  }
+});
+guide(true);
 $('again').onclick = async () => {
   const r = await fetch('/newgame', {method: 'POST',
     headers: {'Content-Type': 'application/json'}, body: '{}'});
