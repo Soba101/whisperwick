@@ -24,7 +24,10 @@ while the story stays coherent and every belief stays traceable to its source?
 | 5 | Consequences + endings | Story ends in an outcome the world records (right arrest, wrong arrest, killer free) |
 | 6 | Evaluate + playable demo | Done: villager memory, evaluation runs, terminal and web demo |
 | 7 | Why villagers fail | Done (2026-10-15): five checks measured, see [week7-plan.md](week7-plan.md) |
-| 8 | Behaviour + speed | In progress, see [week8-plan.md](week8-plan.md) |
+| 8 | Behaviour + speed | Done (2026-10-16), see [week8-plan.md](week8-plan.md) |
+| 9 | Model screen + group turns | Done (2026-10-17), see [week9-plan.md](week9-plan.md) |
+| 10 | Player effect + Gate 2 | In progress, see [week10-plan.md](week10-plan.md) |
+| 11 | Recall search | Next: measure recall misses first (#71) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, deferred until the villagers work |
 
 ### Week 3: player + real objects

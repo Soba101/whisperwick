@@ -4,10 +4,11 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 7 done, week 8 in progress.** Weeks 1-6 built the engine, the player, cited beliefs,
+> Status: **Week 9 done, week 10 in progress.** Weeks 1-6 built the engine, the player, cited beliefs,
 > arrests and endings, and a playable demo (`whisperwick play --web`, `whisperwick replay`).
-> Week 7 measured why villagers fail; week 8 works on their behaviour and on speed.
-> Gate 2 and the 3D front-end wait until the villagers work. See [docs/week8-plan.md](docs/week8-plan.md).
+> Weeks 7-9 measured why villagers fail, kept the evidence heading, and tried every speed idea
+> (a 3-day game still takes 45-75 minutes). Week 10 measures the player's effect, then Gate 2.
+> See [docs/week10-plan.md](docs/week10-plan.md).
 
 ## The question
 
@@ -43,6 +44,7 @@ uv run whisperwick story data/run-<name>.db   # read the run as a transcript (no
 ```bash
 uv run whisperwick play --days 1                          # you play Wren in the terminal
 uv run whisperwick play --script players/blame_hal.yaml   # a scripted player
+uv run whisperwick play --web                             # play in a web page (notes, what you know)
 ```
 
 Both need a model server (see `.env.example`). Type `help` in the game for commands.
@@ -60,6 +62,14 @@ add `--json` for the same thing as data. Older runs without a belief log print a
 
 ```bash
 uv run whisperwick trace data/run-a.db npc_hal
+```
+
+Measure runs (`eval`), judge them (`judge`), or screen a new model against saved turns in minutes
+before any full run (`screen`, see issue #67):
+
+```bash
+uv run whisperwick eval data/run-a.db data/run-b.db
+uv run whisperwick screen run data/screen/qwen-turns.json --out data/screen/new-model.json
 ```
 
 ## How an agent acts
@@ -94,7 +104,10 @@ data/            local SQLite event logs (git-ignored)
 | 5 | Consequences + endings | Story ends in an engine-decided outcome |
 | 6 | Evaluate + playable demo | Done: villager memory, evaluation runs, terminal and web demo |
 | 7 | Why villagers fail | Done: five checks measured (#61, #62) |
-| 8 | Behaviour + speed | In progress: [week8-plan.md](docs/week8-plan.md) |
+| 8 | Behaviour + speed | Done: evidence heading kept (right person 8/10); speed items dropped |
+| 9 | Model screen + group turns | Done: screen works (#67); group turns and vLLM not kept (#68, #64) |
+| 10 | Player effect + Gate 2 | In progress: [week10-plan.md](docs/week10-plan.md) |
+| 11 | Recall search | Next: measure recall misses first (#71) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, once the villagers work |
 
 Everything runs locally (a local model on an RTX 5090, served by llama-server). No paid APIs.
