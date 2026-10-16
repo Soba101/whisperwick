@@ -9,8 +9,12 @@ LOG=${2:-data/server-watch.log}
 # Kev uses the same GPU. While its task runs (even while it is still loading), llama-server is
 # down on purpose: a judging swap. So we ask the PC, not Kev's port.
 KEV_STATE='powershell -NoProfile -Command "(Get-ScheduledTask -TaskName \"Whisperwick Kev\").State"'
-PC=donov@100.75.187.23
-START='powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\donov\whisperwick-servers\start-llama.ps1'
+# The PC's SSH login (user@host) comes from WHISPERWICK_PC_SSH, in the environment or the git-ignored .env,
+# so no personal name is kept in the repository.
+PC=${WHISPERWICK_PC_SSH:-$(grep -m1 '^WHISPERWICK_PC_SSH=' .env 2>/dev/null | cut -d= -f2)}
+[[ -n $PC ]] || { echo "set WHISPERWICK_PC_SSH=user@host in .env" >&2; exit 1; }
+# %USERPROFILE% is expanded on the PC, so the Windows user name is not written here either.
+START='powershell -NoProfile -ExecutionPolicy Bypass -File %USERPROFILE%\whisperwick-servers\start-llama.ps1'
 # While this file exists the heartbeat only watches: another model is being tested on the
 # same port, and restarting the usual one would put two models on the GPU.
 PAUSE=data/server-watch.pause

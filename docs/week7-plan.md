@@ -1,10 +1,10 @@
 # Week 7 plan: find out why the villagers fail (done 2026-10-15; results in #61, #62)
 
-Goal: make the NPC layer work before anything else (Donovan, 2026-10-12). This week finds causes only:
+Goal: make the NPC layer work before anything else (the user, 2026-10-12). This week finds causes only:
 why villagers loop, arrest on weak evidence, stall and leak secrets, using measures. No behaviour fixes;
 week 8 picks fixes from what this week finds. Gate 2 waits; no front-end.
-Donovan after playing the demo (2026-10-14): "still 50/50 on the game itself", so keep building first.
-If the NPC layer cannot be made to work, Donovan may repurpose the engine (the scheduler, memory, cited
+The user after playing the demo (2026-10-14): "still 50/50 on the game itself", so keep building first.
+If the NPC layer cannot be made to work, the user may repurpose the engine (the scheduler, memory, cited
 beliefs and eval tools are generic; only the scenario, arrest actions and outcome reader are murder-specific).
 
 "Working" means five checks, each measured, not felt. Bars set before the runs, so results cannot be read to fit:
@@ -19,7 +19,7 @@ beliefs and eval tools are generic; only the scenario, arrest actions and outcom
 - Different story, same seed: what the player does changes what happens.
 - Not a pushover and Different story need player scripts; this week's runs are `none` only, so both
   are scored from week 6 data and marked "not re-measured" (#55 is out of scope).
-Donovan's own read after week 6: "not that interesting" - Victor ends up held whatever the player does.
+The user's own read after week 6: "not that interesting" - Victor ends up held whatever the player does.
 
 What week 6 showed (issues #53-#60):
 - After an arrest the village loops for about 3 days: 604 more talk events, Hal repeating one line
@@ -95,7 +95,7 @@ no director, no formulas deciding opinions, no hints in prompts. Stalls and odd 
 - Trace which prompt part carries Victor's evidence line when he speaks (`whisperwick trace`).
 - Count confessions to non-held people in the week 6 and week 7 runs.
 - Only if the cause is a plain wording fact (e.g. a secret shown in the same block as things to say),
-  propose a neutral rewording. No "do not confess" instruction. Donovan decides before any change.
+  propose a neutral rewording. No "do not confess" instruction. The user decides before any change.
 - Week 6 result (#56): real confessions in 3 of 19 runs, not 6 of 15. In s1-accuse_victor Hal heard six and
   ignored them. Possible neutral change: starting evidence under its own heading ("Only you know:").
 

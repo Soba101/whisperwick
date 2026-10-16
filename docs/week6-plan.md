@@ -75,7 +75,7 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
   (who is where, who says what, arrests), to see what a front-end could show. Read-only, world facts only.
 
 - A web page to play the demo (`whisperwick play --web`, http://localhost:8000), because the terminal is hard
-  to follow and feels slow. Added 2026-10-12 at Donovan's request.
+  to follow and feels slow. Added 2026-10-12 at the user's request.
   - Same rules as the terminal: clicks become the same player intents; the engine decides; villagers unchanged.
   - Wren sees only what Wren sees: people and items where she is, events she did, saw or was spoken to in.
     The map shows all places but people only where Wren is (no omniscience).
@@ -87,12 +87,12 @@ no director, no formulas, no hints in prompts. Every new piece is agent-side and
   - Built 2026-10-12, then extended: one game per device (cookie, max 3 at once, 30 min idle timeout), a secret
     key for shared links, `--allow-host`, live lines and who is acting. Shared with friends over a Tailscale
     Funnel on port 8443 (the Mac's other Funnel, Docker on 8000, is separate and untouched).
-  - Conversational turn-taking (2026-10-12, Donovan's call after play): someone spoken to answers the next
+  - Conversational turn-taking (2026-10-12, the user's call after play): someone spoken to answers the next
     minute; the speaker waits up to 5 minutes for the answer. Applies to villagers with each other too.
     Only the timing changes, never what anyone says. Runs from here on are not directly comparable with the
     week 6 runs (more lines per conversation, more model calls).
 
-Gate 2 is Donovan's call after playing the demo. The numbers and thresholds below are inputs to it.
+Gate 2 is the user's call after playing the demo. The numbers and thresholds below are inputs to it.
 
 ## Gate 2 (proposed thresholds, yours to change)
 - **GO** (start a front-end): outcomes differ by player script on most seeds, valid sources >= 95%,

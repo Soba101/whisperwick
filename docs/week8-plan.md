@@ -1,7 +1,7 @@
 # Week 8 plan (approved 2026-10-15, done 2026-10-16)
 
 Two tracks. Behaviour: fix causes week 7 found. Speed: make a game fast enough for real players,
-with many villagers. Donovan (2026-10-15): one game takes far too long; a real game has many
+with many villagers. The user (2026-10-15): one game takes far too long; a real game has many
 villagers talking to each other and to players all the time.
 
 Rules carry over: world is physics only; villagers decide what they believe, want and do;
@@ -58,7 +58,7 @@ standard model or a newer server. Calls by reason are now logged (answer / woken
 Where calls go (2026-10-15, 3-day run, seed 1, memory on, data/w8-base-s1): answer 1,043 turns (62%),
 woken 516 (31%), routine 124 (7%), first 5; 1,884 requests, 2.34 s each, 73 min. So: conversations are
 the cost. Rule-safe lever: wake bystanders less often (only when spoken to, named, or something other
-than talk happens), up to ~30% of calls. Bigger lever, needs Donovan's OK: group turns for conversations.
+than talk happens), up to ~30% of calls. Bigger lever, needs the user's OK: group turns for conversations.
 
 Fewer bystander wake-ups (6a50ee5): talk wakes only the listener and named bystanders. Seed 1: requests
 1,884 -> 601 (-68%), 73 -> 31 min, but Hal stalled 24 h and Bob was held (baseline: Victor, 2 h). One run
@@ -72,19 +72,19 @@ Not taking: Kev as a router for simple decisions (over 90% of calls are talk, wh
 model, and a router adds a call); an agent-to-agent chat framework (talk must go through the engine
 so it has witnesses and a log; it would not cut calls). Group turns (one call writes a short
 exchange, each line still a logged talk event) would cut talk calls but partly takes a villager's
-own reply away: only with Donovan's OK.
+own reply away: only with the user's OK.
 
-## Behaviour track (Donovan picks which, before building)
+## Behaviour track (The user picks which, before building)
 - Loops after the arrest (#61): look at what villagers are shown after an arrest (e.g. their own
   last words) for a plain wording cause, as was done for #56. No "stop repeating" instruction.
 - Hal ignoring a heard confession (#56): trace whether the confession reached his memories and
   prompt, or was crowded out (memory, not attention, may be the cause).
 - Obstruction arrests (#48, seed 3): his personality line ("wary of anyone who tells him how to do
-  his job") is the likely driver; it is character, not a bug. Record, do not patch, unless Donovan says.
+  his job") is the likely driver; it is character, not a bug. Record, do not patch, unless the user says.
 - Test the evidence heading: the same 12-run grid would cost a night; a smaller check is seeds 1
   and 3, memory on, both layouts.
 
-## Options for Donovan
+## Options for the user
 - Kev judging: fixed (CUDA PyTorch reinstalled, see the wiki Model Server page); week 7 runs being judged.
 - Which speed items to run first (suggested order: 1, 2, 3, then 4; 5 only if they are not enough).
 - Which behaviour items, if any, this week.
@@ -111,8 +111,8 @@ active, ~18 GB at 4-bit) works through ~3B weights per token instead of 27B, so 
 written several times faster, and as a standard-attention model it should reuse prompt starts (#59),
 which qwen3.8 cannot. Guess: ~0.4-0.7 s per call, ~15-25 min per run. Not measured.
 1. Wait for the heading batch (data/w8h-*) to finish: it must stay on qwen3.8 to be comparable.
-2. Download one MoE model on the PC (Donovan picks; needs his OK for the download).
-3. A llama-server start script for it next to llama.cmd (Donovan creates or changes the task).
+2. Download one MoE model on the PC (The user picks; needs his OK for the download).
+3. A llama-server start script for it next to llama.cmd (The user creates or changes the task).
 4. One timed 3-day run, seed 1, memory on (data/w8-moe-s1). Calls, s per call, total time.
 5. Read it against the five checks (Coherent, Grounded, Not a pushover, Decisive, Different story).
    It is a new behaviour baseline: speed alone does not decide.
@@ -146,7 +146,7 @@ What is the next biggest saving?
 1. Several games at once (#64, vLLM). It does not make one game faster, but it is what real players need:
    llama-server loses throughput with two games (4.2 vs 1.7 s per call), vLLM batches them.
 2. Group turns for conversations (62% of calls are replies). The biggest cut per game, but it partly takes
-   a villager's own reply away: only with Donovan's OK.
+   a villager's own reply away: only with the user's OK.
 3. A model screen: replay a few hundred saved turns against a candidate model and count parse failures,
    engine rejections and time, in minutes instead of a 45-60 minute run per seed. It does not judge
-   behaviour, but would have shown the MoE model's 30% rejections at once. New code: Donovan decides.
+   behaviour, but would have shown the MoE model's 30% rejections at once. New code: The user decides.

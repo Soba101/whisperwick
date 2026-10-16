@@ -1,6 +1,6 @@
 # Week 10 plan: measure the player's effect, then Gate 2 (approved 2026-10-17)
 
-Donovan's order (2026-10-17): (1) re-measure "Not a pushover" and "Different story" on today's code,
+The user's order (2026-10-17): (1) re-measure "Not a pushover" and "Different story" on today's code,
 (2) Gate 2: he plays the web demo himself and decides go / pivot / stop.
 Weeks 8 and 9 are done (exit answers in their plans). A 3-day game takes 45-75 min; llama-server serves
 4 games at once at 1.6x the throughput of one, so batches may run up to 4 at a time.
@@ -8,7 +8,7 @@ Weeks 8 and 9 are done (exit answers in their plans). A 3-day game takes 45-75 m
 Rules carry over: world is physics only; villagers decide what they believe, want and do;
 no director, no formulas deciding opinions, no hints in prompts. Stalls and odd outcomes are findings.
 
-Donovan's truth rule (2026-10-17): "villagers can lie but they must know what they are lying.
+The user's truth rule (2026-10-17): "villagers can lie but they must know what they are lying.
 lets keep it as they are always telling the truth." Asked the same day: it covers the honest villagers
 only. Victor (the killer) may still lie. Honest villagers must not invent facts (like Hal's made-up "log"
 in week 9, #68, and #11). No prompt change for it this week; this week only counts it (section 3).
@@ -57,10 +57,10 @@ but they are not this week's question.
 ## 3. Truth rule count (no bar, no fix)
 In all 20 runs, list the honest villagers' claims with no source ("own-claims (no source)" in `compare`).
 Read them by hand: an invented fact (an object, a log, a sighting the engine never had) is a finding.
-Victor's claims are left out (he may lie). Any change to prompts for this needs Donovan's OK, as a later
+Victor's claims are left out (he may lie). Any change to prompts for this needs the user's OK, as a later
 proposal, never a hint.
 
-## 4. Gate 2: Donovan plays
+## 4. Gate 2: The user plays
 The web demo already runs (worktree ../whisperwick-w9, port 8002, the Funnel link; key in data/web-key.txt).
 He plays at least one full game his own way, after he has seen the section 2 table, or before it if he
 wants an unbiased first look (his choice).
@@ -79,18 +79,18 @@ what (e.g. reuse the engine for another story, week 7 plan); STOP = park the pro
 ## Order of work
 1. Plan approved (rule 7). Create milestone "Week 10".
 2. Codex builds the batch script; I review the diff, pytest + ruff, commit.
-3. Batch, 4 at once, only when Donovan is not playing (he says when; overnight is likely). No code changes
+3. Batch, 4 at once, only when the user is not playing (he says when; overnight is likely). No code changes
    while it runs.
 4. Score sections 2 and 3, table in the plan and one finding issue per result (label `finding`).
-5. Gate 2: Donovan plays and decides; record as in section 4.
+5. Gate 2: The user plays and decides; record as in section 4.
 Small fix, any time the demo is stopped: `--allow-host` needs the Funnel name with ":8443"
 (allowed_hosts in web_auth.py adds only :443 and the local port). One line plus a test, in main only.
 
-## Needs Donovan's OK
+## Needs the user's OK
 - This plan (rule 7), including the 5 extra `none` runs and the bars in section 2.
 - When the batch may use llama-server (it slows the web demo while it runs).
 - The Gate 2 verdict itself is his alone.
 
 ## Exit check
-The section 2 table (20 runs plus w8-base), each bar met or not, the truth-rule list, and Donovan's
+The section 2 table (20 runs plus w8-base), each bar met or not, the truth-rule list, and the user's
 Gate 2 verdict with his answers.

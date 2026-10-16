@@ -5,7 +5,7 @@
 # Villagers answer at temperature 0.7: the same seed is not the same game.
 # Ordered by seed so a batch cut short still has whole seeds.
 # Since week 9, 4 at once is fine on llama-server.
-# Never run this batch while Donovan plays the web demo.
+# Never run this batch while the user plays the web demo.
 # Usage: scripts/week10-player-runs.sh DATA_DIR [AT_ONCE]
 # Run from a git worktree of main. Runs use the checkout this script lives in.
 set -u

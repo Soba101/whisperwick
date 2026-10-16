@@ -1,6 +1,6 @@
 # Week 9 plan (approved 2026-10-16)
 
-Donovan's order: (1) a model screen, (2) group turns for conversations, (3) optional: vLLM (#64).
+The user's order: (1) a model screen, (2) group turns for conversations, (3) optional: vLLM (#64).
 Week 8 is done (docs/week8-plan.md, exit answer): a 3-day game takes 45-75 min on qwen3.8 27B.
 
 Rules carry over: world is physics only; villagers decide what they believe, want and do;
@@ -121,7 +121,7 @@ Longer exchanges save more but write more of a villager's words; 3 lines is the 
 - Not own: the words of the up-to-3 exchange lines. The exchange writer knows neither speaker's beliefs
   or aims, so a line can agree, deny or disclose against what that villager wants, and the next own turn
   cannot unsay it. Those lines go into everyone's memories and thinking like any talk.
-This is the part Donovan must OK under "villagers decide what they believe, want and do". If the
+This is the part the user must OK under "villagers decide what they believe, want and do". If the
 answer is no, group turns are dropped; there is no version that writes a villager's words for it and
 keeps them fully its own.
 Known risk: Hal questioning Victor in an exchange cannot use his own evidence, so the questions get
@@ -151,10 +151,10 @@ Only after 1 and 2. Uses the screen first to pick a model that vLLM can serve. S
 ## Order of work
 1. Screen: Codex builds, I review every diff, pytest + ruff, commit. Replay check on the 11 runs.
 2. Screen qwen3.8 (llama-server as is), then MoE (swap on the PC, pause file). Finding issue, wiki, note.
-3. Group turns: build only after Donovan OKs section 2. Then seeds 1-5, read, then 6-10.
+3. Group turns: build only after the user OKs section 2. Then seeds 1-5, read, then 6-10.
 4. Optional: vLLM (#64).
 
-## Needs Donovan's OK
+## Needs the user's OK
 - This plan (rule 7).
 - Group turns under the rules: up to 3 lines written from shared events only, between two own turns,
   no claims in exchange lines. Or say what must change, or drop it.
@@ -178,7 +178,7 @@ nobody 1/5; Decisive 1/5 (baseline 4/5). Stop rule met, so no seeds 6-10 and no 
 Requests: -17% to -61% on seeds 1-3, +73% and +125% on seeds 4-5 (written lines wake bystanders and keep talks
 going); the batch took the same total time. Seed 1 shows the cause: a shared line in Hal's name said Bob was
 under arrest for obstruction, and two minutes later Hal arrested Bob for obstruction in his own turn.
-Not kept. The code stays, off; keeping or deleting it is Donovan's call.
+Not kept. The code stays, off; keeping or deleting it is the user's call.
 
 ## Exit answer (2026-10-16)
 - Model screen: done, every bar met (#67). A candidate model is screened in ~10-15 minutes (on the PC too).
