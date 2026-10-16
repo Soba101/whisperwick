@@ -35,8 +35,10 @@ class MeasuredClient:
             seconds = summary["latency_mean_s"]
             # Clients without usage support still contribute elapsed time.
             seconds = time.monotonic() - start if seconds is None else seconds
+            # Server timings too, so a slow network shows apart from a slow model.
             numbers = {"prompt": summary["prompt_tokens"], "output": summary["output_tokens"],
-                       "cached": summary["cached_tokens"]}
+                       "cached": summary["cached_tokens"], "prompt_ms": summary["prompt_ms_mean"],
+                       "ms_per_token": summary["ms_per_output_token_mean"]}
             # Retain request costs so combined reports can recompute their totals.
             self.usage.record(seconds, error, **numbers)
             self.records.append({"seconds": seconds, "reason": error, **numbers})

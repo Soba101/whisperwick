@@ -25,7 +25,8 @@ def show(results):
     """Use the same measures and order for every compared run."""
     keys = ("turns", "calls", "parse_rate", "first_try_accepted", "rejected_share", "repeats",
             "accepted_after_retry", "fell_back_to_look", "requests_per_turn", "recalls",
-            "latency_mean_s", "latency_p90_s", "prompt_tokens", "output_tokens",
+            "latency_mean_s", "latency_p90_s", "prompt_ms_mean", "ms_per_output_token_mean",
+            "prompt_tokens", "output_tokens",
             "thought_parse_rate", "citation_validity", "minutes")
     typer.echo("measure\t" + "\t".join(results))
     for key in keys:
