@@ -13,12 +13,18 @@ LOCAL_NAMES = ("127.0.0.1", "localhost")
 
 
 def allowed_hosts(port: int, names: tuple[str, ...] = ()) -> set[str]:
-    """Host header values we accept: our own address, plus each allowed name (any usual form)."""
+    """Local names with our port, plus bare allowed names that accept any port."""
     hosts = {f"{n}:{port}" for n in LOCAL_NAMES}
-    for name in names:
-        name = name.lower()
-        hosts |= {name, f"{name}:443", f"{name}:{port}"}
+    hosts.update(name.lower() for name in names)
     return hosts
+
+
+def host_allowed(host: str | None, hosts: set[str]) -> bool:
+    """Accept allowed names with any port, and local names only with our port."""
+    host = (host or "").lower()
+    # A proxy (e.g. Funnel on 8443) may put any port after the public name. Local names
+    # are stored with our port, so the bare-name check below never matches them.
+    return host in hosts or host.rsplit(":", 1)[0] in hosts
 
 
 def is_local(host: str | None) -> bool:

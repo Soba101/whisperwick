@@ -46,8 +46,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send(code, plain_page(text).encode(), "text/html; charset=utf-8", cookies)
 
     def host_ok(self) -> bool:
-        """Only our own address (or an allowed name) as Host. Stops other sites using this."""
-        return (self.headers.get("Host") or "").lower() in self.hosts
+        """Only our local port or an allowed name on any port. Stops other sites using this."""
+        return web_auth.host_allowed(self.headers.get("Host"), self.hosts)
 
     def secure(self) -> bool:
         """Cookies are Secure when the page came in through a public (HTTPS) name."""

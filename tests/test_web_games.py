@@ -70,9 +70,16 @@ def test_allow_host_is_accepted_with_or_without_port(make):
     port, _ = make(key="k", allow_hosts=("box.ts.net",))
     c = Client(port)
     c.request("/?key=k")
-    for host in ("box.ts.net", "box.ts.net:443", f"box.ts.net:{port}", f"localhost:{port}"):
+    for host in (
+        "box.ts.net",
+        "box.ts.net:443",
+        "box.ts.net:8443",
+        f"box.ts.net:{port}",
+        f"localhost:{port}",
+    ):
         assert c.request("/state", headers={"Host": host})[0] == 200
     assert c.request("/state", headers={"Host": "other.ts.net"})[0] == 403
+    assert c.request("/state", headers={"Host": "localhost:1"})[0] == 403
     # Through the public name the cookies are Secure.
     fresh = Client(port)
     fresh.request("/?key=k", headers={"Host": "box.ts.net"})
