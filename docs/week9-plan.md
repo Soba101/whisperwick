@@ -170,3 +170,22 @@ Model screen built (`whisperwick screen check|pick|run|table`, ed5bee6). Every b
 runs exactly. qwen3.8 rejects 5.1% on qwen's turns, MoE 17.0-18.1% (3.3-3.5x), each screen 10-14 minutes.
 On its own run's turns MoE rejects 32.7%, close to the run's 30.4%: about half of that is its own loop
 (re-arresting Bob), half are malformed actions it makes anywhere. Use 127.0.0.1, not localhost, on the PC.
+
+## Result of item 2 (2026-10-16, #68)
+Group turns built (b11b578; each line names its speaker since 3b5e6d1, after a smoke run showed lines in the
+wrong voice), off by default. Seeds 1-5 (data/w9g-s*-none-on): Victor held 2/5 (baseline 5/5), Bob 2/5,
+nobody 1/5; Decisive 1/5 (baseline 4/5). Stop rule met, so no seeds 6-10 and no player-script runs.
+Requests: -17% to -61% on seeds 1-3, +73% and +125% on seeds 4-5 (written lines wake bystanders and keep talks
+going); the batch took the same total time. Seed 1 shows the cause: a shared line in Hal's name said Bob was
+under arrest for obstruction, and two minutes later Hal arrested Bob for obstruction in his own turn.
+Not kept. The code stays, off; keeping or deleting it is Donovan's call.
+
+## Exit answer (2026-10-16)
+- Model screen: done, every bar met (#67). A candidate model is screened in ~10-15 minutes (on the PC too).
+  It caught the MoE model's malformed actions (17% vs 5% on the same turns). Use it before any full run.
+- Group turns: fail the five checks and save no time over five seeds (#68). Words written for a villager
+  become its commitments, and shared-only knowledge produces lines that ignore what a speaker knows.
+  So conversation replies stay one villager, one call.
+- One 3-day game still takes ~45-75 minutes on qwen3.8 27B. What is left for speed: several games at once
+  (item 3, vLLM, #64), or a faster model that passes the screen and then the five checks.
+- Item 3 (vLLM) is not started: it needs Donovan (WSL2 or Docker on the PC, a model download, scheduled tasks).
