@@ -8,19 +8,22 @@ import json
 
 from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS
 from whisperwick.web_js import JS
+from whisperwick.web_notebook import NOTEBOOK, NOTEBOOK_JS
 from whisperwick.web_style import CSS
 
 BODY = GUIDE + """
 <header class="page-head"><h1>Whisperwick</h1>
 <button id="help" aria-label="How to play">How to play</button>
-<div class="sub"><span id="clock"></span><span id="where"></span></div></header>
+<div class="sub"><span id="clock"></span><span id="where"></span></div>
+<p class="goal"><b>Goal:</b> find out what is going on in the village.</p></header>
 <div class="wrap">
   <div>
     <div id="map"><svg id="lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div>
-    <div class="card"><h2>You</h2><div id="you"></div></div>
+    <div class="card" id="youcard"><h2>You</h2><div id="you"></div></div>
+    """ + NOTEBOOK + """
   </div>
   <div>
-    <div class="card"><h2>What you see and hear</h2>
+    <div class="card" id="feedcard"><h2>What you see and hear</h2>
       <ul id="feed"></ul><div id="busy" hidden>The villagers are acting...</div></div>
     <div class="card" id="bar">
       <div id="hint"></div>
@@ -48,7 +51,7 @@ def render_page() -> str:
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}</style></head><body>{BODY}"
-        f"<script>const HINTS = {json.dumps(HINTS)};{JS}</script></body></html>"
+        f"<script>const HINTS = {json.dumps(HINTS)};{JS}{NOTEBOOK_JS}</script></body></html>"
     )
 
 

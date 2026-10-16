@@ -27,6 +27,9 @@ p { margin:0 0 var(--s3); }
 .sub span { background:var(--surface); border-radius:var(--radius);
   padding:var(--s1) var(--s3); box-shadow:var(--shadow); }
 .sub span:empty { display:none; }
+/* The goal stays in view all game, quieter than the title. */
+.goal { width:100%; margin:0; color:var(--muted); }
+.goal b { color:var(--accent); }
 .wrap { display:grid; grid-template-columns:minmax(0, .9fr) minmax(0, 1.1fr);
   gap:var(--s6); }
 .wrap > div { min-width:0; }
@@ -41,6 +44,10 @@ p { margin:0 0 var(--s3); }
   box-shadow:var(--shadow); }
 /* An outline keeps the current place clear without shifting its tokens. */
 .place.here { outline:2px solid var(--accent); outline-offset:2px; }
+/* Words and borders make exits clear without relying on colour alone. */
+.place.can-go { border:2px dashed var(--accent); }
+.place.distant { opacity:.45; }
+.reach { display:block; font-size:12px; color:var(--accent); }
 .place b { display:block; font-size:13px; color:var(--muted); }
 .place.here b { color:var(--accent); }
 .tok { display:inline-block; margin:var(--s1) var(--s1) 0 0; padding:0 var(--s2);
@@ -50,6 +57,12 @@ p { margin:0 0 var(--s3); }
 .tok.body { color:var(--muted); text-decoration:line-through; border:1px dashed; }
 .tok.held { border-color:var(--warn); color:var(--warn); }
 .warn { color:var(--warn); }
+.notebook-tabs { display:flex; gap:var(--s2); margin-bottom:var(--s4); }
+.notebook-tabs [aria-selected="true"] { background:var(--accent); color:var(--on-accent); }
+.known-section + .known-section { margin-top:var(--s4); }
+.known-row { font-size:13px; padding-block:var(--s1); border-bottom:1px solid var(--line); }
+#notes { display:block; width:100%; resize:vertical; margin-block:var(--s2); }
+#notes-private { display:block; color:var(--muted); }
 #you > div { padding-block:var(--s1); }
 #feed { list-style:none; padding:0; margin:0; height:40vh; min-height:200px;
   overflow:auto; line-height:1.75; }
@@ -60,7 +73,7 @@ p { margin:0 0 var(--s3); }
 #busy { color:var(--muted); padding-top:var(--s3); font-weight:600; }
 #hint { color:var(--muted); margin-bottom:var(--s3); }
 .row { display:flex; flex-wrap:wrap; gap:var(--s2); margin-top:var(--s4); }
-button,select,input { font:inherit; min-height:44px; padding:var(--s2) var(--s3);
+button,select,input,textarea { font:inherit; min-height:44px; padding:var(--s2) var(--s3);
   border:1px solid var(--line); border-radius:var(--radius); max-width:100%;
   background:var(--surface); color:var(--text); }
 button { cursor:pointer; font-weight:600; }
@@ -85,6 +98,11 @@ pre { white-space:pre-wrap; margin:0; font:inherit; }
 @media (max-width:700px) {
   body { padding:var(--s4); } .wrap { grid-template-columns:minmax(0,1fr); }
   .card { padding:var(--s4); } h1 { font-size:28px; }
+  /* On a phone the feed and the action bar come right after the map, so playing needs
+     no long scroll; You and the notebook follow. The columns dissolve into one list. */
+  .wrap { display:flex; flex-direction:column; gap:0; } .wrap > div { display:contents; }
+  #map { order:1; } #feedcard { order:2; } #bar, #end { order:3; }
+  #youcard { order:4; } #notebook { order:5; } #feed { height:34vh; }
 }
 @media (max-width:500px) {
   #map { aspect-ratio:1/1; } .place { padding:var(--s1); } .tok { font-size:11px; }

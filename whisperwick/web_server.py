@@ -7,6 +7,7 @@ the engine then judges like any other. The page is never trusted to decide anyth
 Each browser has its own game (see web_games).
 """
 
+import hashlib
 import json
 import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -93,7 +94,10 @@ class Handler(BaseHTTPRequestHandler):
                 since = max(0, int(query.get("since", ["0"])[0]))
             except ValueError:
                 since = 0
-            return self.send_json(200, game.player.snapshot(since))
+            state = game.player.snapshot(since)
+            # Notes need a game key without making the HttpOnly cookie readable.
+            state["game_id"] = hashlib.sha256(game.token.encode()).hexdigest()
+            return self.send_json(200, state)
         self.send_json(404, {"error": "not found"})
 
     def read_body(self) -> dict | None:

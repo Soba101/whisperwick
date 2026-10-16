@@ -23,6 +23,10 @@ GUIDE_CSS = """
 .guide-content { overflow-y:auto; padding:var(--s6); min-height:0; }
 .guide-head { display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s3); }
 .guide-head h1 { flex:1; font-size:28px; }
+/* The soft goal stands out so a new player knows why to talk to people. */
+.goal-box { padding:var(--s3) var(--s4); border-left:4px solid var(--accent);
+  background:var(--soft); border-radius:var(--radius); }
+.goal-box b { display:block; color:var(--accent); }
 #dismiss { font-size:24px; line-height:1; padding:var(--s2); min-width:44px; }
 #intro h2 { margin:var(--s6) 0 var(--s3); }
 #intro p { margin:0 0 var(--s3); }
@@ -65,6 +69,7 @@ GUIDE = """
    <h2 class="sr-only">Who you are</h2>
    <p>You are Wren, a newcomer who has just arrived in a small village.
     The game starts on day 1 at 08:00 in the Market.</p>
+   <p class="goal-box"><b>Your goal</b> Find out what is going on in the village.</p>
    <h2 class="sr-only">What this is</h2>
    <h2>The villagers</h2>
    <div class="villagers">
@@ -107,7 +112,8 @@ GUIDE = """
    </div>
    <h2>The screen</h2>
    <div class="screen-row">
-    <p><b>The map</b> shows the four places. People are shown only where you are.</p>
+    <p><b>The map</b> shows the four places. People are shown only where you are.
+     Places you can walk to from where you are are marked on the map.</p>
     <p><b>You</b> says where you are, who is here, what is on the ground and what you carry.</p>
     <p><b>What you see and hear</b> lists everything you see and hear, newest at the bottom.</p>
    </div>

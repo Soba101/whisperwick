@@ -27,6 +27,7 @@ function buildMap(places) {
     box.id = 'p_' + p.id;
     box.style.left = p.x + '%'; box.style.top = p.y + '%';
     box.appendChild(el('b', '', p.name));
+    box.appendChild(el('span', 'reach'));
     $('map').appendChild(box);
     p.links.forEach(q => {
       const o = places.find(z => z.id === q);
@@ -42,7 +43,12 @@ function buildMap(places) {
 function drawMap(y) {
   document.querySelectorAll('.place').forEach(b => {
     b.querySelectorAll('.tok').forEach(x => x.remove());
-    b.classList.toggle('here', b.id === 'p_' + y.place.id);
+    const here = b.id === 'p_' + y.place.id;
+    const canGo = y.exits.some(p => b.id === 'p_' + p.id);
+    b.classList.toggle('here', here);
+    b.classList.toggle('can-go', canGo);
+    b.classList.toggle('distant', !here && !canGo);
+    b.querySelector('.reach').textContent = here ? 'You are here' : canGo ? 'Can go' : '';
   });
   const box = $('p_' + y.place.id);
   box.appendChild(el('span', 'tok me', 'Wren (you)'));
@@ -122,6 +128,7 @@ function drawEnd(s) {
 }
 function render(s) {
   if (s.gone) { location.reload(); return; }  // the game was stopped or is unknown here
+  drawNotebook(s);
   quiet = s.awaiting || s.finished;
   if (!s.you.place) return;  // the game has not started yet
   if (!mapBuilt) {
@@ -184,5 +191,5 @@ async function loop() {
   await poll();
   setTimeout(loop, quiet ? 1000 : 500);
 }
-loop();
+// The notebook initializes before the first poll.
 """

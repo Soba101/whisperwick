@@ -13,6 +13,7 @@ from whisperwick import player_terminal, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.scenario import Scenario
+from whisperwick.web_known import Known
 from whisperwick.world import World
 
 # Actions the page may send. Arrest and release are for the authority, not for Wren.
@@ -43,6 +44,7 @@ class WebPlayer(PlayerSource):
         self.feed: list[str] = []
         self.seen = 0  # how many log events were already looked at for the feed
         self.busy = ""  # what the page says while the villagers act (never names strangers)
+        self.known = Known()
         self.view: dict = {}
         self.actions: list[dict] = []
         self.world: World | None = None
@@ -80,6 +82,7 @@ class WebPlayer(PlayerSource):
             return {
                 "clock": world.clock.label() if world else "",
                 "you": self.view,
+                "known": self.known.snapshot(),
                 "actions": self.actions,
                 "places": self.places,
                 "awaiting": self.awaiting and not self.finished,
@@ -112,6 +115,7 @@ class WebPlayer(PlayerSource):
         self.world = world
         self._catch_up(world)
         self.view = web_state.you_view(world)
+        self.known.update(self.view)
         self.actions = web_state.actions_for(self.view)
 
     def finish(self, error: str | None = None) -> None:
