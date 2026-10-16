@@ -36,11 +36,11 @@ def test_key_is_required_and_the_cookie_then_works(make):
     assert c.request("/?key=wrong")[0] == 403
     assert c.request("/state")[0] == 403 and c.request("/act", {"action": "look"})[0] == 403
     assert manager.games == {}  # no game was created for any of that
-    # The right key sets an HttpOnly, SameSite=Strict cookie and sends the page back to "/".
+    # The right key sets an HttpOnly, SameSite=Lax cookie and sends the page back to "/".
     code, _ = c.request("/?key=s3cret")
     assert code == 302 and c.last.getheader("Location") == "/"
     set_cookie = c.last.getheader("Set-Cookie")
-    assert "HttpOnly" in set_cookie and "SameSite=Strict" in set_cookie
+    assert "HttpOnly" in set_cookie and "SameSite=Lax" in set_cookie
     assert c.request("/")[0] == 200 and len(manager.games) == 1
     assert c.until(lambda s: s["awaiting"])["you"]["place"]["id"] == "loc_market"
 

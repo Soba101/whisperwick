@@ -43,6 +43,11 @@ def parse_cookies(header: str | None) -> dict[str, str]:
 
 
 def cookie_header(name: str, value: str, secure: bool) -> str:
-    """HttpOnly (scripts cannot read it) and SameSite=Strict (other sites cannot send it)."""
-    text = f"{name}={value}; Path=/; HttpOnly; SameSite=Strict"
+    """HttpOnly (scripts cannot read it) and SameSite=Lax.
+
+    Lax, not Strict: a link tapped in another app (e.g. a chat app) starts a cross-site visit, and
+    Strict then drops the cookie on the redirect to "/", so the player saw "Ask for the link with
+    the key". Lax still keeps the cookie off other sites' POSTs, so no other page can act in a game.
+    """
+    text = f"{name}={value}; Path=/; HttpOnly; SameSite=Lax"
     return text + "; Secure" if secure else text
