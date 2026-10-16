@@ -4,7 +4,7 @@ import pytest
 from helpers import fresh_world
 
 from whisperwick.agent_log import AgentLog
-from whisperwick.exchange_prompt import SCHEMA, build_messages, parse_lines
+from whisperwick.exchange_prompt import build_messages, build_schema, parse_lines
 from whisperwick.exchange_queue import Exchanges
 from whisperwick.llm_sim import run_llm
 from whisperwick.memory import Memories
@@ -50,7 +50,9 @@ def test_ineligible_pairs_and_pending_pairs_are_checked_again(change):
 
     class Client:
         def chat(self, messages, schema):
-            return {"lines": ["One", "Two", "Three"]}
+            return {"lines": [{"speaker": speaker, "message": message}
+                              for speaker, message in zip((A, B, A), ("One", "Two", "Three"),
+                                                          strict=True)]}
 
     assert queue.begin(A, B, Client())
     if change.startswith("held"):
@@ -107,7 +109,7 @@ def test_prompt_uses_shared_event_ids_and_neutral_words_only():
     assert f"Event {shared.id}:" in text
     assert "Bob (npc_bob) said to Victor (npc_victor)" in text
     assert "Patient" in text
-    assert "claim" not in str(SCHEMA)
+    assert "claim" not in str(build_schema(A, B))
 
 
 def test_shared_events_limit_and_blank_lines():
@@ -117,4 +119,35 @@ def test_shared_events_limit_and_blank_lines():
     text = build_messages(world, A, B, {})[0]["content"]
     assert "Event 3:" not in text and "Event 4:" in text
     assert text.count("Event ") == 20
-    assert parse_lines({"lines": ["  One  ", " ", "Two"]}) == ["One", "Two"]
+    from test_exchange_turns import exchange_reply
+
+    assert parse_lines(exchange_reply(["  One  ", " ", "Two"]), A, B) == (["One"], "blank")
+    assert parse_lines(exchange_reply([" One ", " Two "]), A, B) == (["One", "Two"], None)
+    assert parse_lines(exchange_reply(["One", "Two", "Three"]), A, B) == (
+        ["One", "Two", "Three"], None)
+
+
+def test_schema_and_prompt_name_the_pair_and_fixed_slots():
+    from whisperwick.act_prompt import people_label
+
+    world, _, _, stats, _, _ = setup()
+    assert stats["exchange_cut"] == 0
+    text = build_messages(world, A, B, {})[0]["content"]
+    for i, (speaker, target) in enumerate(((A, B), (B, A), (A, B)), 1):
+        assert f"Line {i}: {people_label(world, speaker)} to {target}" in text
+    schema = build_schema(A, B)
+    lines = schema["properties"]["lines"]
+    assert (lines["minItems"], lines["maxItems"]) == (1, 3)
+    item = lines["items"]
+    assert item["additionalProperties"] is False
+    assert item["required"] == ["speaker", "message"]
+    assert item["properties"] == {"speaker": {"type": "string", "enum": [A, B]},
+                                  "message": {"type": "string"}}
+
+
+@pytest.mark.parametrize("line", ["Old format", {}, {"speaker": A, "message": 1},
+                                 {"speaker": 1, "message": "Hello"},
+                                 {"speaker": A, "message": "Hello", "extra": True}])
+def test_parser_checks_line_shape_without_schema_validation(line):
+    with pytest.raises(ValueError):
+        parse_lines({"lines": [line]}, A, B)

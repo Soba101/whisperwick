@@ -10,9 +10,14 @@ from whisperwick.llm_sim import run_llm
 A, B = "npc_bob", "npc_victor"
 
 
+def exchange_reply(messages, speakers=(A, B, A)):
+    return {"lines": [{"speaker": speaker, "message": message}
+                      for speaker, message in zip(speakers, messages, strict=False)]}
+
+
 class Conversation:
     def __init__(self, reply=None):
-        self.reply = {"lines": ["First", "Second", "Third"]} if reply is None else reply
+        self.reply = reply
         self.calls = []
 
     def chat(self, messages, schema):
@@ -22,6 +27,10 @@ class Conversation:
         if exchange:
             if isinstance(self.reply, Exception):
                 raise self.reply
+            if self.reply is None:
+                a = text.split("Line 1: ")[1].split()[0]
+                b = B if a == A else A
+                return exchange_reply(["First", "Second", "Third"], (a, b, a))
             return self.reply
         first = text.splitlines()[0]
         npc = A if f"({A})" in first else B if f"({B})" in first else None
@@ -54,13 +63,15 @@ def test_own_turns_surround_exchange_and_lines_keep_normal_witnesses():
         assert any(m.event_id == e.id for m in memories[B].memories)
     assert records[0] == {"kind": "exchange", "tick": start + 1, "npc": A, "with": B,
                           "lines": 3, "logged": 3, "event_ids": [e.id for e in talks[2:5]],
-                          "dropped": None}
+                          "dropped": None, "cut": None}
     assert stats["exchanges"] == 1 and stats["exchange_lines"] == 3
+    assert stats["exchange_cut"] == 0
     assert stats["turn_reasons"]["exchange"] == 1
 
 
-@pytest.mark.parametrize("reply", [{}, {"lines": []}, {"lines": [" "]},
+@pytest.mark.parametrize("reply", [{}, {"lines": []}, exchange_reply([" "]),
                                    {"lines": [1]}, {"lines": ["a"] * 4},
+                                   exchange_reply(["Wrong"], (B,)),
                                    LLMError("offline")])
 def test_bad_reply_falls_back_in_the_same_minute(reply):
     _, _, records, _, stats, talks = run(2, reply)
@@ -71,8 +82,8 @@ def test_bad_reply_falls_back_in_the_same_minute(reply):
     assert records[0]["logged"] == 0 and records[0]["dropped"] == "bad reply"
 
 
-@pytest.mark.parametrize("reply,logged", [({"lines": ["First", "x" * 501, "Third"]}, 1),
-                                        ({"lines": ["x" * 501]}, 0)])
+@pytest.mark.parametrize("reply,logged", [(exchange_reply(["First", "x" * 501, "Third"]), 1),
+                                        (exchange_reply(["x" * 501]), 0)])
 def test_engine_rejection_drops_remaining_lines(reply, logged):
     _, _, records, _, stats, talks = run(5, reply)
     assert records[0]["logged"] == logged
@@ -122,9 +133,9 @@ def test_each_new_exchange_needs_two_fresh_own_talks():
 
 
 @pytest.mark.parametrize("lines,actors", [(["One"], [A]), (["One", "Two"], [A, B]),
-                                       (["One", " ", "Three"], [A, B])])
+                                       (["One", " ", "Three"], [A])])
 def test_short_exchange_still_gets_a_next_minute_own_answer(lines, actors):
-    _, _, records, _, _, talks = run(2 + len(actors), {"lines": lines})
+    _, _, records, _, _, talks = run(2 + len(actors), exchange_reply(lines))
     assert records[0]["logged"] == len(actors)
     assert [e.actor for e in talks[2:2 + len(actors)]] == actors
     assert talks[-1].actor != actors[-1]
@@ -164,3 +175,24 @@ def test_queued_lines_wake_a_bystander_who_can_cut_in():
     assert record["tick"] == start + 4 and record["logged"] == 2
     assert record["dropped"] == "interrupted"
     assert any(e.actor == third and e.tick == start + 5 for e in world.log.all())
+
+
+@pytest.mark.parametrize("message,speaker,cut", [("Wrong voice", A, "wrong speaker"),
+                                                 (" ", B, "blank")])
+def test_invalid_second_slot_keeps_only_first_line(message, speaker, cut):
+    reply = exchange_reply(["First", message, "Third"], (A, speaker, A))
+    _, _, records, _, stats, talks = run(3, reply)
+    assert records[0]["lines"] == records[0]["logged"] == 1
+    assert records[0]["cut"] == cut and records[0]["dropped"] is None
+    assert stats["exchange_cut"] == 1 and stats["exchange_failed"] == 0
+    assert talks[2].actor == A and talks[2].data["message"] == "First"
+    assert talks[3].actor == B and talks[3].data["message"].startswith("Own line")
+
+
+@pytest.mark.parametrize("message,speaker,cut", [("Wrong voice", B, "wrong speaker"),
+                                                 (" ", A, "blank")])
+def test_invalid_first_slot_logs_cut_and_falls_back(message, speaker, cut):
+    _, _, records, _, stats, talks = run(2, exchange_reply([message], (speaker,)))
+    assert records[0]["cut"] == cut and records[0]["dropped"] == "bad reply"
+    assert stats["exchange_cut"] == stats["exchange_failed"] == 1
+    assert talks[-1].actor == A and talks[-1].data["message"].startswith("Own line")

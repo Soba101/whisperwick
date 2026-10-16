@@ -1,7 +1,7 @@
 """Agent-side pair history and queued intents. The engine still resolves each line."""
 
 from whisperwick.actions import Intent
-from whisperwick.exchange_prompt import SCHEMA, build_messages, parse_lines
+from whisperwick.exchange_prompt import build_messages, build_schema, parse_lines
 from whisperwick.llm_client import LLMError
 from whisperwick.player import PLAYER_ID
 
@@ -23,7 +23,8 @@ class Exchanges:
         # A queued line uses both speakers' conversation turn for this minute.
         self.blocked = set()
         # Initialize counters even when the run never starts an exchange.
-        for key in ("exchanges", "exchange_lines", "exchange_failed", "exchange_dropped"):
+        for key in ("exchanges", "exchange_lines", "exchange_failed", "exchange_dropped",
+                    "exchange_cut"):
             stats.setdefault(key, 0)
 
     def problem(self, a, b):
@@ -104,11 +105,16 @@ class Exchanges:
         self.stats["calls"] = self.stats.get("calls", 0) + 1
         # One record links the whole reply to the individual events it produces.
         record = dict(kind="exchange", tick=self.world.clock.tick, npc=a,
-                      with_=b, lines=0, logged=0, event_ids=[], dropped=None)
+                      with_=b, lines=0, logged=0, event_ids=[], dropped=None, cut=None)
         record["with"] = record.pop("with_")
         try:
-            lines = parse_lines(client.chat(
-                build_messages(self.world, a, b, self.personalities), SCHEMA))
+            lines, record["cut"] = parse_lines(client.chat(
+                build_messages(self.world, a, b, self.personalities), build_schema(a, b)), a, b)
+            # Count cuts even when no usable first line remains for the engine.
+            if record["cut"]:
+                self.stats["exchange_cut"] += 1
+            if not lines:
+                raise ValueError("exchange has no valid lines")
         except (LLMError, ValueError, TypeError) as error:
             # Preserve failure details so the run can report errors and fall back.
             self.stats["exchange_failed"] += 1
@@ -125,7 +131,7 @@ class Exchanges:
         self.stats["errors_in_a_row"] = 0
         self.stats["exchanges"] += 1
         record["lines"] = len(lines)
-        # Blank lines were removed before assigning the fixed alternating speakers.
+        # Only validated slots reach the engine with their fixed alternating speakers.
         intents = [Intent(actor=a if i % 2 == 0 else b, action="talk",
                           target=b if i % 2 == 0 else a, message=line)
                    for i, line in enumerate(lines)]
