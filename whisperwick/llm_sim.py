@@ -55,6 +55,8 @@ def run_llm(
     # thinking phase.
     on_turn: Callable[[World, str | None], None] | None = None,
     slots: int | None = None,  # optional llama-server act slots; thinking stays unassigned
+    # The repeat guard's history. Passed in only by the model screen, which reads it live.
+    history: ActionHistory | None = None,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -73,7 +75,7 @@ def run_llm(
     personalities = personalities or {}
     belief_log = belief_log if belief_log is not None else BeliefLog()
     # What NPCs did this run, for the repeat guard. Agent side only, never world state.
-    history = ActionHistory()
+    history = history if history is not None else ActionHistory()
     notebooks = notebooks if notebooks is not None else Notebooks()
     agent_log = agent_log if agent_log is not None else AgentLog()
     # Private starting knowledge goes in before the first turn.

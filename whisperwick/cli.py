@@ -15,6 +15,7 @@ from whisperwick import (
     llm_run,
     outcome_command,
     replay_command,
+    screen_command,
     story,
     web_play,
 )
@@ -27,6 +28,8 @@ from whisperwick.scenario import build_world, load_scenario
 from whisperwick.sim import run as run_sim
 
 app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.")
+
+app.add_typer(screen_command.app, name="screen")
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
 
