@@ -10,6 +10,7 @@ from whisperwick.agent_log import AgentLog
 from whisperwick.belief_log import BeliefLog
 from whisperwick.clock import MINUTES_PER_DAY
 from whisperwick.events import Event
+from whisperwick.exchange_queue import Exchanges
 from whisperwick.memory import Memories
 from whisperwick.notebook import Notebooks
 from whisperwick.player import PLAYER_ID, PlayerSource
@@ -57,6 +58,7 @@ def run_llm(
     slots: int | None = None,  # optional llama-server act slots; thinking stays unassigned
     # The repeat guard's history. Passed in only by the model screen, which reads it live.
     history: ActionHistory | None = None,
+    group_turns: bool = False,  # shared conversation calls are opt-in
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -78,23 +80,39 @@ def run_llm(
     history = history if history is not None else ActionHistory()
     notebooks = notebooks if notebooks is not None else Notebooks()
     agent_log = agent_log if agent_log is not None else AgentLog()
+    exchanges = None
+    if group_turns:
+        turn_reasons.setdefault("exchange", 0)
+        exchanges = Exchanges(world, scheduler, memories, stats, agent_log,
+                              personalities, history, on_event)
     # Private starting knowledge goes in before the first turn.
     if evidence:
         memory.seed_evidence(memories, evidence, world.clock.tick)
     for _ in range(minutes):
         tick = world.clock.tick
         # The player goes first, even at night, so NPCs react to them this same minute.
-        if player and not apply_player_turn(world, player, memories, scheduler, stats):
+        if player and not apply_player_turn(
+            world, player, memories, scheduler, stats,
+            **({"on_event": exchanges.observe} if exchanges else {}),
+        ):
             break  # the player quit
+        if exchanges:
+            exchanges.start_minute()
         # NPCs act one by one, not all at once. A later NPC sees what an earlier one did
         # this same minute. Order is sorted ids, so it is still deterministic
         # for a given model output.
         for npc in scheduler.due(tick):
+            if exchanges and npc in exchanges.blocked:
+                continue
             # Count scheduled turns once, regardless of retries or recall calls.
             reason = scheduler.reasons[npc]
-            turn_reasons[reason] = turn_reasons.get(reason, 0) + 1
             if on_turn:
                 on_turn(world, npc)
+            partner = exchanges.eligible(npc, reason) if exchanges else None
+            if partner and exchanges.begin(npc, partner, client):
+                continue
+            # A failed exchange still gets its normal own turn this minute.
+            turn_reasons[reason] = turn_reasons.get(reason, 0) + 1
             evidence, lines = llm_agent.memory_parts(memories[npc], tick, world, npc)
             result = llm_agent.act(
                 world, npc, client, lines, stats,
@@ -107,6 +125,8 @@ def run_llm(
                 # Remember right away, before anyone else moves (see Memories.observe).
                 memories.observe(result.event, world)
                 scheduler.notice(result.event)
+                if exchanges:
+                    exchanges.observe(result.event, own=True)
                 if on_event:
                     on_event(world, result.event)
             if result.observation:
@@ -134,4 +154,6 @@ def run_llm(
         # Reported last, so the hour's thoughts are already in the stats.
         if on_hour and world.clock.tick % 60 == 0:
             on_hour(world, stats)
+    if exchanges:
+        exchanges.close()
     return memories, stats

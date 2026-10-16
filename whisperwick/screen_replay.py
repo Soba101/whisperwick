@@ -32,6 +32,8 @@ def replay(db, on_turn=None):
     """Return the source and rebuilt context. Callback signature: (context, npc, kind)."""
     source = Source(db)
     data = source.sidecar
+    if data.get("group_turns", False):
+        raise ValueError("Model screen replay requires group_turns off; this source has it on.")
     sc = load_scenario(data["scenario"])
     # Reuse the saved seed while keeping replay events out of the source database.
     world = build_world(sc, ":memory:", data.get("seed", sc.seed))

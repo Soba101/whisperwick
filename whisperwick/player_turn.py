@@ -17,6 +17,7 @@ def apply_player_turn(
     memories: Memories,
     scheduler: Scheduler,
     stats: dict,
+    on_event=None,  # lets conversation queues hear interruptions without scanning the log
 ) -> bool:
     """Apply the player's intents for this minute. Returns False when the player quits."""
     intents = player.turn(world)
@@ -28,6 +29,8 @@ def apply_player_turn(
             # Same as an NPC event: remember it right away and wake the witnesses.
             memories.observe(result.event, world)
             scheduler.notice(result.event)
+            if on_event:
+                on_event(result.event)
         if not result.ok:
             # Kept in the stats so a run can be checked afterwards.
             stats.setdefault("player_rejected", []).append(

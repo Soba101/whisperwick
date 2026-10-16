@@ -59,8 +59,11 @@ def claim_text(event: Event, world: World) -> str:
     return f" [claim: {claim_words(claim, name_of(world, claim['subject']))}]"
 
 
-def describe(event: Event, world: World, viewer_id: str) -> str:
-    """One short line about an event, as the viewer would remember it."""
+def describe(event: Event, world: World, viewer_id: str | None) -> str:
+    """One short line about an event, as the viewer would remember it.
+
+    None gives a neutral account without a private viewpoint.
+    """
     when = Clock(event.tick).label().capitalize()
     prefix = f"{when} at {event.location}:"
     me = event.actor == viewer_id
@@ -72,6 +75,9 @@ def describe(event: Event, world: World, viewer_id: str) -> str:
             f'{prefix} {who} said to {target}: "{event.data["message"]}"{claim_text(event, world)}'
         )
     if event.type == "move":
+        if viewer_id is None:
+            # A shared account must not depend on either viewer's current location.
+            return f"{prefix} {who} walked from {event.data['from']} to {event.data['to']}"
         if me:
             return f"{prefix} You walked to {event.data['to']}"
         # A witness who is now at the destination saw them arrive. Others saw them leave.

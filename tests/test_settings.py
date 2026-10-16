@@ -44,3 +44,20 @@ def test_bad_parallel_values_raise(tmp_path, monkeypatch):
             assert "WHISPERWICK_PARALLEL" in str(e)
         else:
             raise AssertionError(f"{bad} should have raised")
+
+
+def test_group_turns_default_and_explicit_values(monkeypatch, tmp_path):
+    import pytest
+
+    from whisperwick.settings import group_turns
+
+    path = tmp_path / ".env"
+    monkeypatch.delenv("WHISPERWICK_GROUP_TURNS", raising=False)
+    assert group_turns(path) is False
+    path.write_text("WHISPERWICK_GROUP_TURNS=on\n")
+    assert group_turns(path) is True
+    monkeypatch.setenv("WHISPERWICK_GROUP_TURNS", "off")
+    assert group_turns(path) is False
+    monkeypatch.setenv("WHISPERWICK_GROUP_TURNS", "invalid")
+    with pytest.raises(ValueError, match="WHISPERWICK_GROUP_TURNS"):
+        group_turns(path)

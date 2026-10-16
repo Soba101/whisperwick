@@ -67,3 +67,13 @@ def test_unused_recalls_are_reported(saved_run):
         f.write("\n")
     result = check(db)
     assert result["ok"] and result["unused_recalls"] >= 1
+
+
+def test_group_turn_source_is_refused(saved_run):
+    db = saved_run()
+    path = llm_run.sidecar_path(db)
+    data = json.loads(path.read_text())
+    data["group_turns"] = True
+    llm_run.write_sidecar(path, data)
+    with pytest.raises(ValueError, match="group_turns off"):
+        check(db)

@@ -104,3 +104,11 @@ def llm_slots(env_path: Path = ENV_PATH) -> int | None:
     if value < 1:
         raise ValueError(f"LLM_SLOTS must be a whole number >= 1, got {raw!r}")
     return value
+
+
+def group_turns(env_path: Path = ENV_PATH) -> bool:
+    """Shared conversation calls are off unless explicitly enabled."""
+    value = get("WHISPERWICK_GROUP_TURNS", env_path) or "off"
+    if value not in ("on", "off"):
+        raise ValueError(f'WHISPERWICK_GROUP_TURNS must be "on" or "off", got {value!r}')
+    return value == "on"

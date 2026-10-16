@@ -2,6 +2,7 @@
 
 import json
 
+import pytest
 from helpers import SCENARIO
 from typer.testing import CliRunner
 
@@ -50,3 +51,27 @@ def test_default_db_path_and_rejection_rate():
     assert llm_run.default_db_path("murder").startswith("data/run-murder-")
     assert llm_run.rejection_rate({}) == 0.0
     assert llm_run.rejection_rate({"calls": 4, "rejected": 1}) == 0.25
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_group_turn_switch_reaches_loop_and_sidecar(monkeypatch, tmp_path, enabled):
+    from test_llm_sim import LookClient
+
+    sc = load_scenario(SCENARIO)
+    monkeypatch.setattr(llm_cli, "llm_settings", lambda: ("unused", "fixture"))
+    monkeypatch.setattr(llm_cli, "make_client", lambda *args: LookClient())
+    monkeypatch.setattr(llm_cli.settings, "group_turns", lambda: enabled)
+    monkeypatch.setattr(llm_cli.run_report, "after_run", lambda *args: {"interview": {}})
+    monkeypatch.setattr(llm_cli.run_report, "summary_lines", lambda *args: [])
+    called = []
+    original = llm_cli.run_llm
+
+    def run(*args, **kwargs):
+        called.append(kwargs["group_turns"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(llm_cli, "run_llm", run)
+    db = str(tmp_path / "groups.db")
+    llm_cli.run_with_llm(sc, SCENARIO, db, None, 1)
+    assert called == [enabled]
+    assert json.loads(llm_run.sidecar_path(db).read_text())["group_turns"] is enabled

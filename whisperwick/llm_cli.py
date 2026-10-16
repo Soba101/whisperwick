@@ -56,6 +56,7 @@ def run_with_llm(
         server = settings.llm_server()
         agent_memory = settings.agent_memory()
         slots = settings.llm_slots()
+        group_turns = settings.group_turns()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
@@ -90,6 +91,7 @@ def run_with_llm(
         belief_log=belief_log,
         parallel=parallel,
         slots=slots,
+        group_turns=group_turns,
         agent_memory=agent_memory,
         notebooks=notebooks,
         agent_log=agent_log,
@@ -116,6 +118,7 @@ def run_with_llm(
         client,
     )
     data.update(extra)
+    data["group_turns"] = group_turns
     # The seed lets `eval` group runs that differ only in the player script.
     data["seed"] = sc.seed if seed is None else seed
     data.update(sidecar_part(agent_memory, agent_log, notebooks))
