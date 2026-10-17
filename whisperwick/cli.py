@@ -31,7 +31,8 @@ app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.
 
 app.add_typer(screen_command.app, name="screen")
 
-DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
+# New runs use everyday objects; saved runs keep their original scenario path.
+DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor_goods.yaml")
 
 
 def describe(e: Event) -> str:
