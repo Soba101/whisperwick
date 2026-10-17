@@ -1,4 +1,4 @@
-# Week 12 plan (draft, waiting for approval)
+# Week 12 plan (approved 2026-10-18: A and B; B items specific to each place)
 
 Gate 2: GO, provisional (#87). Keep developing until the user calls a pivot.
 Rules carry over: the world is physics only; villagers decide what they believe, want and do;
