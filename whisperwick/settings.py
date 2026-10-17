@@ -112,3 +112,11 @@ def group_turns(env_path: Path = ENV_PATH) -> bool:
     if value not in ("on", "off"):
         raise ValueError(f'WHISPERWICK_GROUP_TURNS must be "on" or "off", got {value!r}')
     return value == "on"
+
+
+def recall_rank(env_path: Path = ENV_PATH) -> bool:
+    """Rare-word recall ranking is off unless explicitly enabled."""
+    value = get("WHISPERWICK_RECALL_RANK", env_path) or "off"
+    if value not in ("on", "off"):
+        raise ValueError(f'WHISPERWICK_RECALL_RANK must be "on" or "off", got {value!r}')
+    return value == "on"

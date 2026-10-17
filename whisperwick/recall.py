@@ -6,9 +6,11 @@ remember for the villager. Agent side only: never world state, never an event.
 
 from typing import NamedTuple
 
+from whisperwick import settings
 from whisperwick.agent_log import AgentLog
 from whisperwick.memory import Memory, MemoryStream, memory_id, words
 from whisperwick.notebook import Notebooks
+from whisperwick.recall_rank import rank_search
 
 RECALL_MAX = 5  # how many matches come back at most
 RECALL_WORDS_MAX = 100  # the search words are a few words, never an essay
@@ -28,11 +30,18 @@ class Recall(NamedTuple):
     words: str
 
 
-def search(stream: MemoryStream, query: str) -> list[tuple[str, Memory]]:
+def search(
+    stream: MemoryStream, query: str, rank: bool | None = None
+) -> list[tuple[str, Memory]]:
     """Top matches over ALL kinds, oldest first. Score = number of shared words.
 
     Ties go to the newer memory (later index). Nothing shared = nothing found.
+    WHISPERWICK_RECALL_RANK enables rare-word ranking unless rank is given.
     """
+    if rank is None:
+        rank = settings.recall_rank()
+    if rank:
+        return rank_search(stream, query, RECALL_MAX)
     wanted = words(query)
     scored = [
         (len(words(m.text) & wanted), i, m) for i, m in enumerate(stream.memories)

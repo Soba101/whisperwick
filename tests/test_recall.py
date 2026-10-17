@@ -2,10 +2,11 @@
 
 import json
 
+import pytest
 from helpers import fresh_world
 from test_thinking import EVIDENCE, bob_stream, good
 
-from whisperwick import llm_agent, thinking
+from whisperwick import llm_agent, settings, thinking
 from whisperwick.agent_log import AgentLog
 from whisperwick.belief_log import BeliefLog
 from whisperwick.llm_client import FakeClient
@@ -29,20 +30,70 @@ def private_for(s):
 
 def test_search_ranks_by_shared_words_ties_to_newer_oldest_first():
     # "knife sword": m1 and m3 share 2 words, m0 shares 1.
-    got = search(stream(), "knife sword")
+    got = search(stream(), "knife sword", rank=False)
     assert [i for i, _ in got] == ["m0", "m1", "m3"]
-    assert [i for i, _ in search(stream(), "knife")] == ["m0", "m1", "m3"]
+    assert [i for i, _ in search(stream(), "knife", rank=False)] == ["m0", "m1", "m3"]
 
 
-def test_search_keeps_top_five_newer_wins_ties_and_empty_is_empty():
+def test_search_keeps_top_five_newer_wins_ties_and_empty_is_empty(monkeypatch):
     s = MemoryStream()
     for i in range(8):
         s.add(i, "the knife", 1)
-    assert [i for i, _ in search(s, "knife")] == ["m3", "m4", "m5", "m6", "m7"]
-    assert search(stream(), "zebra") == []
-    assert search(stream(), "") == []
+    old = search(s, "knife", rank=False)
+    assert [i for i, _ in old] == ["m3", "m4", "m5", "m6", "m7"]
+    monkeypatch.delenv("WHISPERWICK_RECALL_RANK", raising=False)
+    assert search(s, "knife") == old
+    assert search(stream(), "knife") == search(stream(), "knife", rank=False)
+    assert search(stream(), "zebra", rank=False) == []
+    assert search(stream(), "", rank=False) == []
     # all kinds are searched, reflections too
-    assert [i for i, _ in search(stream(), "temple")] == ["m2"]
+    assert [i for i, _ in search(stream(), "temple", rank=False)] == ["m2"]
+
+
+def test_rank_rare_words_beat_common_words():
+    s = MemoryStream()
+    s.add(0, "The door was forced.", 3)
+    for i in range(8):
+        s.add(i + 1, f"Victor Hal met at place {i}.", 1)
+    query = "victor hal door forced"
+    assert [i for i, _ in search(s, query, rank=False)] == ["m4", "m5", "m6", "m7", "m8"]
+    assert [i for i, _ in search(s, query, rank=True)] == ["m0", "m5", "m6", "m7", "m8"]
+
+
+def test_rank_near_copies_take_one_slot():
+    s = MemoryStream()
+    for i in range(4):
+        s.add(i, f"A knife beside door {i}.", 1)
+    for i in range(5):
+        s.add(i, f"Day {i + 1} 11:48 at loc_{i}: Knife   reflection.", 3, "reflection")
+    got = search(s, "knife", rank=True)
+    assert [i for i, _ in got] == ["m0", "m1", "m2", "m3", "m8"]
+    # A cited copy also keeps the newer copies from using another slot.
+    assert [i for i, _ in search(s, "m4 knife", rank=True)] == ["m0", "m1", "m2", "m3", "m4"]
+
+
+def test_rank_ids_reserve_slots_and_ignore_missing_ids():
+    assert [i for i, _ in search(stream(), "m2 something m999", rank=True)] == ["m2"]
+    assert search(stream(), "m999", rank=True) == []
+    s = stream()
+    for i in range(8):
+        s.add(i, f"Something at place {i}.", 1)
+    assert [i for i, _ in search(s, "M2 m2 m0 m1 m3 m4 something", rank=True)] == [
+        "m0", "m1", "m2", "m3", "m4",
+    ]
+
+
+def test_recall_rank_setting(monkeypatch, tmp_path):
+    env_path = tmp_path / ".env"
+    monkeypatch.delenv("WHISPERWICK_RECALL_RANK", raising=False)
+    assert settings.recall_rank(env_path) is False
+    env_path.write_text("WHISPERWICK_RECALL_RANK=on\n")
+    assert settings.recall_rank(env_path) is True
+    monkeypatch.setenv("WHISPERWICK_RECALL_RANK", "off")
+    assert settings.recall_rank(env_path) is False
+    monkeypatch.setenv("WHISPERWICK_RECALL_RANK", "bad")
+    with pytest.raises(ValueError, match="WHISPERWICK_RECALL_RANK"):
+        settings.recall_rank(env_path)
 
 
 def recall_reply(words):

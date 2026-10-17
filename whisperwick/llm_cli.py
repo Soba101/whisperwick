@@ -57,6 +57,7 @@ def run_with_llm(
         agent_memory = settings.agent_memory()
         slots = settings.llm_slots()
         group_turns = settings.group_turns()
+        settings.recall_rank()  # Validate recall ranking before creating the db.
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
