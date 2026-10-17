@@ -88,7 +88,8 @@ def test_actions_offer_valid_choices_and_no_authority_actions():
     acts = {a["action"]: a for a in web_state.actions_for(web_state.you_view(w))}
     assert "arrest" not in acts and "release" not in acts
     assert {t["id"] for t in acts["talk"]["targets"]} == {"npc_hal"}
-    assert acts["talk"]["message"] and "drop" not in acts  # nothing carried
+    assert acts["talk"]["message"]
+    assert acts["drop"]["reason"] == "you carry nothing"  # nothing carried
     assert [i["id"] for i in acts["take"]["items"]] == ["item_knife"]
     assert acts["move"]["targets"] and acts["look"]["targets"] is None
 
@@ -162,8 +163,10 @@ def test_server_refuses_foreign_hosts_and_form_posts(game):
 def test_page_is_offline_and_has_no_plot_words():
     html = web_page.render_page()
     assert not re.search(r"https?://|src=|href=|@import", html)
+    assert html.count(web_guide.HOOK) == 2
+    text = html.replace(web_guide.HOOK, "").lower()
     for word in ("murder", "mayor", "killer"):
-        assert word not in html.lower()
+        assert word not in text
     assert "You are Wren, a newcomer" in html
     assert html.count("innerHTML +=") == 1 and "innerHTML =" not in html  # svg lines only
 
@@ -198,6 +201,34 @@ def test_action_labels_are_friendly():
 
 def test_guide_has_no_plot_words():
     # Checked on the guide text only: the page script and CSS legitimately say "body".
-    text = (web_guide.GUIDE + " ".join(web_guide.HINTS.values())).lower()
+    text = (web_guide.GUIDE + " ".join(web_guide.HINTS.values()))
+    text = text.replace(web_guide.HOOK, "").lower()
     for word in BANNED:
         assert not re.search(rf"\b{word}", text), word
+
+
+def test_hook_names_no_villager_or_clue():
+    for word in ("Alice", "Bob", "Hal", "Sarah", "Victor", "murderer", "killer",
+                 "knife", "boots", "clue", "suspect"):
+        assert not re.search(rf"\b{word}\b", web_guide.HOOK, re.IGNORECASE)
+
+
+def test_empty_choices_keep_all_actions_with_reasons():
+    acts = {a["action"]: a for a in web_state.actions_for(
+        {"people": [], "ground": [], "carried": [], "exits": [{"id": "loc_inn"}]})}
+    assert len(acts) == 7
+    assert {a for a, row in acts.items() if row["reason"] is None} == {"move", "look"}
+    assert acts["take"]["reason"] == "nothing to take here"
+    assert acts["drop"]["reason"] == "you carry nothing"
+    assert acts["give"]["reason"] == acts["show"]["reason"] == "you carry nothing"
+    assert acts["talk"]["reason"] == "nobody here to talk to"
+
+
+def test_every_action_and_scenario_place_has_an_icon():
+    from whisperwick.web_icons import ACTION_ICONS, PLACE_ICONS
+
+    acts = web_state.actions_for(web_state.you_view(fresh_world()))
+    assert len(acts) == 7 and all(a["icon"] == ACTION_ICONS[a["action"]] for a in acts)
+    places = web_state.map_data(SC)
+    assert {p["id"] for p in places} == {p.id for p in SC.locations}
+    assert all(p["icon"] == PLACE_ICONS[p["id"]] for p in places)

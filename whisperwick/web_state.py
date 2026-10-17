@@ -9,6 +9,7 @@ from whisperwick import outcome, story
 from whisperwick.player import PLAYER_ID
 from whisperwick.replay_state import layout
 from whisperwick.scenario import Scenario
+from whisperwick.web_icons import ACTION_ICONS, PLACE_ICONS
 from whisperwick.world import World
 
 
@@ -21,7 +22,8 @@ def map_data(sc: Scenario) -> list[dict]:
     """Every place with a fixed spot and its links. Same layout as the replay page."""
     spots = layout(sc)
     return [
-        {"id": p.id, "name": p.name, "x": spots[p.id][0], "y": spots[p.id][1], "links": p.links}
+        {"id": p.id, "name": p.name, "x": spots[p.id][0], "y": spots[p.id][1], "links": p.links,
+         "icon": PLACE_ICONS.get(p.id, "•")}
         for p in sc.locations
     ]
 
@@ -46,7 +48,7 @@ def you_view(world: World) -> dict:
 
 
 def actions_for(view: dict) -> list[dict]:
-    """The actions Wren may try, and the valid choices for each (same ids the schema takes).
+    """All seven actions, their choices, and a reason when they cannot be tried.
 
     Authority actions (arrest, release) are not offered. The engine still decides:
     these lists only save the player from typing ids.
@@ -62,12 +64,22 @@ def actions_for(view: dict) -> list[dict]:
         ("give", "Give", people, carried, False, True),
         ("show", "Show", people, carried, False, False),
     ]
+    empty_reasons = {
+        "move": "nowhere to go", "talk": "nobody here to talk to",
+        "take": "nothing to take here", "drop": "you carry nothing",
+        "give": "nobody here to give to", "show": "nobody here to show",
+    }
     out = []
     for action, label, targets, items, message, target_required in rows:
+        reason = None
         if (targets == []) or (items == []):
-            continue  # nothing to pick from, so the action cannot be tried
+            # nothing to pick from, so the action cannot be tried
+            # Keep it visible so the player knows why.
+            reason = ("you carry nothing" if items == [] and action != "take"
+                      else empty_reasons[action])
         out.append({"action": action, "label": label, "targets": targets, "items": items,
-                    "message": message, "target_required": target_required})  # fmt: skip
+                    "message": message, "target_required": target_required,
+                    "reason": reason, "icon": ACTION_ICONS[action]})  # fmt: skip
     return out
 
 

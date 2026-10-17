@@ -6,15 +6,16 @@ never innerHTML. The guide says only plain facts about the start: no plot, no hi
 
 import json
 
-from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS
+from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS, HOOK
 from whisperwick.web_js import JS
 from whisperwick.web_notebook import NOTEBOOK, NOTEBOOK_JS
 from whisperwick.web_style import CSS
 
-BODY = GUIDE + """
+BODY = GUIDE + f"""
 <header class="page-head"><h1>Whisperwick</h1>
 <button id="help" aria-label="How to play">How to play</button>
 <div class="sub"><span id="clock"></span><span id="where"></span></div>
+<p class="hook">{HOOK}</p>
 <p class="goal"><b>Goal:</b> find out what is going on in the village.</p></header>
 <div class="wrap">
   <div>
