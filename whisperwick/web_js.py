@@ -26,7 +26,12 @@ function buildMap(places) {
     const box = el('div', 'place');
     box.id = 'p_' + p.id;
     box.style.left = p.x + '%'; box.style.top = p.y + '%';
-    box.appendChild(el('b', '', p.name));
+    const title = el('b');
+    const icon = el('span', 'icon', p.icon + ' ');
+    icon.setAttribute('aria-hidden', 'true');
+    title.appendChild(icon);
+    title.appendChild(el('span', '', p.name));
+    box.appendChild(title);
     box.appendChild(el('span', 'reach'));
     $('map').appendChild(box);
     p.links.forEach(q => {
@@ -108,8 +113,15 @@ function drawBar(s) {
     lastActions = text;
     const old = $('action').value;
     $('action').replaceChildren();
-    s.actions.forEach(a => $('action').appendChild(new Option(a.label, a.action)));
-    if (s.actions.some(a => a.action === old)) $('action').value = old;
+    s.actions.forEach(a => {
+      const option = el('option', '', a.icon + ' ' + a.label + (a.reason ? ' — ' + a.reason : ''));
+      option.value = a.action;
+      option.disabled = !!a.reason;
+      $('action').appendChild(option);
+    });
+    const chosen = s.actions.find(a => a.action === old && !a.reason)
+      || s.actions.find(a => !a.reason);
+    if (chosen) $('action').value = chosen.action;
     drawFields();
   }
   const off = !s.awaiting;

@@ -4,6 +4,10 @@ Nothing here says what will happen or what to look for: the villagers decide for
 themselves. The words are fixed text, so the page needs no model and no network.
 """
 
+# The one plain fact the player is told at the start. It names no murderer and gives no clue.
+# Player-facing only, never in villager prompts.
+HOOK = "Mayor Aldric was found dead in the Town Hall this morning."
+
 # Shown just above the action bar. The page script picks one by state.
 HINTS = {
     "turn": "Your turn: choose what Wren does, then press Send.",
@@ -26,6 +30,7 @@ GUIDE_CSS = """
 /* The soft goal stands out so a new player knows why to talk to people. */
 .goal-box { padding:var(--s3) var(--s4); border-left:4px solid var(--accent);
   background:var(--soft); border-radius:var(--radius); }
+.hook { width:100%; font-weight:700; color:var(--warn); }
 .goal-box b { display:block; color:var(--accent); }
 #dismiss { font-size:24px; line-height:1; padding:var(--s2); min-width:44px; }
 #intro h2 { margin:var(--s6) 0 var(--s3); }
@@ -60,7 +65,7 @@ GUIDE_CSS = """
 }
 """
 
-GUIDE = """
+GUIDE = f"""
 <div id="intro" role="dialog" aria-modal="true" aria-labelledby="guide-title">
  <div class="guide-card">
   <div class="guide-content">
@@ -69,6 +74,7 @@ GUIDE = """
    <h2 class="sr-only">Who you are</h2>
    <p>You are Wren, a newcomer who has just arrived in a small village.
     The game starts on day 1 at 08:00 in the Market.</p>
+   <p class="hook">{HOOK}</p>
    <p class="goal-box"><b>Your goal</b> Find out what is going on in the village.</p>
    <h2 class="sr-only">What this is</h2>
    <h2>The villagers</h2>
@@ -92,6 +98,7 @@ GUIDE = """
    <ol class="steps"><li>Pick an action.</li><li>Pick who or where.</li>
     <li>For Talk to, type what you say.</li><li>Press Send.</li></ol>
    <h2>Actions</h2>
+   <p>Actions you cannot use right now stay in the list, greyed, with the reason.</p>
    <div class="actions">
     <div><b>Go to</b>Walk to a nearby place.</div>
     <div><b>Talk to</b>Say something to someone here.</div>

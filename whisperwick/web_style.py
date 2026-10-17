@@ -64,6 +64,7 @@ p { margin:0 0 var(--s3); }
 #notes { display:block; width:100%; resize:vertical; margin-block:var(--s2); }
 #notes-private { display:block; color:var(--muted); }
 #you > div { padding-block:var(--s1); }
+#you b { color:var(--muted); font-weight:400; }
 #feed { list-style:none; padding:0; margin:0; height:40vh; min-height:200px;
   overflow:auto; line-height:1.75; }
 #feed li { padding:var(--s3) 0; border-bottom:1px solid var(--line); }

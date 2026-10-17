@@ -74,6 +74,8 @@ def run_with_llm(
     # Hourly progress would clutter a human's screen, so terminal and web play skip it.
     on_hour = None if isinstance(player, TerminalPlayer | WebPlayer) else progress
     stats = {"player_rejected": []} if player else {}
+    if isinstance(player, WebPlayer):
+        player.stats = stats  # the page can tell a model error from a plain look (#76)
     # Every thought is also saved as a JSON line next to the db.
     belief_log = BeliefLog(llm_run.beliefs_path(db))
     # Recall searches are saved as JSON lines too. Notebooks are read back at the end.
