@@ -70,3 +70,41 @@ If the ranking fix misses its bars, it stays off and the result is a finding.
 ## Not in this week
 - Meaning search (#71 hybrid): not built, see above.
 - Anything that picks memories for a villager without its asking (no auto-recall).
+
+## Results (scored 2026-10-18)
+
+Five runs per set. Memory on, `none` script, three days. Week 11 has recall ranking on.
+
+| Check | Baseline s1-5 | Week 11 s1-5 | Bar | Met? |
+|---|---|---|---|---|
+| Replay check, setting off | 10/10 | 10/10 (already checked) | 10/10 | Met |
+| Right person held | 5/5 | 1/5 right; 1/5 mixed | Stop if under 4/5 | Not met |
+| Wrong person held | 0/5 | 3/5, including the mixed run | 0 | Not met |
+| Decisive (GuardStall < 6 h) | 4/5 | 2/5 | Not under 3/5 | Not met |
+| Coherent (ClaimGap < 16 h, runs with an arrest) | 2/5 | 1/4; two lack a full waking day after the last arrest | Not worse | Not met |
+| Grounded (suspect thoughts with a valid citation) | 98-100% | 98-100% | >= 95% | Met |
+| Cut-off misses (`recall_misses` cut share) | 46% (36/77) | 38.75% (31/80) | Under 25% | Not met |
+| Requests per game | 6,617 total; 1,323.4 mean | 5,144 total; 1,028.8 mean; down 22.3% | Not more than +10% | Met |
+
+Right means only Victor is held. The mixed run holds Victor and two wrong people.
+Requests come from the eval Calls table. Cut share uses the same script measure as the baseline.
+
+| Seed | Baseline held at end | Baseline first arrest | Week 11 held at end | Week 11 first arrest |
+|---|---|---|---|---|
+| 1 | Victor | Day 1 11:39, Victor | Sarah | Day 4 06:17, Sarah |
+| 2 | Victor | Day 1 11:28, Victor | Victor, Bob, Sarah | Day 2 21:56, Victor |
+| 3 | Victor | Day 1 11:33, Victor | Nobody | None |
+| 4 | Victor | Day 3 06:25, Victor | Victor | Day 1 11:06, Victor |
+| 5 | Victor | Day 1 11:39, Victor | Bob | Day 1 08:33, Bob |
+
+### Findings
+
+- Seeds 1 and 5 end with Sarah and Bob held. Seed 2 holds both alongside Victor.
+- Seed 2 arrests Bob three times and releases him twice before holding him again.
+- Seed 3 never arrests anyone. GuardStall is 30 h; seeds 1 and 2 reach 46 h and 21 h.
+- Seed 4 holds Victor but has a 34 h ClaimGap. Seed 5 passes at 15 h, near the 16 h line.
+- Seeds 1 and 2 lack a full waking day after their last arrest, so ClaimGap is unavailable. They do not count as Coherent passes.
+- Seed 1's first arrest falls on day 4 at 06:17, within the three-day run that starts on day 1.
+- The script rebuilds the old search results exactly for 43/80 recalls. Its cut share still measures cited memories omitted from the saved results.
+
+The ranking fix stays off. It misses five bars and does not become the default.
