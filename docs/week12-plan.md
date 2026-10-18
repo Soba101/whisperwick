@@ -86,3 +86,33 @@ moves (#73) can't be recovered: 1,356 rejections in 31,708 requests.
 
 **What changes.** From now on a check runs 5 repeats each on fixed seeds (1 and 2 at least), compares the
 same seeds before and after, and treats ClaimGap and Requests as rough until 10+ runs.
+
+## Results: B (everyday items), 2026-10-19
+20 runs on scenarios/murder_of_the_mayor_goods.yaml (branch with the items, not merged), same setup as A:
+seeds 1-2 x 10, `none`, memory on, 3 days. Data: data/w12g-*, eval data/w12g-eval-s1.txt and -s2.txt.
+
+| Seed / batch | Right / wrong / mixed / nobody | Decisive | Coherent | Median requests | Median rejected |
+|---|---|---:|---:|---:|---:|
+| 1 A (no items) | 2 / 1 / 2 / 5 | 3 | 0 | 1,314 | 3.7% |
+| 1 B (items) | 3 / 3 / 0 / 4 | 3 | 1 | 911 | 5.1% |
+| 2 A (no items) | 9 / 1 / 0 / 0 | 9 | 4 | 1,638 | 4.8% |
+| 2 B (items) | 6 / 3 / 0 / 1 | 5 | 2 | 1,063 | 4.2% |
+
+Exact tests, 10 vs 10 per seed: no outcome difference is beyond noise (seed 2 Right p = 0.30, Decisive p = 0.14).
+Seed 2 leans worse. Requests fell about a third (seed 2 p = 0.03, the only nominal signal).
+
+**Villagers barely use the items.** 17 item actions in 20 runs (12 shows, 2 takes, 2 gives, 1 drop); the median run
+has none. Used: coins 6, lantern 4, cloth 3, ale 2, apples 1, candle 1. Food, mugs, spices and the prayer book: never.
+
+**Talk about handing things over went up, real hand-overs did not.** Lines that describe a physical hand-over with
+no give in the same game hour: 11 without items, 71 with items (seed 1: 9 to 60; seed 2: 2 to 11). Same-hour matching
+is rough, but the direction is clear: more things to talk about means more talk that claims the world changed (#74, #84).
+
+**Prompt size** grew 4% on average (1,794 to 1,862 tokens per request). Each coin holder sees "copper coin" three times.
+One wrong arrest (seed 1, run 10) cites Bob threatening to smash Hal's lantern: a new item in the story, not proof of a cause.
+
+**Bars:** Right person and Decisive: not worse beyond noise, but seed 2 leans worse. Grounded: not measured.
+Fake hand-over talk: worse. The items work as physics, and villagers mostly ignore them.
+
+**Recommendation.** Merge the scenario as opt-in only (it already is: `--scenario`), so the demo and a player can
+use real coffee and coins, and keep the old scenario as the default for checks. Don't make it the default.
