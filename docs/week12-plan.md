@@ -44,3 +44,45 @@ Codex while A runs. Then check B with the run count A gives. D whenever you have
 ## Not in this week
 - Attack actions and the goal wording (#79, waiting on the user).
 - Any change to what villagers are told or prompted.
+
+## Results: A (noise), 2026-10-18
+20 runs, current main (`none`, memory on, 3 days), seeds 1-2 x 10, only model sampling differs.
+Data: data/w12n-*, eval output data/w12n-eval-s1.txt and -s2.txt.
+
+| Seed | Right | Wrong | Mixed | Nobody | Pairs ending the same |
+|---|---:|---:|---:|---:|---:|
+| 1 | 2 | 1 | 2 | 5 | 12/45 |
+| 2 | 9 | 1 | 0 | 0 | 36/45 |
+
+| Measure | Seed 1 median (min-max) | Seed 2 median (min-max) |
+|---|---|---|
+| Requests | 1,314 (488-2,552) | 1,638 (1,049-3,019) |
+| GuardStall h | 31 (1.3-48) | 3.4 (1-7.2) |
+| ClaimGap h | 19 (17-25), not reached in 7/10 | 18 (10-31) |
+| Rejected % | 3.7 (1.1-5.8) | 4.8 (2.4-9.7) |
+
+**The seed matters more than the luck.** Seed 2 is easy (9/10 right, Hal acts on day 1); seed 1 is hard
+(2/10 right, Hal holds no one in 5/10). A batch that mixes seeds mostly measures which seeds it used.
+
+**Runs needed** (two disjoint batches of the same code giving the same pass/fail verdict 80% of the time,
+by resampling the 10 repeats):
+
+| Measure | Seed 1 | Seed 2 | Verdict |
+|---|---|---|---|
+| Right person (bar 80%) | 3 | 5 | 5 runs per seed is enough |
+| Decisive (GuardStall < 6 h, bar 60%) | 4 | 3 | 5 runs per seed is enough |
+| Coherent (ClaimGap < 16 h, bar 40%) | 3 | more than 5 | not trustworthy at 5 |
+| Requests within 10% | more than 5 | more than 5 | not trustworthy even at 10 |
+
+Bar (set in the plan): met for Right person and Decisive; not met for Coherent and Requests.
+
+**Week 11 (#86).** Right person fell from 5/5 to 1/5. On one seed, two 5-run batches of the same code
+differ by at most 40 points (seed 1) or 20 (seed 2); week 11's drop was 80. So the drop is probably real,
+not noise, but #86 used five different seeds, so this is a strong hint, not proof. The ranking fix stays off.
+The planned rerun of the ranking on seeds 1-2 x 10 would settle it (about 12 h of PC time).
+
+**Not measurable.** Rejections are counted but not logged as events (#45), so how many are "not reachable"
+moves (#73) can't be recovered: 1,356 rejections in 31,708 requests.
+
+**What changes.** From now on a check runs 5 repeats each on fixed seeds (1 and 2 at least), compares the
+same seeds before and after, and treats ClaimGap and Requests as rough until 10+ runs.
