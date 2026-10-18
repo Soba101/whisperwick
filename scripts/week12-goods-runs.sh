@@ -9,6 +9,7 @@
 # The checkout is a git worktree with the goods scenario: runs load the code they start with.
 set -u
 DATA=${1:?give the data directory}
+DATA=${DATA:A}  # absolute: each run cd's into the checkout
 CHECKOUT=${2:?give the checkout with the goods scenario}
 DAYS=3
 HERE=${0:A:h}
