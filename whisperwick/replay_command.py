@@ -14,8 +14,7 @@ from whisperwick.replay_data import build_data
 from whisperwick.replay_page import render_page
 from whisperwick.scenario import load_scenario
 
-# New runs use everyday objects; saved runs keep their original scenario path.
-DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor_goods.yaml")
+DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
 
 
 def load_thoughts(db: Path) -> list[dict]:
