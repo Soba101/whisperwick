@@ -10,6 +10,15 @@ export class Figures {
   update(s) {
     const rows=[{...s.player,carried:s.you.carried},...s.you.people.map(p => ({...p})),
       ...s.you.bodies.map(p => ({...p,body:true})),...s.you.ground.map(p => ({...p,item:true}))];
+    // Private facts arrive only after the accusation. Merge by stable ID.
+    for(const person of s.ending_scene?.people || []) {
+      const index=rows.findIndex(p => p.id===person.id);
+      const record={...person};
+      // Stage held people at the hall for the closing tableau only.
+      if(record.held) record.place='loc_town_hall';
+      if(index>=0) rows[index]={...rows[index],...record};
+      else rows.push(record);
+    }
     const now=performance.now();
     (s.motions || []).forEach(m => {
       if(this.seen.get(m.id)===m.sequence) return;
@@ -57,7 +66,11 @@ export class Figures {
       // Very crowded scenarios still keep every public figure on solid ground.
       const limit=this.v.island-2, radial=Math.hypot(target.x,target.z);
       if(radial>limit) { target.x*=limit/radial; target.z*=limit/radial; }
-      if(p.held && place==='loc_town_hall') target.copy(this.v.local(place,2.3,.2,2.4));
+      if(p.held && place==='loc_town_hall') {
+        const prisoners=sorted.filter(q => q.held);
+        const slot=prisoners.findIndex(q => q.id===p.id);
+        target.copy(this.v.local(place,2.3+(slot-(prisoners.length-1)/2)*1.5,.2,2.4));
+      }
       // Tween only consecutive observed placements; never infer an unseen route.
       r.record=p; r.expires=p.expires;
       const changed=r.place!==place || p.motion;
@@ -79,7 +92,7 @@ export class Figures {
       r.waiting=p.waiting || p.sleeping || (p.id===s.player.id && s.auto_wait);
       if(!p.item) tint(r.group,p.held || p.body);
       r.group.rotation.z=p.body ? Math.PI/2 : 0;
-      r.label.name.textContent=p.name+(p.held ? ' [held]' : p.body ? ' (body)' : '');
+      r.label.name.textContent=p.name+(s.ending_scene?.killer===p.id ? ' ◆ killer' : '')+(p.held ? ' [held]' : p.body ? ' (body)' : '');
       r.label.node.title=p.carried ? 'Carrying: '+(p.carried.map(x => x.name).join(', ') || 'nothing')
         : p.item ? p.name : 'Carried items are private.';
       this.v.labels.speech(r.label,s.speech?.[p.id]);

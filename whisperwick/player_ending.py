@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from whisperwick import ending, llm_run, story
+from whisperwick import ending, ending_scene, llm_run, story
 from whisperwick.player import PLAYER_ID
 
 
@@ -38,6 +38,9 @@ class PlayerEnding:
         pending = self.events is not None and self.accusation is None
         return {
             "accusation_pending": pending,
+            # Reveal fields share the same gate as the legacy text report.
+            "ending_scene": ending_scene.scene(self.sc, self.events, self.accusation)
+            if self.events is not None and not pending else None,
             # Only people already met appear before the truth is revealed.
             "accusation_choices": [{"id": p["id"], "name": p["name"]} for p in people],
             "ending": ending.report(self.events, story.names_from(self.sc), self.sc.secrets,

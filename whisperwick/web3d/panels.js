@@ -24,7 +24,7 @@ export class Panels {
     $('busy').textContent = s.waiting_on || s.turn_of ? 'Waiting on ' + (s.turn_of || s.waiting_on)
       : s.busy || (s.auto_wait ? 'Waiting for a reply...' : s.awaiting ? 'Your turn' : '');
     $('reject').textContent = s.rejection || '';
-    $('end').textContent = [s.outcome,s.secret,s.error].filter(Boolean).join('\n');
+    $('end').textContent = [s.error].filter(Boolean).join('\n');
     const feed = $('feed'), stick = feed.scrollTop + feed.clientHeight >= feed.scrollHeight-30;
     const start = s.feed_total-s.feed.length;
     s.feed.forEach((line,i) => {

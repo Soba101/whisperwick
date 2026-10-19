@@ -8,7 +8,10 @@ from importlib.resources import files
 # Inline the shared picker so the 2D page still works without external scripts.
 WHO_JS = files("whisperwick").joinpath("web3d/who.js").read_text().replace("export class", "class")
 
-JS = WHO_JS + """
+ENDING_CONTENT_JS = files("whisperwick").joinpath("web3d/ending-content.js").read_text().replace(
+    "export function", "function")
+
+JS = WHO_JS + ENDING_CONTENT_JS + """
 const $ = id => document.getElementById(id);
 const who = new WhoPicker();
 let have = 0, lastActions = '', mapBuilt = false, quiet = true, shown = null;

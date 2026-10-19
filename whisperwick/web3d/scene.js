@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {endingCamera,glideEnding} from './ending-camera.js';
 import {Figures} from './figures.js';
 import {Labels} from './labels.js';
 import {building} from './buildings.js';
@@ -24,7 +25,7 @@ export class Village {
     this.controls.enableDamping=true; this.controls.dampingFactor=.065;
     this.controls.maxPolarAngle=Math.PI/2.25; this.controls.minPolarAngle=.2;
     this.controls.minDistance=2.5; this.controls.zoomToCursor=true; this.controls.maxDistance=125;
-    this.controls.addEventListener('start',() => { this.goal=null; this.follow=false; });
+    this.controls.addEventListener('start',() => { this.goal=null; this.follow=false; this.endingShot=null; });
     this.links=new Map(); this.spots=new Map(); this.curves=new Map(); this.follow=false;
     this.smoke=[]; this.figures=new Figures(this);
     new ResizeObserver(() => this.resize()).observe(document.getElementById('village'));
@@ -44,7 +45,8 @@ export class Village {
     const box=document.getElementById('village');
     this.renderer.setSize(box.clientWidth,box.clientHeight);
     this.camera.aspect=box.clientWidth/Math.max(1,box.clientHeight); this.camera.updateProjectionMatrix();
-    if(this.island) this.frame();
+    if(this.revealed) endingCamera(this);
+    else if(this.island) this.frame();
   }
   facing(id) { const p=this.spots.get(id); return Math.atan2(-p.x,-p.z); }
   local(id,x,y,z) {
@@ -116,10 +118,16 @@ export class Village {
     }
     mat.dispose();
   }
-  focus(id) { if(this.spots.has(id)) this.goal=this.spots.get(id).clone(); }
+  focus(id) {
+    this.endingShot=null;
+    if(this.spots.has(id)) this.goal=this.spots.get(id).clone();
+  }
   update(s) {
     if(!this.spots.size) this.build(s.places);
     this.sky.update(s); this.figures.update(s); this.daylight=s.daylight;
+    if(s.ending_scene && !this.revealed) {
+      this.revealed=true; endingCamera(this);
+    }
     const place=s.player.place || s.you.place.id;
     if(place!==this.playerPlace) {
       this.playerPlace=place;
@@ -131,7 +139,7 @@ export class Village {
     const now=performance.now(), dt=Math.min(.05,(now-(this.last || now))/1000); this.last=now;
     this.figures.animate(now);
     const target=this.follow && this.figures.player ? this.figures.player.group.position : this.goal;
-    if(target) {
+    if(!glideEnding(this,dt) && target) {
       const delta=target.clone().sub(this.controls.target).multiplyScalar(1-Math.exp(-dt*4));
       this.controls.target.add(delta); this.camera.position.add(delta);
     }

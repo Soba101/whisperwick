@@ -89,6 +89,26 @@ geometry; each selectable clone receives the same stable pick ID. Only the sun
 casts shadows; lamp lights have short ranges. The target is fewer than about 300
 draw calls and 60 fps on a laptop, but neither is measured in this environment.
 
+## Ending scene (#105)
+
+Both pages keep the private accusation before the reveal. After recording it, the
+server supplies `ending_scene`: a fixed crime account, custody timeline with the
+holder's exact reasons, role, accusation result, give/show counts, and counts of
+player-authored talks per person. A weapon is named only when `secrets.weapon`
+names one; `secrets.accomplice` adds an accomplice without inventing their actions.
+The account uses the saved crime location, a matching killing event, or the old
+scenario's starting body location. It never interprets dialogue as truth.
+
+The 2D page inlines the shared renderer and paper styles into a full-screen dialog;
+it still needs no external assets. The 3D dialog leaves the village visible beside
+it (above it on phones). A camera glide frames the Town Hall closing tableau, with
+held people spaced apart and a small diamond/killer label after the reveal.
+Staging those figures is cosmetic: custody and actual locations are replayed from
+the log in Python and never changed by the scene. Close and Escape dismiss the
+panel; View ending reopens it without submitting another accusation. Play again
+uses each page's existing New game action. The role picker and start screen are
+unchanged.
+
 ## Run and preview
 
 ```sh
