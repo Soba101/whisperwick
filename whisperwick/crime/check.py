@@ -1,7 +1,7 @@
 """Check actual starting evidence, rather than trusting a 'solvable' flag."""
 
 from whisperwick.crime import pools
-from whisperwick.crime.facts import clues, private_memories
+from whisperwick.crime.facts import clue_sources, clues, private_memories
 from whisperwick.scenario import build_world
 
 
@@ -25,7 +25,20 @@ def check(sc) -> bool:
             return False
         if not 1 <= len(s["misleading"]) <= 2 or len(set(s["misleading"])) != len(s["misleading"]):
             return False
-        if not set(s["misleading"]) <= {"quarrel", "visit"}:
+        if not set(s["misleading"]) <= pools.MISLEADING.keys():
+            return False
+        selected = s["clues"]
+        if ("weapon" not in selected or len(set(selected)) != len(selected)
+                or not set(selected) <= pools.CLUES.keys() or len(clue_sources(sc)) < 2):
+            return False
+        job = s["accomplice_job"]
+        if (job not in pools.ACCOMPLICE_JOBS if accomplice else job is not None):
+            return False
+        if s["weapon_place"] not in pools.PLACES or s["trail_place"] not in pools.PLACES:
+            return False
+        if (s["weapon_place"] != s["place"]) != (job == "hid_weapon"):
+            return False
+        if s["trail_place"] == s["place"]:
             return False
         if people[victim].alive or people[victim].location != s["place"]:
             return False
@@ -33,7 +46,7 @@ def check(sc) -> bool:
             return False
         expected_items, observations = clues(sc)
         actual = {i.id: i for i in sc.items}
-        # Two physical sources plus an independent living witness are required.
+        # Require independent sources, then verify their actual items and memories.
         if any(actual.get(i.id) != i for i in expected_items):
             return False
         if any(text not in sc.evidence.get(who, []) for who, text in observations):
