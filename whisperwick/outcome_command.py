@@ -20,6 +20,7 @@ def outcome_run(db: Path, scenario: Path | None = None) -> str:
     saved_path = data.get("scenario")
     source = scenario or (Path(saved_path) if saved_path and Path(saved_path).is_file() else None)
     sc = load_scenario(source) if source else None
+    # Only read the secret when asked: it is not part of what the world did.
     murderer = sc.secrets.get("murderer") if scenario else None
     secrets = sc.secrets if scenario else data.get("secrets", {})
     authority = data.get("authority", sc.authority if sc else [])
