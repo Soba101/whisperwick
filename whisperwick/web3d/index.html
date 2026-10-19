@@ -7,12 +7,18 @@
 <!-- Versioned imports need no build tools. All game requests stay on this origin. -->
 <script type="importmap">{"imports":{
  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
- "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+ "@huggingface/transformers":"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2/dist/transformers.min.js"
 }}</script>
 </head>
 <body>
 <header><strong>Whisperwick</strong><span id="clock"></span><span id="where"></span>
+<button id="voice-toggle" aria-pressed="false">Voice: off</button>
 <a class="btn" href="/">2D view</a></header>
+<div id="voice-tools" hidden aria-label="Voice playback">
+<button id="voice-unlock">Enable audio</button>
+<button id="voice-skip" disabled>Skip</button><button id="voice-stop" disabled>Stop</button>
+<span id="voice-count" role="status"></span></div>
 <main>
 <section id="village" aria-label="Village scene">
 <div id="canvas"></div><div id="labels"></div>
@@ -38,7 +44,10 @@
 <form id="command"><label>Who or where <select id="target"></select></label>
 <label>Item <select id="item"></select></label>
 <label>Message <textarea id="message" rows="2" placeholder="What do you say?"></textarea></label>
+<button id="mic" type="button" hidden aria-pressed="false" aria-label="Start or stop dictation">Mic</button>
 <button id="send">Send</button></form>
+<p id="voice-status" role="status" aria-live="polite"></p>
+<button id="voice-browser" type="button" hidden>Use browser recognition (may send audio to browser maker)</button>
 <div class="waits"><button id="w10">Wait 10 min</button><button id="w60">Wait 1 hour</button>
 <button id="quit">Quit</button><button id="again" hidden>New game</button></div>
 <p id="end"></p>

@@ -77,3 +77,35 @@ def test_every_local_module_import_is_served():
             response = request('/web3d/' + dependency)
             assert response['code'] == 200, (name, dependency)
             assert response['headers']['Content-Type'].startswith('text/javascript')
+
+
+def test_voice_assets_are_3d_only():
+    # Exercise the real route without opening a socket or changing the 2D template.
+    from whisperwick.web_page import render_page
+
+    page = request('/3d')['body'].decode()
+    assert 'id="voice-toggle" aria-pressed="false"' in page
+    assert 'id="mic" type="button" hidden' in page
+    assert '@huggingface/transformers@3.0.2/' in page
+    for name in ('voice.js', 'stt.js', 'tts.js'):
+        response = request('/web3d/' + name)
+        assert response['code'] == 200
+        assert response['headers']['Content-Type'].startswith('text/javascript')
+        assert request('/web3d/' + name, authorized=False)['code'] == 403
+    original = request('/')['body'].decode()
+    assert original == render_page()
+    assert 'voice-toggle' not in original and 'transformers' not in original
+    assert 'https://' not in original and 'http://' not in original
+
+
+def test_voice_browser_boundaries_when_node_is_available():
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    import pytest
+
+    node = shutil.which('node')
+    if not node:
+        pytest.skip('Node is optional; real browser checks remain manual')
+    subprocess.run([node, str(Path(__file__).with_name('web3d_voice.mjs'))], check=True)
