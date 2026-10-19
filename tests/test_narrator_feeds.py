@@ -28,6 +28,9 @@ const state = {feed:[line,line], feed_total:2,
     if three_d:
         source = Path("whisperwick/web3d/panels.js").read_text()
         source = source.replace("import {clothing} from './palette.js';", "const clothing=()=>0;")
+        # Live talk (#106) draws below the feed; this check is only about feed rows.
+        source = source.replace("import {drawLiveTalk} from './live-talk.js';",
+                                "const drawLiveTalk=()=>{};")
         source = source.replace("export class Panels", "class Panels")
         render = "const panels=new Panels(); panels.draw(state); panels.draw(state);"
         style = Path("whisperwick/web3d/style.css").read_text()
