@@ -4,11 +4,11 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Week 9 done, week 10 in progress.** Weeks 1-6 built the engine, the player, cited beliefs,
+> Status: **Weeks 1-12 done; 13-15 built, being measured.** Weeks 1-6 built the engine, the player, cited beliefs,
 > arrests and endings, and a playable demo (`whisperwick play --web`, `whisperwick replay`).
-> Weeks 7-9 measured why villagers fail, kept the evidence heading, and tried every speed idea
-> (a 3-day game still takes 45-75 minutes). Week 10 measures the player's effect, then Gate 2.
-> See [docs/week10-plan.md](docs/week10-plan.md).
+> Weeks 7-12 measured why villagers fail, tried speed ideas and checked run-to-run noise.
+> Weeks 13-15 added player roles and an ending report, random crimes, a 3D view, voice,
+> a narrator line and live talk. See [docs/week15-plan.md](docs/week15-plan.md).
 
 ## The question
 
@@ -131,8 +131,12 @@ data/            local SQLite event logs (git-ignored)
 | 7 | Why villagers fail | Done: five checks measured (#61, #62) |
 | 8 | Behaviour + speed | Done: evidence heading kept (right person 8/10); speed items dropped |
 | 9 | Model screen + group turns | Done: screen works (#67); group turns and vLLM not kept (#68, #64) |
-| 10 | Player effect + Gate 2 | In progress: [week10-plan.md](docs/week10-plan.md) |
-| 11 | Recall search | Next: measure recall misses first (#71) |
+| 10 | Player effect + Gate 2 | Done, see [week10-plan.md](docs/week10-plan.md) |
+| 11 | Recall search | Done, see [week11-plan.md](docs/week11-plan.md) |
+| 12 | Noise check + everyday items | Done: 5 runs per seed are enough (#90); items opt-in (#95) |
+| 13 | Player roles + ending report | Built; check runs in progress (#97), see [week13-plan.md](docs/week13-plan.md) |
+| 14 | Random crimes (any killer, any victim, accomplices) | Built; creative-model check to do (#104), see [week14-plan.md](docs/week14-plan.md) |
+| 15 | Narrator + live talk | Built (#108, #106); latency check to do, see [week15-plan.md](docs/week15-plan.md) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, once the villagers work |
 
 Everything runs locally (a local model on an RTX 5090, served by llama-server). No paid APIs.

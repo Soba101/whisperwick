@@ -26,8 +26,12 @@ while the story stays coherent and every belief stays traceable to its source?
 | 7 | Why villagers fail | Done (2026-10-15): five checks measured, see [week7-plan.md](week7-plan.md) |
 | 8 | Behaviour + speed | Done (2026-10-16), see [week8-plan.md](week8-plan.md) |
 | 9 | Model screen + group turns | Done (2026-10-17), see [week9-plan.md](week9-plan.md) |
-| 10 | Player effect + Gate 2 | In progress, see [week10-plan.md](week10-plan.md) |
-| 11 | Recall search | Next: measure recall misses first (#71) |
+| 10 | Player effect + Gate 2 | Done, see [week10-plan.md](week10-plan.md) |
+| 11 | Recall search | Done, see [week11-plan.md](week11-plan.md) |
+| 12 | Noise check + everyday items | Done: 5 runs per seed are enough (#90); items opt-in (#95) |
+| 13 | Player roles + ending report | Built; check runs in progress (#97), see [week13-plan.md](week13-plan.md) |
+| 14 | Random crimes (any killer, any victim, accomplices) | Built; creative-model check to do (#104), see [week14-plan.md](week14-plan.md) |
+| 15 | Narrator + live talk | Built (#108, #106); latency check to do, see [week15-plan.md](week15-plan.md) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, deferred until the villagers work |
 
 ### Week 3: player + real objects
