@@ -9,7 +9,7 @@ under the lock. That way the page can never see more than Wren could see.
 import threading
 from collections import deque
 
-from whisperwick import player_terminal, web_silence, web_state
+from whisperwick import player_terminal, web_scene, web_silence, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.scenario import Scenario
@@ -46,6 +46,9 @@ class WebPlayer(PlayerSource):
         self.turn_of: tuple | None = None  # Actor, starting errors, starting feed count, tick.
         self.lines_by: dict[str, int] = {}
         self.feed: list[str] = []
+        self.interactions: dict[str, dict] = {}  # Only witnessed item gestures.
+        self.motions: dict[str, dict] = {}  # Only witnessed walks, never hidden positions.
+        self.speech: dict[str, str] = {}  # Only lines already allowed into the feed.
         self.seen = 0  # how many log events were already looked at for the feed
         self.busy = ""  # what the page says while the villagers act (never names strangers)
         self.known = Known()
@@ -84,6 +87,7 @@ class WebPlayer(PlayerSource):
         with self.cv:
             world = self.world
             return {
+                **web_scene.presentation(self),
                 "clock": world.clock.label() if world else "",
                 "you": self.view,
                 "known": self.known.snapshot(),
@@ -111,6 +115,12 @@ class WebPlayer(PlayerSource):
         for event in fresh:
             lines = player_terminal.player_lines(world, [event], claims=False)  # words only
             self.feed += lines
+            if lines and event.type == "talk":
+                self.speech[event.actor] = lines[-1]
+            if lines and event.type in {"give", "take", "show"}:
+                self.interactions[event.actor] = {"id": event.actor, "sequence": len(self.feed)}
+            if lines and event.type == "move":
+                self.motions[event.actor] = web_scene.walk(world, event, len(self.feed))
             self.lines_by[event.actor] = self.lines_by.get(event.actor, 0) + len(lines)
             if lines and event.actor != PLAYER_ID:
                 self.others += 1  # something Wren can see that someone else did or said

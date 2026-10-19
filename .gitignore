@@ -21,3 +21,6 @@ models/
 
 # macOS
 .DS_Store
+
+# Unpacked source art; only selected licensed runtime assets are packaged.
+assets-src/
