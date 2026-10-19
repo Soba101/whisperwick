@@ -1,0 +1,9 @@
+# Extra goods have their own IDs. Existing villagers keep everything they own.
+player: {name: Wren, occupation: travelling peddler, title: "travelling peddler"}
+items:
+  - {id: item_peddler_cloth, name: bolt of cloth, description: a length of rolled cloth, holder: player}
+  - {id: item_peddler_spices, name: pouch of spices, description: a pouch of spices, holder: player}
+  - {id: item_peddler_rope, name: coil of rope, description: a length of wound rope, holder: player}
+  - {id: item_peddler_coin_1, name: copper coin, description: a small copper coin, holder: player}
+  - {id: item_peddler_coin_2, name: copper coin, description: a small copper coin, holder: player}
+  - {id: item_peddler_coin_3, name: copper coin, description: a small copper coin, holder: player}

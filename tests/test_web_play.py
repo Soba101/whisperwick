@@ -136,7 +136,10 @@ def test_full_loop_over_http(game):
     assert c.state(since=s["feed_total"])["feed"] == []
     assert c.request("/wait", {"minutes": 60})[0] == 200
     s = c.until(lambda s: s["finished"])
-    assert s["outcome"] and s["secret"].startswith("murderer = ")
+    assert s["accusation_pending"] and s["secret"] is None
+    assert c.request("/accuse", {"target": "npc_victor"})[0] == 200
+    s = c.state()
+    assert "Victor killed Mayor Aldric" in s["ending"]
     assert not s["awaiting"]
 
 
@@ -145,7 +148,7 @@ def test_quit_over_http(game):
     c.until(lambda s: s["awaiting"])
     assert c.state()["outcome"] is None and c.state()["secret"] is None
     assert c.request("/quit", {})[0] == 200
-    assert c.until(lambda s: s["finished"])["outcome"]
+    assert c.until(lambda s: s["finished"])["accusation_pending"]
 
 
 def test_server_refuses_foreign_hosts_and_form_posts(game):
@@ -160,13 +163,12 @@ def test_server_refuses_foreign_hosts_and_form_posts(game):
 
 # ---- the page ----
 
-def test_page_is_offline_and_has_no_plot_words():
+def test_page_is_offline_and_has_player_goal():
     html = web_page.render_page()
     assert not re.search(r"https?://|src=|href=|@import", html)
     assert html.count(web_guide.HOOK) == 2
-    text = html.replace(web_guide.HOOK, "").lower()
-    for word in ("murder", "mayor", "killer"):
-        assert word not in text
+    assert "Find out who killed Mayor Aldric before nightfall" in html
+    assert "Choose your role" in html
     assert "You are Wren, a newcomer" in html
     assert html.count("innerHTML +=") == 1 and "innerHTML =" not in html  # svg lines only
 

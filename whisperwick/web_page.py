@@ -6,17 +6,19 @@ never innerHTML. The guide says only plain facts about the start: no plot, no hi
 
 import json
 
+from whisperwick.web_ending import ENDING_HTML, ENDING_JS, ROLE_HTML
 from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS, HOOK
 from whisperwick.web_js import JS
 from whisperwick.web_notebook import NOTEBOOK, NOTEBOOK_JS
 from whisperwick.web_style import CSS
 
-BODY = GUIDE + f"""
+BODY = ROLE_HTML + GUIDE + f"""
 <header class="page-head"><h1>Whisperwick</h1>
 <button id="help" aria-label="How to play">How to play</button>
 <div class="sub"><span id="clock"></span><span id="where"></span></div>
 <p class="hook">{HOOK}</p>
-<p class="goal"><b>Goal:</b> find out what is going on in the village.</p></header>
+<p class="goal"><b>Goal:</b> Find out who killed Mayor Aldric before nightfall,
+  or don't: it's your day.</p></header>
 <div class="wrap">
   <div>
     <div id="map"><svg id="lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div>
@@ -39,6 +41,7 @@ BODY = GUIDE + f"""
         <button id="quit">Quit</button></div>
       <div id="reject" class="warn" hidden></div>
     </div>
+    """ + ENDING_HTML + """
     <div class="card" id="end" hidden><h2>The game is over</h2><pre id="outcome"></pre>
       <div id="secretbox" hidden><h2>Scenario secret (shown only now, not part of the world)</h2>
         <pre id="secret"></pre></div><div id="err" class="warn"></div>
@@ -53,7 +56,8 @@ def render_page() -> str:
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}</style></head><body>{BODY}"
-        f"<script>const HINTS = {json.dumps(HINTS)};{JS}{NOTEBOOK_JS}</script></body></html>"
+        f"<script>const HINTS = {json.dumps(HINTS)};{JS}{ENDING_JS}{NOTEBOOK_JS}</script>"
+        "</body></html>"
     )
 
 

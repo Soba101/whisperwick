@@ -79,3 +79,31 @@ Shown in the 2D page and the 3D page (#96), and printed by `whisperwick outcome`
 - Dice (Q7, later).
 - Attacks (#79, still open).
 - Route-finding (#73), seen/told tags (#93), recall by links (#94).
+
+## Implementation notes (2026-10-19)
+
+Built the approved roles and fact pools, role selection for terminal/scripts and the
+2D start page, private starting knowledge, a private final accusation, and a code-written
+ending in the 2D page and `whisperwick outcome`. Villager prompt templates, personality,
+authority rules and engine actions are unchanged. Role YAML rejects fields outside the
+allowed starting facts. Facts use a separate RNG seeded with the run seed.
+
+No-role event parity is checked against SHA-256 digests captured from main commit
+`5783dce48ca16fe76407c7eaba56c4b9a1804b49`: both scenarios, seeds 1 and 42, 300 stub ticks
+with the `none` player. The fixture lives in `tests/fixtures/week13_main_events.json`.
+
+Try `uv run whisperwick play --web` to choose a role before any world starts.
+For terminal play, use `--role cousin`, `--role peddler`, or `--role partner`.
+Keep `--days 3` on measured scripts. Usage examples are in the README.
+
+Validation: Ruff clean; 670 tests passed and one live-model test skipped. Eleven HTTP
+socket tests cannot bind localhost in the sandbox. Routes and inline controls also have
+socket-free tests. Live model comparisons and human playthroughs of each role remain
+unrun; the provisional gate has not been re-evaluated from new live measurements.
+
+Review fixes: role YAML now separates public `occupation` from player-only `title`.
+The title stays on the scenario, outside world NPC records, and appears in the player's
+web panel, terminal introduction and ending. Prompt regression tests cover all three
+roles, including the peddler's visible trade and the one villager's authored memory.
+Endings use scenario authority IDs and the saved murderer ID; sidecars retain authority
+and player title so the ending still works when the scenario file is unavailable.

@@ -56,7 +56,7 @@ function drawMap(y) {
     b.querySelector('.reach').textContent = here ? 'You are here' : canGo ? 'Can go' : '';
   });
   const box = $('p_' + y.place.id);
-  box.appendChild(el('span', 'tok me', 'Wren (you)'));
+  box.appendChild(el('span', 'tok me', (y.name || 'Wren') + ' (you)'));
   y.people.forEach(p => box.appendChild(
     el('span', 'tok' + (p.held ? ' held' : ''), p.name + (p.held ? ' [held]' : ''))));
   y.bodies.forEach(b => box.appendChild(el('span', 'tok body', b.name + ' (body)')));
@@ -72,6 +72,7 @@ function drawYou(y) {
   $('clock').textContent = y.clock;
   $('where').textContent = y.place.name;
   $('you').replaceChildren(
+    list('You', [(y.name || 'Wren') + ', ' + (y.title || y.occupation || 'newcomer')]),
     list('People here', y.people.map(p => p.name + ' (' + p.occupation + ')'
       + (p.held ? ' [held]' : '')), 'nobody'),
     list('Bodies here', y.bodies.map(b => b.name), 'none'),
@@ -142,16 +143,9 @@ function drawHint(s) {
   $('hint').textContent = s.auto_wait ? HINTS.auto : !s.awaiting ? HINTS.busy
     : needsText ? HINTS.message : HINTS.turn;
 }
-function drawEnd(s) {
-  $('bar').hidden = s.finished;
-  $('end').hidden = !s.finished;
-  $('outcome').textContent = s.outcome || '';
-  $('secretbox').hidden = !s.secret;
-  $('secret').textContent = s.secret || '';
-  $('err').textContent = s.error || '';
-}
 function render(s) {
   if (s.gone) { location.reload(); return; }  // the game was stopped or is unknown here
+  if (drawRolePicker(s)) return;
   drawNotebook(s);
   quiet = s.awaiting || s.finished;
   if (!s.you.place) return;  // the game has not started yet
@@ -186,31 +180,6 @@ $('message').onkeydown = e => { if (e.key === 'Enter') $('send').click(); };
 $('w10').onclick = () => post('/wait', {minutes: 10});
 $('w60').onclick = () => post('/wait', {minutes: 60});
 $('quit').onclick = () => { if (confirm('Leave the game?')) post('/quit'); };
-// Inert keeps pointer and keyboard interaction inside the open guide.
-function guide(open) {
-  $('intro').hidden = !open;
-  document.querySelectorAll('.page-head, .wrap').forEach(x => x.inert = open);
-  document.body.classList.toggle('modal-open', open);
-  (open ? $('close') : $('help')).focus({preventScroll: true});
-}
-$('close').onclick = $('dismiss').onclick = () => guide(false);
-$('help').onclick = () => guide(true);
-$('intro').onclick = e => { if (e.target === $('intro')) guide(false); };
-// There are only two guide controls; wrap Tab in both directions.
-document.addEventListener('keydown', e => {
-  if ($('intro').hidden) return;
-  if (e.key === 'Escape') { e.preventDefault(); guide(false); }
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    (document.activeElement === $('close') ? $('dismiss') : $('close')).focus();
-  }
-});
-guide(true);
-$('again').onclick = async () => {
-  const r = await fetch('/newgame', {method: 'POST',
-    headers: {'Content-Type': 'application/json'}, body: '{}'});
-  if (r.ok) location.reload(); else $('err').textContent = (await r.json()).error;
-};
 // Slow polling while it is Wren's turn, quick while villagers act, so lines appear at once.
 async function loop() {
   await poll();

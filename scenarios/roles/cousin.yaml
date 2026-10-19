@@ -1,0 +1,10 @@
+# Family history only. Alice decides what to make of the newcomer.
+player: {name: Wren, occupation: newcomer, title: "Mayor Aldric's cousin"}
+items:
+  - id: item_mayor_letter
+    name: letter from Mayor Aldric
+    description: "A letter addressed to Wren: Dear cousin, come visit when you can. Aldric."
+    holder: player
+memory:
+  npc: npc_alice
+  text: "Wren (player), my cousin and Mayor Aldric's cousin, arrived in the village yesterday."

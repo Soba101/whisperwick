@@ -150,3 +150,13 @@ personality:
   npc_sarah: "Calm and careful. Wants proof before she accuses anyone, and believes everyone deserves a fair hearing."
   npc_hal: "Dutiful and proud of his post. Wary of newcomers, and of anyone who tells him how to do his job."
   npc_victor: "Charming, clever and calculating. Good at telling people what they want to hear. Protects his reputation above all."
+
+# True starting facts a newcomer could have learned. Never secrets or Victor's memory.
+facts:
+  - "Alice (npc_alice) is the innkeeper."
+  - "Bob (npc_bob) is the blacksmith."
+  - "Sarah (npc_sarah) is the priest."
+  - "Victor (npc_victor) is a merchant."
+  - "Hal (npc_hal) is the village guard."
+  - "A bloody kitchen knife lies in the Town Hall (loc_town_hall)."
+  - "Victor (npc_victor) wears muddy boots."
