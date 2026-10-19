@@ -69,6 +69,7 @@ p { margin:0 0 var(--s3); }
 #you b { color:var(--muted); font-weight:400; }
 #feed { list-style:none; padding:0; margin:0; height:40vh; min-height:200px;
   overflow:auto; line-height:1.75; }
+#feed .scene { font-style:italic; }
 #feed li { padding:var(--s3) 0; border-bottom:1px solid var(--line); }
 /* A plain line instead of a big blank box before anything has happened. */
 #feed:empty::before { content:"Nothing seen or heard yet."; color:var(--muted); }

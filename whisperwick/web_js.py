@@ -94,7 +94,12 @@ function drawFeed(s) {
   // Two polls can be in flight at once (Send also polls), and both bring the same new lines.
   // The answer's lines start at feed_total - feed.length; skip any line already on the page.
   const start = s.feed_total - s.feed.length;
-  s.feed.forEach((t, i) => { if (start + i >= have) ul.appendChild(el('li', '', t)); });
+  s.feed.forEach((t, i) => {
+    if (start + i < have) return;
+    const row = el('li', '', t);
+    if (s.feed_flags?.[i]?.scene) row.classList.add('scene');
+    ul.appendChild(row);
+  });
   have = Math.max(have, s.feed_total);
   if (stick) ul.scrollTop = ul.scrollHeight;
 }

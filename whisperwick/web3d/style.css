@@ -56,6 +56,7 @@ summary { cursor:pointer; } details p { white-space:pre-wrap; color:#6b604e; }
 /* One feed line, shown in full. */
 .line { border-bottom:1px solid #dfd1b7; padding:10px 0; margin:0; font-size:12px; line-height:1.55;
   white-space:pre-line; }  /* keeps line breaks, folds padding spaces */
+#feed .scene { font-style:italic; }
 .speaker-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px; background:var(--speaker,#b4a380); }
 footer { margin:14px 18px 18px; padding:16px 20px; border:1px solid #baa788; border-radius:16px;
   background:#f5e9d1; box-shadow:0 5px 20px #65533a0c; }
