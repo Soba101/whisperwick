@@ -109,3 +109,16 @@ def test_voice_browser_boundaries_when_node_is_available():
     if not node:
         pytest.skip('Node is optional; real browser checks remain manual')
     subprocess.run([node, str(Path(__file__).with_name('web3d_voice.mjs'))], check=True)
+
+
+def test_kokoro_loading_and_cancellation():
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    import pytest
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for voice checks")
+    subprocess.run([node, str(Path(__file__).with_name('web3d_kokoro.mjs'))], check=True)

@@ -1,3 +1,4 @@
+import {drawLiveTalk} from './live-talk.js';
 import {clothing} from './palette.js';
 
 const $ = id => document.getElementById(id);
@@ -19,6 +20,7 @@ export class Panels {
     $('notes').oninput = () => { if (this.notesKey) stored(this.notesKey,$('notes').value); };
   }
   draw(s) {
+    drawLiveTalk(s,$("live-talk"));
     $('crime-label').textContent = s.crime_seed == null ? '' : 'Crime #' + s.crime_seed;
     $('clock').textContent = s.clock; $('where').textContent = s.you.place.name;
     $('hook').textContent = s.hook;

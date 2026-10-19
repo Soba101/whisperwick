@@ -95,7 +95,8 @@ export class Figures {
       r.label.name.textContent=p.name+(s.ending_scene?.killer===p.id ? ' ◆ killer' : '')+(p.held ? ' [held]' : p.body ? ' (body)' : '');
       r.label.node.title=p.carried ? 'Carrying: '+(p.carried.map(x => x.name).join(', ') || 'nothing')
         : p.item ? p.name : 'Carried items are private.';
-      this.v.labels.speech(r.label,s.speech?.[p.id]);
+      const live=s.live_talk?.[p.id];
+      this.v.labels.speech(r.label,live ? '"'+live.message+'"' : s.speech?.[p.id],!!live);
       if(p.id===s.player.id) this.player=r;
     });
     this.hadSnapshot=true;

@@ -18,6 +18,10 @@ class WebPlayerFeed:
             # What the 3D view animates: speech bubbles, hand-overs and walks. Display only.
             if lines and event.type == "talk":
                 self.speech[event.actor] = lines[-1]
+                draft = self.talk_drafts.pop(event.actor, None)
+                self.speech_stream.pop(event.actor, None)
+                if draft and draft["message"].strip() == event.data.get("message"):
+                    self.speech_stream[event.actor] = draft["sequence"]
                 if event.data.get("to") == PLAYER_ID:
                     self.reply_to = {"id": event.actor, "sequence": len(self.feed)}
             if lines and event.type in {"give", "take", "show", "use"}:
@@ -60,6 +64,22 @@ class WebPlayerFeed:
             self.lines_by[npc_id] = lines + 1
 
 
+    def on_live_talk(self, world: World, npc_id: str, message: str | None) -> None:
+        """Only the run thread reads world locations. Server threads see plain data."""
+        with self.cv:
+            npc = world.npcs[npc_id]
+            if (message is not None and not self.finished and not self.stopped
+                    and npc.location == world.npcs[PLAYER_ID].location):
+                if npc_id not in self.live_talk:
+                    self.live_sequence += 1
+                line = {"name": npc.name, "message": message,
+                        "sequence": self.live_talk.get(npc_id, {}).get(
+                            "sequence", self.live_sequence)}
+                self.live_talk[npc_id] = line
+                self.talk_drafts[npc_id] = line
+            else:
+                self.live_talk.pop(npc_id, None)
+
     def on_event(self, world: World, event) -> None:
         """Run-loop hook: a villager event was just applied. Show it now if Wren may see it."""
         with self.cv:
@@ -72,8 +92,8 @@ class WebPlayerFeed:
         page never shows who is where outside Wren's view.
         """
         with self.cv:
-            self._catch_up(world)  # also shows Wren's own action right away
-            self._close_turn(world)
+            self.talk_drafts.clear()  # A rejected preview cannot match a later turn.
+            self._refresh(world)  # also shows Wren's own action right away
             if npc_id is not None and npc_id == self.waiting_on:
                 # The tick is kept: the turn is closed later, often after the clock has moved on.
                 self.turn_of = (npc_id, self.stats.get("errors", 0), self.lines_by.get(npc_id, 0),

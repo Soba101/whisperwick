@@ -25,6 +25,8 @@ def presentation(player) -> dict:
                     else None,
         "motions": list(player.motions.values()),
         "interactions": [v for k, v in player.interactions.items() if k in visible],
+        "speech_stream": {k: v for k, v in player.speech_stream.items() if k in visible},
+        "live_talk": {k: v for k, v in player.live_talk.items() if k in people},
         "speech": {k: v for k, v in player.speech.items() if k in visible},
     }
 

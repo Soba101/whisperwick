@@ -36,7 +36,8 @@ BODY = ROLE_HTML + GUIDE + f"""
   </div>
   <div>
     <div class="card" id="feedcard"><h2>What you see and hear</h2>
-      <ul id="feed"></ul><div id="busy" hidden>The villagers are acting...</div></div>
+      <ul id="feed"></ul><div id="live-talk" role="status"></div>
+      <div id="busy" hidden>The villagers are acting...</div></div>
     <div class="card" id="bar">
       <div id="hint"></div>
       <select id="action" aria-label="action"></select>

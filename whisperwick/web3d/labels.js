@@ -7,9 +7,10 @@ export class Labels {
     const row={node,name,position,kind}; this.rows.push(row); return row;
   }
   remove(row) { row.node.remove(); this.rows.splice(this.rows.indexOf(row),1); }
-  speech(row,text) {
-    if (text===row.said) return;
-    row.said=text; row.until=performance.now()+6500;
+  speech(row,text,live=false) {
+    if (text===row.said && live===row.live) return;
+    row.live=live;
+    row.said=text; row.until=live ? Infinity : performance.now()+6500;
     row.node.querySelector('small')?.remove();
     if (!text) return;
     // Speech metadata contains the feed line. Keep only its quoted words.

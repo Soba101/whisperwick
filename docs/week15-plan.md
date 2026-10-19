@@ -29,3 +29,22 @@ ground, a body if any. Fixed templates with a few seeded variants per place, so 
 
 ## Not in this week
 - C runs separately. Open world (#102). The backlog (#108-#117 minus this week).
+
+### B implementation (#106)
+- Web play with llama-server streams individual villager act replies by default.
+  `WHISPERWICK_STREAM_TALK=off` disables it. Ollama, thinking, shared conversation calls,
+  and non-web play keep their existing request path.
+- Both pages show a temporary line below the feed; only villagers at the player's place
+  can appear. The completed response uses the existing intent parser and engine checks.
+- 3D voice mode reads the first complete live sentence, then the committed remainder.
+  A preview sequence links the two so rejected drafts cannot suppress a later reply.
+- The 3D voice engine menu offers Browser voices and Kokoro (on device). Kokoro loads only
+  when selected, using `kokoro-js@1.2.1` from jsDelivr and
+  `onnx-community/Kokoro-82M-v1.0-ONNX` with q8 weights. It tries WebGPU then WASM,
+  reports download progress, and uses the browser's model cache. Villager IDs choose fixed
+  voices. Loading or playback errors fall back to browser speech. The 2D page stays offline.
+- Automated checks cover the partial JSON scanner, streamed/non-streamed request and intent
+  equality, identical stub-run event logs, visibility, cleanup, sentence handoff, and mocked
+  Kokoro loading, fallback and cancellation. The fake server has memory and HTTP transports.
+- Still to measure on the model PC: first visible word over 20 live turns before/after.
+  Real browser audio, model downloads, GPU/WASM execution and cache reuse need a live check.

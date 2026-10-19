@@ -118,3 +118,6 @@ pre { white-space:pre-wrap; margin:0; font:inherit; }
 
 # Share ending typography while keeping every 2D asset inline and offline.
 CSS += files("whisperwick").joinpath("web3d/ending.css").read_text()
+
+# Tentative words use the same offline page stylesheet.
+CSS += "\n#live-talk { overflow-wrap:anywhere; }\n"

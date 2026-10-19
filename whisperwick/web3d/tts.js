@@ -16,11 +16,14 @@ export class TTS {
     const silent=new SpeechSynthesisUtterance(''); silent.volume=0;
     this.synth.speak(silent); this.synth.resume();
   }
-  add(id,line) {
+  add(id,line,spoken='') {
     const first=line.indexOf('"'), last=line.lastIndexOf('"');
     // Never read a prefix or an unquoted narration line.
     if(first<0 || last<=first) return;
     const text=line.slice(first+1,last).trim();
+    this.words(id,spoken && text.startsWith(spoken) ? text.slice(spoken.length).trim() : text);
+  }
+  words(id,text) {
     if(text) this.queue.push({id,text});
     this.next();
   }
@@ -38,7 +41,17 @@ export class TTS {
     this.identities.set(id,identity); return identity;
   }
   next() {
-    if(!this.synth || this.current || !this.queue.length) { this.changed(); return; }
+    if((!this.synth && !this.engine) || this.current || !this.queue.length) { this.changed(); return; }
+    if(this.engine) {
+      const line=this.queue.shift(), marker={}, engine=this.engine; this.current=marker;
+      const finish=() => { if(this.current===marker) { this.current=null; this.next(); } };
+      engine.speak(line.id,line.text,finish,() => {
+        if(this.current!==marker) return;
+        engine.stop(); this.engine=null; this.current=null;
+        this.fallback?.(); this.queue.unshift(line); this.next();
+      });
+      this.changed(); return;
+    }
     const identity=this.identity(this.queue[0].id);
     if(!identity) { this.changed(); return; }
     const {text}=this.queue.shift(), utterance=new SpeechSynthesisUtterance(text);
@@ -55,9 +68,9 @@ export class TTS {
   changed() { this.change(this.queue.length+(this.current ? 1 : 0)); }
   skip() {
     if(!this.current) this.queue.shift();
-    this.current=null; this.synth?.cancel(); this.next();
+    this.current=null; this.engine?.stop(); this.synth?.cancel(); this.next();
   }
   stop() {
-    this.queue=[]; this.current=null; this.synth?.cancel(); this.changed();
+    this.queue=[]; this.current=null; this.engine?.stop(); this.synth?.cancel(); this.changed();
   }
 }
