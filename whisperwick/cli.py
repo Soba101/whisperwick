@@ -16,6 +16,7 @@ from whisperwick import (
     outcome_command,
     replay_command,
     screen_command,
+    spread_command,
     story,
 )
 from whisperwick.clock import Clock
@@ -29,6 +30,7 @@ app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.
 
 app.add_typer(screen_command.app, name="screen")
 app.command()(play)
+app.command("spread")(spread_command.spread_command)
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
 
