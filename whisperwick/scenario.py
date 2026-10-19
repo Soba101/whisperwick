@@ -14,6 +14,11 @@ from whisperwick.world import NPC, Location, World
 
 class Scenario(BaseModel):
     name: str
+    # Player knowledge is never passed into villager prompts or memories.
+    facts: list[str] = Field(default_factory=list)
+    player_title: str | None = None
+    role_id: str | None = None
+    private_fact: str | None = None
     seed: int
     start: dict[str, int]  # {"day": 1, "hour": 8}
     locations: list[Location]

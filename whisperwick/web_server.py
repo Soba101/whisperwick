@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 from whisperwick import web_auth
 from whisperwick.player_web import WAIT_CHOICES, intent_from
+from whisperwick.roles import ROLE_IDS
 from whisperwick.web_games import Game, GameManager
 from whisperwick.web_page import plain_page, render_page
 
@@ -81,6 +82,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(403, {"error": "key needed"})
         token = self.cookies().get(web_auth.GAME_COOKIE)
         if url.path == "/":
+            if self.games.choose_roles and self.games.get(token) is None:
+                return self.send(200, render_page().encode(), "text/html; charset=utf-8")
             game = self.games.open(token)  # a new browser starts its own game here
             if game is None:
                 return self.send_text(503, "All seats are taken, try again later.")
@@ -88,6 +91,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, render_page().encode(), "text/html; charset=utf-8", cookies)
         if url.path == "/state":
             game = self.games.get(token)
+            if game is None and self.games.choose_roles:
+                return self.send_json(200, {"select_role": True,
+                                            "default_role": self.games.default_role})
             if game is None:
                 return self.send_json(200, {"gone": True})  # the page then reloads itself
             try:
@@ -121,8 +127,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": "bad request"})
         path = urlparse(self.path).path
         token = self.cookies().get(web_auth.GAME_COOKIE)
+        if path == "/choose":
+            self.games.discard(token)
+            return self.send_json(200, {"ok": True})
         if path == "/newgame":
-            game = self.games.replace(token)
+            role = body.get("role") or None
+            if role is not None and role not in ROLE_IDS:
+                return self.send_json(400, {"error": "unknown role"})
+            game = self.games.replace(token, role)
             if game is None:
                 return self.send_json(503, {"error": "All seats are taken, try again later."})
             return self.send_json(200, {"ok": True}, self.game_cookie(game))
@@ -130,7 +142,10 @@ class Handler(BaseHTTPRequestHandler):
         if game is None:
             return self.send_json(409, {"error": "no game here, reload the page"})
         player = game.player
-        if path == "/act":
+        if path == "/accuse":
+            with player.cv:
+                sent = player.ending.choose(body.get("target"))
+        elif path == "/act":
             intent = intent_from(body)
             if intent is None:
                 return self.send_json(400, {"error": "that action is not available"})

@@ -10,6 +10,7 @@ import typer
 
 from whisperwick.llm_cli import llm_settings, run_with_llm
 from whisperwick.player_web import WebPlayer
+from whisperwick.roles import apply_role
 from whisperwick.scenario import Scenario
 from whisperwick.web_games import IDLE_SECONDS, MAX_GAMES, GameManager
 from whisperwick.web_server import make_server
@@ -17,18 +18,19 @@ from whisperwick.web_server import make_server
 
 def launcher(
     sc: Scenario, scenario: Path, db_for: Callable[[int], str], seed: int | None, minutes: int
-) -> Callable[[], tuple[WebPlayer, threading.Thread]]:
+) -> Callable[..., tuple[WebPlayer, threading.Thread]]:
     """A function that starts one more game: its own player, its own db, its own thread."""
     numbers = itertools.count(1)  # db_for(n) gives each game a file, so runs never mix
 
-    def launch() -> tuple[WebPlayer, threading.Thread]:
-        player, db = WebPlayer(sc), db_for(next(numbers))
+    def launch(role: str | None = None) -> tuple[WebPlayer, threading.Thread]:
+        chosen = apply_role(sc, role, seed)
+        player, db = WebPlayer(chosen), db_for(next(numbers))
 
         def game() -> None:
             error = None
             try:
                 # The hooks make lines and the "who is thinking" label appear at once.
-                run_with_llm(sc, scenario, db, seed, minutes, player, "web",
+                run_with_llm(chosen, scenario, db, seed, minutes, player, "web",
                              on_event=player.on_event, on_turn=player.on_turn)  # fmt: skip
             except Exception as e:  # shown on the page, so a crash is not a silent stall
                 error = f"the game stopped: {e}"
@@ -53,9 +55,12 @@ def start(
     allow_hosts: tuple[str, ...] = (),
     max_games: int = MAX_GAMES,
     idle_seconds: float = IDLE_SECONDS,
+    choose_roles: bool = False,
+    role: str | None = None,
 ):
     """Start the server. Games start when visitors arrive. Returns (server, game manager)."""
-    manager = GameManager(launcher(sc, scenario, db_for, seed, minutes), max_games, idle_seconds)
+    manager = GameManager(launcher(sc, scenario, db_for, seed, minutes), max_games, idle_seconds,
+                          choose_roles=choose_roles, default_role=role)
     return make_server(manager, port, key, allow_hosts), manager
 
 
@@ -69,6 +74,7 @@ def serve(
     key: str | None = None,
     allow_hosts: tuple[str, ...] = (),
     max_games: int = MAX_GAMES,
+    role: str | None = None,
 ) -> None:
     """Serve until Ctrl-C. A finished game's page stays up so the outcome can be read."""
     if allow_hosts and not key:
@@ -84,7 +90,7 @@ def serve(
 
     try:
         server, manager = start(sc, scenario, db_for, seed, minutes, port, key, allow_hosts,
-                                max_games)  # fmt: skip
+                                max_games, choose_roles=True, role=role)  # fmt: skip
     except OSError as e:
         # Another program has the port (Docker Desktop holds 8000 on this Mac).
         hint = f"whisperwick play --web --port {port + 1}"

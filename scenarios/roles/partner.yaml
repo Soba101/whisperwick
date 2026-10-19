@@ -1,0 +1,10 @@
+# A past business connection. This says nothing about trust or present plans.
+player: {name: Wren, occupation: newcomer, title: "Victor's former business partner"}
+items:
+  - id: item_ledger_page
+    name: old ledger page
+    description: a page listing cloth deliveries once traded by Wren and Victor
+    holder: player
+memory:
+  npc: npc_victor
+  text: "Wren (player) and I used to trade cloth together as business partners."

@@ -28,12 +28,15 @@ def map_data(sc: Scenario) -> list[dict]:
     ]
 
 
-def you_view(world: World) -> dict:
+def you_view(world: World, title: str | None = None) -> dict:
     """Wren's own view: time, place, people and bodies here, items here and carried."""
     here = world.npcs[PLAYER_ID].location
     others = [n for n in world.npcs_at(here) if n != PLAYER_ID]
     return {
         "clock": world.clock.label(),
+        "name": world.npcs[PLAYER_ID].name,
+        "occupation": world.npcs[PLAYER_ID].occupation,
+        "title": title or world.npcs[PLAYER_ID].occupation,
         "place": {"id": here, "name": world.locations[here].name},
         "people": [
             {"id": n, "name": world.npcs[n].name, "occupation": world.npcs[n].occupation,
