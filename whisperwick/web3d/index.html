@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whisperwick · Village</title>
+<link rel="stylesheet" href="/web3d/style.css">
+<!-- Versioned imports need no build tools. All game requests stay on this origin. -->
+<script type="importmap">{"imports":{
+ "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}</script>
+</head>
+<body>
+<header><strong>Whisperwick</strong><span id="clock"></span><span id="where"></span>
+<a class="btn" href="/">2D view</a></header>
+<main>
+<section id="village" aria-label="Village scene">
+<div id="canvas"></div><div id="labels"></div>
+<div class="camera"><button id="follow">Follow Wren</button>
+<span>Drag to orbit · pinch or scroll to zoom</span></div>
+<p id="scene-error" role="status"></p>
+</section>
+<aside>
+<p id="hook"></p><p id="busy" role="status"></p>
+<nav aria-label="Information panels">
+<button data-panel="feed-panel" aria-pressed="true">Feed</button>
+<button data-panel="known-panel" aria-pressed="false">What you know</button>
+<button data-panel="notes-panel" aria-pressed="false">Notes</button></nav>
+<section id="feed-panel"><h2>What you see and hear</h2><div id="feed"></div></section>
+<section id="known-panel" hidden><h2>What you know</h2><div id="known"></div></section>
+<section id="notes-panel" hidden><label for="notes">Your private notes</label>
+<textarea id="notes" rows="8"></textarea><small>Stored in this browser for this game.</small></section>
+<p id="inspect"></p>
+</aside>
+</main>
+<footer>
+<p id="reject" role="alert"></p><div id="actions" aria-label="Actions"></div>
+<form id="command"><label>Who or where <select id="target"></select></label>
+<label>Item <select id="item"></select></label>
+<label>Message <textarea id="message" rows="2" placeholder="What do you say?"></textarea></label>
+<button id="send">Send</button></form>
+<div class="waits"><button id="w10">Wait 10 min</button><button id="w60">Wait 1 hour</button>
+<button id="quit">Quit</button><button id="again" hidden>New game</button></div>
+<p id="end"></p>
+</footer>
+<script type="module" src="/web3d/app.js"></script>
+</body></html>

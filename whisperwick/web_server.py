@@ -13,7 +13,7 @@ import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from whisperwick import web_auth
+from whisperwick import web3d_assets, web_auth
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
 from whisperwick.web_games import Game, GameManager
@@ -70,25 +70,34 @@ class Handler(BaseHTTPRequestHandler):
         query = parse_qs(url.query)
         if not self.key_cookie_ok():
             # The link with the key sets the cookie, then drops the key from the address bar.
-            if url.path == "/" and web_auth.key_ok(self.key, query.get("key", [""])[0]):
+            if url.path in ("/", "/3d") and web_auth.key_ok(self.key, query.get("key", [""])[0]):
                 cookie = web_auth.cookie_header(web_auth.KEY_COOKIE, self.key, self.secure())
                 self.send_response(302)
-                self.send_header("Location", "/")
+                self.send_header("Location", url.path)
                 self.send_header("Set-Cookie", cookie)
                 self.send_header("Content-Length", "0")
                 return self.end_headers()
-            if url.path == "/":
+            if url.path in ("/", "/3d"):
                 return self.send_text(403, "Ask for the link with the key.")
             return self.send_json(403, {"error": "key needed"})
         token = self.cookies().get(web_auth.GAME_COOKIE)
-        if url.path == "/":
+        if url.path == "/3d" and query.get("fixture") == ["1"]:
+            return self.send(200, *web3d_assets.asset("index.html"))
+        if url.path in ("/", "/3d"):
+            # Roles are picked on the 2D page (week 13); after picking, /3d reloads into 3D.
             if self.games.choose_roles and self.games.get(token) is None:
                 return self.send(200, render_page().encode(), "text/html; charset=utf-8")
             game = self.games.open(token)  # a new browser starts its own game here
             if game is None:
                 return self.send_text(503, "All seats are taken, try again later.")
             cookies = self.game_cookie(game) if game.token != token else None
-            return self.send(200, render_page().encode(), "text/html; charset=utf-8", cookies)
+            body = (web3d_assets.asset("index.html")[0] if url.path == "/3d"
+                    else render_page().encode())
+            return self.send(200, body, "text/html; charset=utf-8", cookies)
+        if url.path.startswith("/web3d/"):
+            found = web3d_assets.asset(url.path.removeprefix("/web3d/"))
+            if found:
+                return self.send(200, *found)
         if url.path == "/state":
             game = self.games.get(token)
             if game is None and self.games.choose_roles:
@@ -167,6 +176,10 @@ class LocalServer(ThreadingHTTPServer):
     The standard server_bind calls socket.getfqdn("127.0.0.1"), which took 35 s on this Mac
     before the page could start. We only ever serve 127.0.0.1, so the name is known.
     """
+
+    # The 3D page asks for many models and textures at once. The default queue of 5
+    # waiting connections overflowed and reset requests, so some scripts never loaded.
+    request_queue_size = 128
 
     def server_bind(self):
         socketserver.TCPServer.server_bind(self)

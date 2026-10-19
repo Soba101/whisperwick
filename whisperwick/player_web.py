@@ -9,7 +9,7 @@ under the lock. That way the page can never see more than Wren could see.
 import threading
 from collections import deque
 
-from whisperwick import web_state
+from whisperwick import web_scene, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.player_ending import PlayerEnding
@@ -49,6 +49,9 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         self.turn_of: tuple | None = None  # Actor, starting errors, starting feed count, tick.
         self.lines_by: dict[str, int] = {}
         self.feed: list[str] = []
+        self.interactions: dict[str, dict] = {}  # Only witnessed item gestures.
+        self.motions: dict[str, dict] = {}  # Only witnessed walks, never hidden positions.
+        self.speech: dict[str, str] = {}  # Only lines already allowed into the feed.
         self.seen = 0  # how many log events were already looked at for the feed
         self.busy = ""  # what the page says while the villagers act (never names strangers)
         self.known = Known()
@@ -87,6 +90,7 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         with self.cv:
             world = self.world
             return {
+                **web_scene.presentation(self),
                 "clock": world.clock.label() if world else "",
                 "you": self.view,
                 "known": {**self.known.snapshot(),

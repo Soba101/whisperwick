@@ -1,6 +1,6 @@
 """Feed and live turn labels. Called only by the run thread, with the player lock."""
 
-from whisperwick import player_terminal, web_silence
+from whisperwick import player_terminal, web_scene, web_silence
 from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
@@ -14,6 +14,13 @@ class WebPlayerFeed:
         for event in fresh:
             lines = player_terminal.player_lines(world, [event], claims=False)  # words only
             self.feed += lines
+            # What the 3D view animates: speech bubbles, hand-overs and walks. Display only.
+            if lines and event.type == "talk":
+                self.speech[event.actor] = lines[-1]
+            if lines and event.type in {"give", "take", "show"}:
+                self.interactions[event.actor] = {"id": event.actor, "sequence": len(self.feed)}
+            if lines and event.type == "move":
+                self.motions[event.actor] = web_scene.walk(world, event, len(self.feed))
             self.lines_by[event.actor] = self.lines_by.get(event.actor, 0) + len(lines)
             if lines and event.actor != PLAYER_ID:
                 self.others += 1  # something Wren can see that someone else did or said
