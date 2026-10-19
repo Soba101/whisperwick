@@ -45,13 +45,14 @@ def you_view(world: World, title: str | None = None) -> dict:
         ],  # fmt: skip
         "bodies": named(world.npcs, world.bodies_at(here)),
         "ground": named(world.items, world.items_at(here)),
-        "carried": named(world.items, world.items_held(PLAYER_ID)),
+        "carried": [{**i, "consumable": world.items[i["id"]].consumable}
+                    for i in named(world.items, world.items_held(PLAYER_ID))],
         "exits": named(world.locations, sorted(world.locations[here].links)),
     }
 
 
 def actions_for(view: dict) -> list[dict]:
-    """All seven actions, their choices, and a reason when they cannot be tried.
+    """All eight actions, their choices, and a reason when they cannot be tried.
 
     Authority actions (arrest, release) are not offered. The engine still decides:
     these lists only save the player from typing ids.
@@ -66,6 +67,7 @@ def actions_for(view: dict) -> list[dict]:
         ("drop", "Drop", None, carried, False, False),
         ("give", "Give", people, carried, False, True),
         ("show", "Show", people, carried, False, False),
+        ("use", "Use", None, [i for i in carried if i.get("consumable")], False, False),
     ]
     empty_reasons = {
         "move": "nowhere to go", "talk": "nobody here to talk to",
@@ -80,6 +82,8 @@ def actions_for(view: dict) -> list[dict]:
             # Keep it visible so the player knows why.
             reason = ("you carry nothing" if items == [] and action != "take"
                       else empty_reasons[action])
+        if action == "use" and items == []:
+            reason = "you are not holding that" if not carried else "that cannot be used up"
         out.append({"action": action, "label": label, "targets": targets, "items": items,
                     "message": message, "target_required": target_required,
                     "reason": reason, "icon": ACTION_ICONS[action]})  # fmt: skip

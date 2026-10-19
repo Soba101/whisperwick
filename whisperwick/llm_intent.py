@@ -6,7 +6,7 @@ Split out of llm_agent.py to keep that file small (#30). Pure functions over the
 from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.world import World
 
-ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show"]
+ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use"]
 # Only villagers the scenario names as authority are offered these.
 AUTHORITY_ACTIONS = ["arrest", "release"]
 

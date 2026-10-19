@@ -18,7 +18,7 @@ def test_intent_schema_and_prompt_have_no_recall_by_default():
     schema = llm_agent.intent_schema(world, "npc_bob")
     assert "recall" not in schema["properties"]["action"]["enum"]
     assert schema["properties"]["action"]["enum"] == [
-        "move", "talk", "look", "take", "drop", "give", "show",
+        "move", "talk", "look", "take", "drop", "give", "show", "use",
     ]  # fmt: skip
     text = llm_agent.build_messages(world, "npc_bob")[0]["content"]
     assert "recall" not in text and "notebook" not in text

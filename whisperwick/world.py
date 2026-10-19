@@ -18,7 +18,7 @@ from whisperwick.claims import claim_problem
 from whisperwick.clock import Clock
 from whisperwick.custody import held_problem
 from whisperwick.events import Event, EventLog
-from whisperwick.items import Item
+from whisperwick.items import Item, check_items
 
 
 class Location(BaseModel):
@@ -87,19 +87,7 @@ class World:
         for npc in npcs:
             if npc.held_by is not None and npc.held_by not in self.authority:
                 raise ValueError(f"{npc.id} is held by {npc.held_by}, who has no authority")
-        if len(self.items) != len(items):
-            raise ValueError("duplicate item ids")
-        for item in items:
-            # Exactly one of location / holder: an item is never in two places or none.
-            if (item.location is None) == (item.holder is None):
-                raise ValueError(f"{item.id} needs exactly one of location or holder")
-            if item.location is not None and item.location not in self.locations:
-                raise ValueError(f"{item.id} is in unknown location {item.location}")
-            if item.holder is not None:
-                if item.holder not in self.npcs:
-                    raise ValueError(f"{item.id} is held by unknown npc {item.holder}")
-                if not self.npcs[item.holder].alive:
-                    raise ValueError(f"{item.id} is held by dead npc {item.holder}")
+        check_items(items, self.locations, self.npcs, self.log)
 
     def npcs_at(self, location_id: str) -> list[str]:
         """IDs of the LIVING at a location, sorted so results are deterministic.

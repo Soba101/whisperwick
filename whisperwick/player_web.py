@@ -19,7 +19,7 @@ from whisperwick.web_player_feed import WebPlayerFeed
 from whisperwick.world import World
 
 # Actions the page may send. Arrest and release are for the authority, not for Wren.
-ALLOWED = ("move", "look", "talk", "take", "drop", "give", "show")
+ALLOWED = ("move", "look", "talk", "take", "drop", "give", "show", "use")
 WAIT_CHOICES = (10, 60)  # minutes
 # After Wren acts, she waits on her own for a reply. Whoever she speaks to is asked
 # again the next minute (no cooldown), so a reply is quick; 10 minutes still keeps
@@ -51,6 +51,7 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         self.feed: list[str] = []
         self.interactions: dict[str, dict] = {}  # Only witnessed item gestures.
         self.motions: dict[str, dict] = {}  # Only witnessed walks, never hidden positions.
+        self.reply_to: dict | None = None  # Last direct speaker, with a feed sequence.
         self.speech: dict[str, str] = {}  # Only lines already allowed into the feed.
         self.seen = 0  # how many log events were already looked at for the feed
         self.busy = ""  # what the page says while the villagers act (never names strangers)

@@ -9,7 +9,8 @@ from whisperwick.events import Event
 from whisperwick.world import World
 
 # Item events. Each pairs the event type with the verb used in the sentence.
-ITEM_VERBS = {"take": "picked up", "drop": "dropped", "give": "gave", "show": "showed"}
+ITEM_VERBS = {"take": "picked up", "drop": "dropped", "give": "gave", "show": "showed",
+              "use": "used"}
 
 # Custody events: the event type paired with the verb used in the sentence.
 CUSTODY_VERBS = {"arrest": "arrested", "release": "released"}
@@ -109,7 +110,7 @@ def describe_item_event(event: Event, world: World, viewer_id: str, who: str) ->
     verb = ITEM_VERBS[event.type]
     name = event.data["item_name"]
     to = event.data.get("to")
-    if event.type in ("take", "drop"):
+    if event.type in ("take", "drop", "use"):
         return f"{who} {verb} the {name}"
     # Give and show carry the description, so the evidence itself is remembered.
     detail = f"the {name} ({event.data['item_description']})"
@@ -133,7 +134,8 @@ def importance_of(event: Event, viewer_id: str) -> int:
     if event.type in CUSTODY_VERBS:
         return 9 if viewer_id in (event.actor, event.data["target"]) else 8
     # Picking up or dropping something is noticeable but not dramatic.
-    if event.type in ("take", "drop"):
+    # Using up goods is an ordinary physical event too.
+    if event.type in ("take", "drop", "use"):
         return 5
     # The murder setup will add higher-importance kinds (a body, an accusation) later.
     return 3

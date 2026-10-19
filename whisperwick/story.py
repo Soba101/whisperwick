@@ -55,7 +55,7 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
     if e.type == "move":
         src, dst = show(names, e.data["from"]), show(names, e.data["to"])
         return f"{hhmm(e.tick)}  {show(names, e.actor)} walks {src} -> {dst}"
-    if e.type in ("take", "drop", "give", "show"):
+    if e.type in ("take", "drop", "give", "show", "use"):
         who, item = show(names, e.actor), e.data["item_name"]
         to = show(names, e.data["to"]) if e.data.get("to") else "everyone"
         verbs = {
@@ -63,8 +63,11 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
             "drop": f"drops the {item}",
             "give": f"gives the {item} to {to}",
             "show": f"shows the {item} to {to}",
+            "use": f"{e.data.get('use_verb') or 'uses'} the {item}",
         }
         place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "The Inn: Alice"
+        if e.type == "use":
+            place = show(names, e.location) + ":"
         return f"{hhmm(e.tick)}  {place} {who} {verbs[e.type]}"
     if e.type in ("arrest", "release"):
         place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "The Inn: Alice"

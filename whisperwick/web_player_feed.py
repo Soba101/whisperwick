@@ -17,8 +17,12 @@ class WebPlayerFeed:
             # What the 3D view animates: speech bubbles, hand-overs and walks. Display only.
             if lines and event.type == "talk":
                 self.speech[event.actor] = lines[-1]
-            if lines and event.type in {"give", "take", "show"}:
+                if event.data.get("to") == PLAYER_ID:
+                    self.reply_to = {"id": event.actor, "sequence": len(self.feed)}
+            if lines and event.type in {"give", "take", "show", "use"}:
                 self.interactions[event.actor] = {"id": event.actor, "sequence": len(self.feed)}
+            if event.type == "move" and event.actor == PLAYER_ID:
+                self.reply_to = None  # A new room starts a new conversation.
             if lines and event.type == "move":
                 self.motions[event.actor] = web_scene.walk(world, event, len(self.feed))
             self.lines_by[event.actor] = self.lines_by.get(event.actor, 0) + len(lines)
