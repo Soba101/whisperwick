@@ -43,14 +43,26 @@ items:
 
   # Inn food and drink stay with Alice until she chooses to give them to a guest.
   - id: item_coffee
+    consumable: true
+    use_verb: drinks
     name: cup of coffee
     description: a cup filled with coffee
     holder: npc_alice
+  - id: item_tea
+    consumable: true
+    use_verb: drinks
+    name: cup of tea
+    description: a cup filled with tea
+    holder: npc_alice
   - id: item_bread
+    consumable: true
+    use_verb: eats
     name: loaf of bread
     description: a loaf of bread with a crust
     holder: npc_alice
   - id: item_stew
+    consumable: true
+    use_verb: eats
     name: bowl of stew
     description: a bowl filled with stew
     holder: npc_alice
@@ -59,6 +71,8 @@ items:
     description: an empty drinking mug
     holder: npc_alice
   - id: item_ale
+    consumable: true
+    use_verb: drinks
     name: mug of ale
     description: a mug filled with ale
     holder: npc_alice
@@ -73,6 +87,8 @@ items:
     description: a small pouch filled with spices
     holder: npc_victor
   - id: item_apples
+    consumable: true
+    use_verb: eats
     name: basket of apples
     description: a basket filled with apples
     holder: npc_victor

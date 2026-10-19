@@ -17,6 +17,7 @@ ASSETS = {
     "items.js": "text/javascript; charset=utf-8",
     "labels.js": "text/javascript; charset=utf-8",
     "figures.js": "text/javascript; charset=utf-8",
+    "who.js": "text/javascript; charset=utf-8",
     "controls.js": "text/javascript; charset=utf-8",
     "panels.js": "text/javascript; charset=utf-8",
     "fixture_state.json": "application/json",

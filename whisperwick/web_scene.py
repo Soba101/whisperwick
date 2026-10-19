@@ -20,6 +20,8 @@ def presentation(player) -> dict:
         "daylight": round(daylight, 3),
         "waiting_on": people.get(player.waiting_on),
         "turn_of": people.get(player.turn_of[0]) if player.turn_of else None,
+        "reply_to": player.reply_to if player.reply_to and player.reply_to["id"] in people
+                    else None,
         "motions": list(player.motions.values()),
         "interactions": [v for k, v in player.interactions.items() if k in visible],
         "speech": {k: v for k, v in player.speech.items() if k in visible},

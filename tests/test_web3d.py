@@ -79,7 +79,7 @@ def test_fixture_is_public_state_and_modules_are_small():
     raw, _ = web3d_assets.asset('fixture_state.json')
     s = json.loads(raw)
     assert s['you']['place']['id'] == 'loc_market'
-    assert len(s['actions']) == 7 and s['secret'] is None
+    assert len(s['actions']) == 8 and s['secret'] is None
     assert s['actions'] == web_state.actions_for(s['you'])
     for hidden in ('item_boots', 'npc_alice', 'murderer', 'evidence'):
         assert hidden not in raw.decode()

@@ -18,6 +18,7 @@ def test_goods_start_in_their_places(goods_world):
     expected = {
         "item_knife": (None, "loc_town_hall"),
         "item_boots": ("npc_victor", None),
+        "item_tea": ("npc_alice", None),
         "item_coffee": ("npc_alice", None),
         "item_bread": ("npc_alice", None),
         "item_stew": ("npc_alice", None),

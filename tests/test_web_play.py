@@ -198,7 +198,7 @@ def test_action_labels_are_friendly():
     labels = [a["label"] for a in web_state.actions_for(
         {"people": [{"id": "p"}], "ground": [{"id": "g"}], "carried": [{"id": "c"}],
          "exits": [{"id": "e"}]})]
-    assert labels == ["Go to", "Look around", "Talk to", "Take", "Drop", "Give", "Show"]
+    assert labels == ["Go to", "Look around", "Talk to", "Take", "Drop", "Give", "Show", "Use"]
 
 
 def test_guide_has_no_plot_words():
@@ -218,7 +218,7 @@ def test_hook_names_no_villager_or_clue():
 def test_empty_choices_keep_all_actions_with_reasons():
     acts = {a["action"]: a for a in web_state.actions_for(
         {"people": [], "ground": [], "carried": [], "exits": [{"id": "loc_inn"}]})}
-    assert len(acts) == 7
+    assert len(acts) == 8
     assert {a for a, row in acts.items() if row["reason"] is None} == {"move", "look"}
     assert acts["take"]["reason"] == "nothing to take here"
     assert acts["drop"]["reason"] == "you carry nothing"
@@ -230,7 +230,7 @@ def test_every_action_and_scenario_place_has_an_icon():
     from whisperwick.web_icons import ACTION_ICONS, PLACE_ICONS
 
     acts = web_state.actions_for(web_state.you_view(fresh_world()))
-    assert len(acts) == 7 and all(a["icon"] == ACTION_ICONS[a["action"]] for a in acts)
+    assert len(acts) == 8 and all(a["icon"] == ACTION_ICONS[a["action"]] for a in acts)
     places = web_state.map_data(SC)
     assert {p["id"] for p in places} == {p.id for p in SC.locations}
     assert all(p["icon"] == PLACE_ICONS[p["id"]] for p in places)

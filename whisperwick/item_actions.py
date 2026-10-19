@@ -1,4 +1,4 @@
-"""Item actions: take, drop, give, show.
+"""Item actions: take, drop, give, show, use.
 
 Registered in actions.HANDLERS (this module is imported from the bottom of
 actions.py, so import actions first, never this file on its own).
@@ -15,6 +15,9 @@ def _log(world, intent: Intent, item, to: str | None = None) -> ActionResult:
     # The item's name and description are copied in, so memories and stories
     # can describe it later without looking at the world again.
     data = {"item": item.id, "item_name": item.name, "item_description": item.description}
+    # Copy scenario wording so a later replay needs no mutable item state.
+    if intent.action == "use" and item.use_verb:
+        data["use_verb"] = item.use_verb
     if to:
         data["to"] = to
     event = world.log.append(
@@ -96,3 +99,17 @@ def do_show(world, intent: Intent) -> ActionResult:
         if problem:
             return reject(problem)
     return _log(world, intent, item, to=intent.target)
+
+
+def do_use(world, intent: Intent) -> ActionResult:
+    """Use up a held consumable. Its record remains so old logs still name it."""
+    item = world.items.get(intent.item or "")
+    if item is None:
+        return reject(f"unknown item {intent.item}")
+    if item.holder != intent.actor:
+        return reject("you are not holding that")
+    if not item.consumable:
+        return reject("that cannot be used up")
+    # This changes only the item's physical presence, never a person's state.
+    item.holder, item.location = None, None
+    return _log(world, intent, item)

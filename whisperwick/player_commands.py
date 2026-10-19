@@ -16,6 +16,7 @@ HELP = """Commands:
   drop <item>                put an item down
   give <item> <npc>          hand an item to someone here
   show <item> [npc]          let people see what you carry
+  use <item>                 use up an item you hold
   wait [minutes]             let time pass (default 10)
   help                       this text
   quit                       leave the game"""
@@ -51,7 +52,7 @@ def parse_command(line: str) -> tuple[str, object] | None:
         cmd = "talk"
         claim = {"kind": args[1].lower(), "subject": args[2]}
         return act(target=args[0], message=" ".join(args[3:]), claim=claim)
-    if cmd in ("take", "drop") and len(args) == 1:
+    if cmd in ("take", "drop", "use") and len(args) == 1:
         return act(item=args[0])
     if cmd == "give" and len(args) == 2:
         return act(item=args[0], target=args[1])

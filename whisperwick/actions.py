@@ -41,12 +41,12 @@ class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     actor: str  # who wants to act, e.g. "npc_bob"
-    # "move" | "talk" | "look" | "take" | "drop" | "give" | "show" | "arrest" | "release"
+    # "move" | "talk" | "look" | "take" | "drop" | "give" | "show" | "use" | "arrest" | "release"
     action: str
     # A location id (move) or an npc id (talk, give, show, arrest, release).
     target: str | None = None
     message: str | None = None  # what to say (talk), or the reason (arrest, release)
-    item: str | None = None  # an item id (take, drop, give, show)
+    item: str | None = None  # an item id (take, drop, give, show, use)
     claim: Claim | None = None  # "accuses X" or "defends X" (talk only)
 
 
@@ -172,9 +172,9 @@ HANDLERS = {"move": do_move, "talk": do_talk, "look": do_look}
 
 # Item actions live in their own file to keep this one small. They need the names
 # above, so they are imported last.
-from whisperwick.item_actions import do_drop, do_give, do_show, do_take  # noqa: E402
+from whisperwick.item_actions import do_drop, do_give, do_show, do_take, do_use  # noqa: E402
 
-HANDLERS.update({"take": do_take, "drop": do_drop, "give": do_give, "show": do_show})
+HANDLERS.update({"take": do_take, "drop": do_drop, "give": do_give, "show": do_show, "use": do_use})
 
 # Custody actions, in their own file for the same reason.
 from whisperwick.custody import do_arrest, do_release  # noqa: E402

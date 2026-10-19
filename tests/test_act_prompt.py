@@ -17,6 +17,12 @@ def test_prompt_matches_pre_reuse_render_exactly():
         private_lines=["Private notebook:", "- Check the market."],
         evidence=["I saw the mayor."],
     )
+    # This is the only new action text; every other prompt byte stays the same.
+    action_line = next(line for line in messages[0]["content"].splitlines()
+                       if line.startswith("Actions:"))
+    assert action_line == next(line for line in original.read_text().splitlines()
+                               if line.startswith("Actions:")) + " use (item = an item id)."
+    messages[0]["content"] = messages[0]["content"].replace(" use (item = an item id).", "")
     assert messages == [
         {"role": "system", "content": original.read_text()},
         {"role": "user", "content": "What do you do now?"},

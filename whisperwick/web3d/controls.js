@@ -1,7 +1,11 @@
+import {WhoPicker} from './who.js';
+
 const $ = id => document.getElementById(id);
 
 export class Controls {
   constructor(post) {
+    this.who = new WhoPicker();
+    $('target').onchange = () => this.who.choose($('target').value);
     this.post = post; this.action = 'look'; this.signature = '';
     $('command').onsubmit = e => {
       e.preventDefault();
@@ -18,9 +22,9 @@ export class Controls {
   }
   choose(action, target) {
     const a = this.state?.actions.find(a => a.action === action);
-    if (!a || a.reason || !this.state.awaiting) return;
+    if (!a || a.reason) return;
     this.action = action; this.signature = ''; this.update(this.state);
-    if (target) $('target').value = target;
+    if (target) { this.who.choose(target); $('target').value = target; }
     if (a.message) $('message').focus();
   }
   pick(hit) {
@@ -46,6 +50,7 @@ export class Controls {
   }
   update(s) {
     this.state = s;
+    if (this.who.sync(s, $('target'))) this.signature = '';
     const signature = JSON.stringify([s.actions, s.awaiting, this.action]);
     if (signature !== this.signature) {
       this.signature = signature; $('actions').replaceChildren();
@@ -63,6 +68,7 @@ export class Controls {
         $('send').disabled = !s.awaiting || !!a.reason;
       }
     }
+    this.who.apply($('target'));
     ['target','item','message','w10','w60'].forEach(id => $(id).disabled = !s.awaiting);
     $('message').maxLength = s.message_limit;
     $('quit').disabled = s.finished; $('again').hidden = !s.finished;

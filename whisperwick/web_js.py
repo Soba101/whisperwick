@@ -3,8 +3,14 @@
 Text goes in via textContent only.
 """
 
-JS = """
+from importlib.resources import files
+
+# Inline the shared picker so the 2D page still works without external scripts.
+WHO_JS = files("whisperwick").joinpath("web3d/who.js").read_text().replace("export class", "class")
+
+JS = WHO_JS + """
 const $ = id => document.getElementById(id);
+const who = new WhoPicker();
 let have = 0, lastActions = '', mapBuilt = false, quiet = true, shown = null;
 
 function el(tag, cls, text) {
@@ -98,7 +104,7 @@ function drawFields() {
   if (!a) return;
   if (a.targets !== null) fill($('target'), a.targets, a.target_required ? '' : 'everyone here');
   if (a.items !== null) fill($('item'), a.items);
-  drawTalkTo();
+  who.apply($('target')); drawTalkTo();
 }
 // Say plainly who a message goes to: the who-menu keeps its last choice between turns.
 function drawTalkTo() {
@@ -109,6 +115,7 @@ function drawTalkTo() {
   $('message').placeholder = on ? 'Say something to ' + name + '...' : 'What do you say?';
 }
 function drawBar(s) {
+  if (who.sync(s, $('target'))) lastActions = '';
   const text = JSON.stringify(s.actions);
   if (text !== lastActions) {
     lastActions = text;
@@ -125,6 +132,7 @@ function drawBar(s) {
     if (chosen) $('action').value = chosen.action;
     drawFields();
   }
+  who.apply($('target')); drawTalkTo();
   const off = !s.awaiting;
   ['action', 'target', 'item', 'message', 'send', 'w10', 'w60'].forEach(i => $(i).disabled = off);
   $('quit').disabled = s.finished;
@@ -171,7 +179,7 @@ async function post(path, body) {
 // Redraw the hint at once when the choice or the typed text changes.
 $('action').onchange = () => { drawFields(); if (shown) drawHint(shown); };
 $('message').oninput = () => { if (shown) drawHint(shown); };
-$('target').onchange = drawTalkTo;
+$('target').onchange = () => { who.choose($('target').value); drawTalkTo(); };
 $('send').onclick = () => post('/act', {action: $('action').value,
   target: $('target').hidden ? null : $('target').value,
   item: $('item').hidden ? null : $('item').value,

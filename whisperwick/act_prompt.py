@@ -52,6 +52,7 @@ def build_messages(
         " look (target = null),"
         " take/drop (item = an item id), give (item + target = a person id),"
         " show (item, target = a person id, or null for everyone here)."
+        " use (item = an item id)."
         + (" recall (message = words to search your own memory for)." if recall else ""),
         *belief_text.custody_lines(world, npc_id),
         f"Time: {world.clock.label()}.",
