@@ -19,7 +19,11 @@ def account(events, names, secrets, victim_place=None):
     place = (secrets.get("location") or secrets.get("place")
              or (death.location if death else victim_place))
     hour = secrets.get("hour")
-    text = f"Last night at {hour:02d}:00, " if isinstance(hour, int) else ""
+    # "Last night at 00:00" reads oddly; midnight gets its own words.
+    if isinstance(hour, int):
+        text = "Just after midnight, " if hour == 0 else f"Last night at {hour:02d}:00, "
+    else:
+        text = ""
     text += f"{story.show(names, killer)} killed {story.show(names, victim)}"
     if place:
         text += f" in {story.show(names, place)}"
