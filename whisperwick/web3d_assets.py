@@ -4,6 +4,8 @@ from importlib.resources import files
 
 # An allowlist prevents traversal and keeps future private files off the web.
 ASSETS = {
+    "feedback.js": "text/javascript; charset=utf-8",
+    "feedback.css": "text/css; charset=utf-8",
     "index.html": "text/html; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
     "ending.css": "text/css; charset=utf-8",

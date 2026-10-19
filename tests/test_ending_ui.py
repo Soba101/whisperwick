@@ -62,8 +62,8 @@ def test_3d_accusation_then_reveal_and_no_reopening_on_poll():
     source = source.replace("import {renderEnding} from './ending-content.js';", "")
     source = source.replace("export class", "class")
     run(DOM + DIALOG + JS + source + f"""
-const sent=[];
-const ending = new Ending((path,body) => sent.push({{path,body}}));
+const sent=[]; let feedbackOpened=0;
+const ending = new Ending((path,body) => sent.push({{path,body}}), () => feedbackOpened++);
 ending.update({{finished:true, accusation_pending:true,
   accusation_choices:[{{id:'npc_bob',name:'Bob'}}]}});
 assert.equal(ending.dialog.open,true);
@@ -77,7 +77,9 @@ ending.update(state);
 assert.ok(text(ending.dialog).includes('Victor killed'));
 assert.ok(document.body.classes.has('ending-scene'));
 const buttons=ending.dialog.children.at(-1);
-buttons.children[1].onclick(); ending.update(state);
+buttons.children.find(n => n.textContent==='Feedback').onclick();
+assert.equal(feedbackOpened,1);
+buttons.children.find(n => n.textContent==='Close').onclick(); ending.update(state);
 assert.equal(ending.dialog.open,false);
 assert.ok(!document.body.classes.has('ending-scene'));
 ending.reopen.onclick();

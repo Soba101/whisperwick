@@ -11,6 +11,7 @@ from whisperwick import (
     compare_command,
     eval_command,
     event_trace_command,
+    feedback,
     judge_command,
     llm_run,
     outcome_command,
@@ -30,6 +31,7 @@ app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.
 
 app.add_typer(screen_command.app, name="screen")
 app.command()(play)
+app.command()(feedback.feedback)
 app.command("spread")(spread_command.spread_command)
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")

@@ -4,8 +4,8 @@ const node=(tag,text) => {
   const n=document.createElement(tag); n.textContent=text; return n;
 };
 export class Ending {
-  constructor(post) {
-    this.post=post;
+  constructor(post, openFeedback) {
+    this.post=post; this.openFeedback=openFeedback;
     this.dialog=node('dialog',''); this.dialog.id='ending3d';
     this.dialog.className='ending-screen';
     this.dialog.setAttribute('aria-label','Your ending');
@@ -48,7 +48,9 @@ export class Ending {
     const again=node('button','Play again'), close=node('button','Close');
     // Preserve the existing page's New game behavior.
     again.onclick=() => document.getElementById('again').click();
-    close.onclick=() => this.close(); buttons.append(again,close); this.dialog.append(buttons);
+    close.onclick=() => this.close();
+    const feedback=node('button','Feedback'); feedback.onclick=this.openFeedback;
+    buttons.append(again,feedback,close); this.dialog.append(buttons);
     document.body.classList.add('ending-scene');
     if(!this.dialog.open) this.open();
     // Replacing the accusation controls also needs a fresh focus destination.

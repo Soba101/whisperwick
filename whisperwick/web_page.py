@@ -5,6 +5,7 @@ never innerHTML. The guide says only plain facts about the start: no plot, no hi
 """
 
 import json
+from importlib.resources import files
 
 from whisperwick.web_ending import ENDING_HTML, ENDING_JS, ROLE_HTML
 from whisperwick.web_guide import GUIDE, GUIDE_CSS, HINTS, HOOK
@@ -12,9 +13,15 @@ from whisperwick.web_js import JS
 from whisperwick.web_notebook import NOTEBOOK, NOTEBOOK_JS
 from whisperwick.web_style import CSS
 
+# Inline shared assets so the 2D page needs no external resources.
+FEEDBACK_JS = files("whisperwick").joinpath("web3d/feedback.js").read_text().replace(
+    "export function", "function")
+FEEDBACK_CSS = files("whisperwick").joinpath("web3d/feedback.css").read_text()
+
 BODY = ROLE_HTML + GUIDE + f"""
 <header class="page-head"><h1>Whisperwick</h1>
 <button id="view3d" onclick="location.assign('/3d')">3D view</button>
+<button data-feedback>Feedback</button>
 <button id="help" aria-label="How to play">How to play</button>
 <div class="sub"><span id="crime-label"></span><span id="clock"></span>
 <span id="where"></span></div>
@@ -51,6 +58,7 @@ BODY = ROLE_HTML + GUIDE + f"""
       <div id="secretbox" hidden><h2>Scenario secret (shown only now, not part of the world)</h2>
         <pre id="secret"></pre></div><div id="err" class="warn"></div>
       <div class="row"><button id="again">Play again</button>
+        <button data-feedback>Feedback</button>
         <button id="close-ending">Close</button></div></dialog>
   </div>
 </div>
@@ -61,8 +69,9 @@ def render_page() -> str:
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}</style></head><body>{BODY}"
-        f"<script>const HINTS = {json.dumps(HINTS)};{JS}{ENDING_JS}{NOTEBOOK_JS}</script>"
+        f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}{FEEDBACK_CSS}</style></head><body>{BODY}"
+        f"<script>const HINTS = {json.dumps(HINTS)};{JS}{ENDING_JS}{NOTEBOOK_JS}"
+        f"{FEEDBACK_JS}setupFeedback('2d');</script>"
         "</body></html>"
     )
 

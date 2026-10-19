@@ -21,6 +21,7 @@ class Game:
     player: WebPlayer
     thread: threading.Thread
     last_seen: float
+    feedback_count: int = 0  # Private submissions never enter the player inbox.
 
 
 class GameManager:

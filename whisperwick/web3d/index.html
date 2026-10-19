@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Whisperwick · Village</title>
 <link rel="stylesheet" href="/web3d/style.css">
+<link rel="stylesheet" href="/web3d/feedback.css">
 <!-- Versioned imports need no build tools. All game requests stay on this origin. -->
 <script type="importmap">{"imports":{
  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -13,6 +14,7 @@
 </head>
 <body>
 <header><strong>Whisperwick</strong><span id="crime-label"></span><span id="clock"></span><span id="where"></span>
+<button data-feedback>Feedback</button>
 <button id="voice-toggle" aria-pressed="false">Voice: off</button>
 <a class="btn" href="/">2D view</a></header>
 <div id="voice-tools" hidden aria-label="Voice playback">
