@@ -175,6 +175,8 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
     def report(self, intent: Intent, result: ActionResult) -> None:
         with self.cv:
             self.rejection = None if result.ok else result.reason
+            if result.ok and intent.action == "look" and self.world and result.observation:
+                self._show_look(self.world, result.observation)
             if not result.ok:
                 self.auto_left = 0  # show the reason now, do not wait
 
