@@ -19,12 +19,13 @@ export class Panels {
     $('notes').oninput = () => { if (this.notesKey) stored(this.notesKey,$('notes').value); };
   }
   draw(s) {
+    $('crime-label').textContent = s.crime_seed == null ? '' : 'Crime #' + s.crime_seed;
     $('clock').textContent = s.clock; $('where').textContent = s.you.place.name;
     $('hook').textContent = s.hook;
     $('busy').textContent = s.waiting_on || s.turn_of ? 'Waiting on ' + (s.turn_of || s.waiting_on)
       : s.busy || (s.auto_wait ? 'Waiting for a reply...' : s.awaiting ? 'Your turn' : '');
     $('reject').textContent = s.rejection || '';
-    $('end').textContent = [s.outcome,s.secret,s.error].filter(Boolean).join('\n');
+    $('end').textContent = [s.finished && s.crime_seed != null ? 'Crime #' + s.crime_seed : '',s.outcome,s.secret,s.error].filter(Boolean).join('\n');
     const feed = $('feed'), stick = feed.scrollTop + feed.clientHeight >= feed.scrollHeight-30;
     const start = s.feed_total-s.feed.length;
     s.feed.forEach((line,i) => {

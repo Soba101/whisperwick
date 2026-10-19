@@ -15,11 +15,11 @@ def final_items(world: World) -> dict[str, dict]:
     }
 
 
-def after_run(world: World, memories, client, stats: dict) -> dict:
+def after_run(world: World, memories, client, stats: dict, victim: str | None = None) -> dict:
     """Interview the living villagers (not the player) and note where items ended up."""
     npc_ids = [n for n in sorted(world.npcs) if world.npcs[n].alive and n != PLAYER_ID]
     return {
-        "interview": interview.interview(world, memories, client, npc_ids, stats),
+        "interview": interview.interview(world, memories, client, npc_ids, stats, victim),
         "items": final_items(world),
     }
 

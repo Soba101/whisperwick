@@ -154,6 +154,11 @@ function drawHint(s) {
 function render(s) {
   if (s.gone) { location.reload(); return; }  // the game was stopped or is unknown here
   if (drawRolePicker(s)) return;
+  $('crime-label').textContent = s.crime_seed == null ? '' : 'Crime #' + s.crime_seed;
+  $('hook').textContent = s.hook;
+  if (s.crime_seed != null) $('goal').textContent =
+    "Find out who killed the victim before nightfall, or don't: it's your day.";
+  document.querySelectorAll('.hook').forEach(x => x.textContent = s.hook);
   drawNotebook(s);
   quiet = s.awaiting || s.finished;
   if (!s.you.place) return;  // the game has not started yet

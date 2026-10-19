@@ -16,9 +16,10 @@ BODY = ROLE_HTML + GUIDE + f"""
 <header class="page-head"><h1>Whisperwick</h1>
 <button id="view3d" onclick="location.assign('/3d')">3D view</button>
 <button id="help" aria-label="How to play">How to play</button>
-<div class="sub"><span id="clock"></span><span id="where"></span></div>
-<p class="hook">{HOOK}</p>
-<p class="goal"><b>Goal:</b> Find out who killed Mayor Aldric before nightfall,
+<div class="sub"><span id="crime-label"></span><span id="clock"></span>
+<span id="where"></span></div>
+<p class="hook" id="hook">{HOOK}</p>
+<p class="goal" id="goal"><b>Goal:</b> Find out who killed Mayor Aldric before nightfall,
   or don't: it's your day.</p></header>
 <div class="wrap">
   <div>

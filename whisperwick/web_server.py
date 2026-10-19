@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from whisperwick import web3d_assets, web_auth
+from whisperwick.crime.selection import crime_number
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
 from whisperwick.web_games import Game, GameManager
@@ -101,8 +102,10 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == "/state":
             game = self.games.get(token)
             if game is None and self.games.choose_roles:
-                return self.send_json(200, {"select_role": True,
-                                            "default_role": self.games.default_role})
+                choice = {"select_role": True, "default_role": self.games.default_role}
+                if self.games.choose_crimes:
+                    choice["default_crime"] = self.games.default_crime
+                return self.send_json(200, choice)
             if game is None:
                 return self.send_json(200, {"gone": True})  # the page then reloads itself
             try:
@@ -143,7 +146,15 @@ class Handler(BaseHTTPRequestHandler):
             role = body.get("role") or None
             if role is not None and role not in ROLE_IDS:
                 return self.send_json(400, {"error": "unknown role"})
-            game = self.games.replace(token, role)
+            crime = body.get("crime")
+            if self.games.choose_crimes:
+                try:
+                    # Validate before replacing a running game. Draw entropy only at launch.
+                    if crime is not None and crime != "random":
+                        crime_number(crime)
+                except ValueError as e:
+                    return self.send_json(400, {"error": str(e)})
+            game = self.games.replace(token, role, crime)
             if game is None:
                 return self.send_json(503, {"error": "All seats are taken, try again later."})
             return self.send_json(200, {"ok": True}, self.game_cookie(game))

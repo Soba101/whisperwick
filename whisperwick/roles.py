@@ -58,6 +58,10 @@ def apply_role(sc: Scenario, role_id: str | None, seed: int | None = None) -> Sc
     if role_id is None:
         return sc
     role = load_role(role_id)
+    if sc.crime_seed is not None:
+        from whisperwick.crime.roles import adapt
+
+        role = adapt(role, role_id, sc)
     result = sc.model_copy(deep=True)
     player = next(n for n in result.npcs if n.id == PLAYER_ID)
     player.name, player.occupation = role.player.name, role.player.occupation

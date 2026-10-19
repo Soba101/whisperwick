@@ -8,6 +8,8 @@ from pathlib import Path
 
 import typer
 
+from whisperwick.crime import generate
+from whisperwick.crime.selection import crime_number
 from whisperwick.llm_cli import llm_settings, run_with_llm
 from whisperwick.player_web import WebPlayer
 from whisperwick.roles import apply_role
@@ -22,8 +24,13 @@ def launcher(
     """A function that starts one more game: its own player, its own db, its own thread."""
     numbers = itertools.count(1)  # db_for(n) gives each game a file, so runs never mix
 
-    def launch(role: str | None = None) -> tuple[WebPlayer, threading.Thread]:
-        chosen = apply_role(sc, role, seed)
+    def launch(
+        role: str | None = None, crime: str | None = None
+    ) -> tuple[WebPlayer, threading.Thread]:
+        base = sc if crime is None else generate(crime_number(crime))
+        chosen = apply_role(base, role, seed)
+        if chosen.crime_seed is not None:
+            typer.echo(f"Crime #{chosen.crime_seed}")
         player, db = WebPlayer(chosen), db_for(next(numbers))
 
         def game() -> None:
@@ -57,10 +64,18 @@ def start(
     idle_seconds: float = IDLE_SECONDS,
     choose_roles: bool = False,
     role: str | None = None,
+    crime: str | None = None,
 ):
     """Start the server. Games start when visitors arrive. Returns (server, game manager)."""
-    manager = GameManager(launcher(sc, scenario, db_for, seed, minutes), max_games, idle_seconds,
-                          choose_roles=choose_roles, default_role=role)
+    manager = GameManager(
+        launcher(sc, scenario, db_for, seed, minutes),
+        max_games,
+        idle_seconds,
+        choose_roles=choose_roles,
+        default_role=role,
+        choose_crimes=crime is not None,
+        default_crime=crime or "random",
+    )
     return make_server(manager, port, key, allow_hosts), manager
 
 
@@ -75,6 +90,7 @@ def serve(
     allow_hosts: tuple[str, ...] = (),
     max_games: int = MAX_GAMES,
     role: str | None = None,
+    crime: str | None = None,
 ) -> None:
     """Serve until Ctrl-C. A finished game's page stays up so the outcome can be read."""
     if allow_hosts and not key:
@@ -89,8 +105,20 @@ def serve(
         return str(folder / f"web-{stamp}-{n}.db")
 
     try:
-        server, manager = start(sc, scenario, db_for, seed, minutes, port, key, allow_hosts,
-                                max_games, choose_roles=True, role=role)  # fmt: skip
+        server, manager = start(
+            sc,
+            scenario,
+            db_for,
+            seed,
+            minutes,
+            port,
+            key,
+            allow_hosts,
+            max_games,
+            choose_roles=True,
+            role=role,
+            crime=crime or "random",
+        )  # fmt: skip
     except OSError as e:
         # Another program has the port (Docker Desktop holds 8000 on this Mac).
         hint = f"whisperwick play --web --port {port + 1}"
