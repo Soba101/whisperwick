@@ -92,3 +92,7 @@ textarea { width:100%; resize:vertical; background:#fff6e4; } #command label:has
 #voice-count,#voice-status { font-size:12px; }
 #voice-status:empty { display:none; }
 #mic { touch-action:manipulation; }
+
+/* Keep tentative words readable without changing the committed feed. */
+#live-talk { overflow-wrap:anywhere; }
+#live-talk strong { font-style:italic; font-weight:normal; }

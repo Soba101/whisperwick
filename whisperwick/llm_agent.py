@@ -18,6 +18,7 @@ from whisperwick.memory_view import (  # noqa: F401  (re-exported)
 )
 from whisperwick.recall import Private, Recall, act_lines, clean_words, search
 from whisperwick.repeat_guard import ActionHistory, repeat_reason
+from whisperwick.stream_talk import act_chat
 from whisperwick.world import World
 
 
@@ -44,7 +45,8 @@ def decide(
     """
     try:
         reply = dict(
-            client.chat(
+            act_chat(
+                client, world, npc_id,
                 build_messages(
                     world, npc_id, memories, feedback, personality, belief, history,
                     private_lines, recall, evidence,

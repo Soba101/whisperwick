@@ -120,3 +120,11 @@ def recall_rank(env_path: Path = ENV_PATH) -> bool:
     if value not in ("on", "off"):
         raise ValueError(f'WHISPERWICK_RECALL_RANK must be "on" or "off", got {value!r}')
     return value == "on"
+
+
+def stream_talk(web: bool = False, env_path: Path = ENV_PATH) -> bool:
+    """Live talk defaults on for web play. Other clients keep the ordinary path."""
+    value = get("WHISPERWICK_STREAM_TALK", env_path) or ("on" if web else "off")
+    if value not in ("on", "off"):
+        raise ValueError(f'WHISPERWICK_STREAM_TALK must be "on" or "off", got {value!r}')
+    return web and value == "on"

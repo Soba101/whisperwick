@@ -57,6 +57,7 @@ def run_with_llm(
         agent_memory = settings.agent_memory()
         slots = settings.llm_slots()
         group_turns = settings.group_turns()
+        stream_talk = settings.stream_talk(isinstance(player, WebPlayer))
         settings.recall_rank()  # Validate recall ranking before creating the db.
     except ValueError as e:
         typer.echo(str(e), err=True)
@@ -76,6 +77,8 @@ def run_with_llm(
     on_hour = None if isinstance(player, TerminalPlayer | WebPlayer) else progress
     stats = {"player_rejected": []} if player else {}
     if isinstance(player, WebPlayer):
+        if stream_talk and isinstance(client, LlamaServerClient):
+            client.live_talk = player.on_live_talk
         player.stats = stats  # the page can tell a model error from a plain look (#76)
     # Every thought is also saved as a JSON line next to the db.
     belief_log = BeliefLog(llm_run.beliefs_path(db))

@@ -16,6 +16,9 @@
 <button id="voice-toggle" aria-pressed="false">Voice: off</button>
 <a class="btn" href="/">2D view</a></header>
 <div id="voice-tools" hidden aria-label="Voice playback">
+<label>Voice engine <select id="voice-engine"><option value="browser">Browser voices</option>
+<option value="kokoro">Kokoro (on device)</option></select></label>
+<span id="kokoro-status" role="status"></span>
 <button id="voice-unlock">Enable audio</button>
 <button id="voice-skip" disabled>Skip</button><button id="voice-stop" disabled>Stop</button>
 <span id="voice-count" role="status"></span></div>
@@ -32,7 +35,7 @@
 <button data-panel="feed-panel" aria-pressed="true">Feed</button>
 <button data-panel="known-panel" aria-pressed="false">What you know</button>
 <button data-panel="notes-panel" aria-pressed="false">Notes</button></nav>
-<section id="feed-panel"><h2>What you see and hear</h2><div id="feed"></div></section>
+<section id="feed-panel"><h2>What you see and hear</h2><div id="feed"></div><div id="live-talk" role="status"></div></section>
 <section id="known-panel" hidden><h2>What you know</h2><div id="known"></div></section>
 <section id="notes-panel" hidden><label for="notes">Your private notes</label>
 <textarea id="notes" rows="8"></textarea><small>Stored in this browser for this game.</small></section>

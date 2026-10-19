@@ -37,7 +37,8 @@ globalThis.document={getElementById:element,querySelector:() => ({textContent:'T
 // Storage can be blocked completely, not just return an empty value.
 Object.defineProperty(globalThis,'localStorage',{get(){ throw new Error('blocked'); }});
 const voiceSource=source('voice.js').replace("'./tts.js'",JSON.stringify(ttsURL))
-  .replace("'./stt.js'",JSON.stringify(sttURL));
+  .replace("'./stt.js'",JSON.stringify(sttURL))
+  .replace("'./kokoro.js'",JSON.stringify(url(source('kokoro.js'))));
 const {Voice}=await import(url(voiceSource));
 const voice=new Voice(); assert.equal(voice.enabled,false);
 const line='08:01 The Inn: Alice -> Wren: "New words"';
@@ -99,3 +100,42 @@ await failed.load(failed.token);
 assert.match(element('status').textContent,/may send audio to the browser maker/);
 assert.equal(element('fallback').hidden,false);
 console.log('Whisper loading and fallback checks passed');
+
+// Only the first complete live sentence is queued. Its committed line resumes after it.
+const liveVoice=new Voice();
+liveVoice.update(state([],0)); element('voice-toggle').onclick();
+const liveState=message => ({...state([],0),live_talk:{npc_alice:{name:'Alice',sequence:1,message}}});
+liveVoice.update(liveState('Hello'));
+assert.equal(liveVoice.tts.current,null);
+liveVoice.update(liveState('Hello. Second sentence'));
+assert.equal(liveVoice.tts.current.text,'Hello.');
+liveVoice.update(liveState('Hello. Second sentence.'));
+assert.equal(liveVoice.tts.queue.length,0);
+const final='08:00 Alice -> Wren: "Hello. Second sentence."';
+liveVoice.update({...state([final],1,{npc_alice:final}),speech_stream:{npc_alice:1}});
+assert.deepEqual(liveVoice.tts.queue.map(q => q.text),['Second sentence.']);
+liveVoice.tts.current.onend();
+assert.equal(liveVoice.tts.current.text,'Second sentence.');
+liveVoice.tts.stop();
+// A rejected preview must not suppress identical words in a later, unrelated turn.
+liveVoice.update({...state([],1),live_talk:{npc_alice:{sequence:2,message:'Hello.'}}});
+liveVoice.tts.stop();
+liveVoice.update(state([final],2,{npc_alice:final}));
+assert.equal(liveVoice.tts.current.text,'Hello. Second sentence.');
+liveVoice.tts.stop();
+// Entire one-sentence replies have no remainder to repeat.
+liveVoice.update({...state([],2),live_talk:{npc_alice:{sequence:3,message:'Hello.'}}});
+const single='Alice: "Hello."';
+liveVoice.update({...state([single],3,{npc_alice:single}),speech_stream:{npc_alice:3}});
+assert.equal(liveVoice.tts.queue.length,0);
+liveVoice.tts.stop();
+
+// Kokoro generation failures return the same queued text to browser speech.
+const fallbackTTS=new TTS(() => {}); let failedOver=false;
+fallbackTTS.engine={speak:(id,text,finish,fail) => fail(),stop(){}};
+fallbackTTS.fallback=() => { failedOver=true; };
+fallbackTTS.words('npc_alice','Keep these words.');
+assert.equal(failedOver,true);
+assert.equal(fallbackTTS.current.text,'Keep these words.');
+fallbackTTS.stop();
+console.log('Live sentence handoff and voice fallback checks passed');

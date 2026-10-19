@@ -25,6 +25,8 @@ ASSETS = {
     "controls.js": "text/javascript; charset=utf-8",
     "panels.js": "text/javascript; charset=utf-8",
     "voice.js": "text/javascript; charset=utf-8",
+    "live-talk.js": "text/javascript; charset=utf-8",
+    "kokoro.js": "text/javascript; charset=utf-8",
     "tts.js": "text/javascript; charset=utf-8",
     "stt.js": "text/javascript; charset=utf-8",
     "fixture_state.json": "application/json",

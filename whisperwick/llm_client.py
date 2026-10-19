@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 
 from whisperwick.call_usage import UsageRecorder, llama_numbers, ollama_numbers
+from whisperwick.llm_sse import read_stream
 
 
 class LLMError(Exception):
@@ -43,7 +44,7 @@ def encode_body(body: dict) -> bytes:
     return json.dumps(clean_json(body), ensure_ascii=False).encode("utf-8")
 
 
-def send(request, timeout: int, usage: UsageRecorder, numbers, content):
+def send(request, timeout: int, usage: UsageRecorder, numbers, content, load=json.load):
     """Do one HTTP call, time it, record it (even when it fails), return the parsed reply.
 
     numbers(reply) reads the token counts; content(reply) digs out the model's JSON text.
@@ -54,7 +55,7 @@ def send(request, timeout: int, usage: UsageRecorder, numbers, content):
     try:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                reply = json.load(response)
+                reply = load(response)
             nums = numbers(reply)  # kept even if the content below is unusable
             return clean_json(json.loads(content(reply)))
         except urllib.error.HTTPError as e:
@@ -135,7 +136,8 @@ class LlamaServerClient:
         self.timeout = timeout
         self.usage = UsageRecorder()  # shared by all threads, so it has a lock
 
-    def chat(self, messages: list[dict], schema: dict, slot: int | None = None) -> dict:
+    def chat(self, messages: list[dict], schema: dict, slot: int | None = None,
+             on_text=None) -> dict:
         body = {
             "model": self.model,
             "messages": messages,
@@ -146,7 +148,7 @@ class LlamaServerClient:
                 "json_schema": {"name": "reply", "schema": schema},
             },
             "chat_template_kwargs": {"enable_thinking": False},  # no hidden reasoning
-            "stream": False,
+            "stream": on_text is not None,
         }
         if slot is not None:
             # Keep each villager's cached prefix in a predictable server slot.
@@ -158,6 +160,7 @@ class LlamaServerClient:
         return send(
             request, self.timeout, self.usage, llama_numbers,
             lambda r: r["choices"][0]["message"]["content"],
+            load=(lambda response: read_stream(response, on_text)) if on_text else json.load,
         )  # fmt: skip
 
 

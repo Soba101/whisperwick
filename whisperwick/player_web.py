@@ -52,6 +52,10 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         self.interactions: dict[str, dict] = {}  # Only witnessed item gestures.
         self.motions: dict[str, dict] = {}  # Only witnessed walks, never hidden positions.
         self.reply_to: dict | None = None  # Last direct speaker, with a feed sequence.
+        self.live_sequence = 0
+        self.talk_drafts: dict[str, dict] = {}  # Match a preview to its committed line.
+        self.speech_stream: dict[str, int] = {}
+        self.live_talk: dict[str, dict] = {}  # Transient words, never world events.
         self.speech: dict[str, str] = {}  # Only lines already allowed into the feed.
         self.seen = 0  # how many log events were already looked at for the feed
         self.busy = ""  # what the page says while the villagers act (never names strangers)
@@ -133,6 +137,7 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
                 self._refresh(self.world)
                 self.outcome, self.secret = web_state.finish_view(self.world, self.sc)
                 self.ending.finish(self.world.log.all())
+            self.live_talk.clear()
             self.finished, self.awaiting = True, False
             self.cv.notify_all()
 

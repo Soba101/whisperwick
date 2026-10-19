@@ -11,7 +11,10 @@ WHO_JS = files("whisperwick").joinpath("web3d/who.js").read_text().replace("expo
 ENDING_CONTENT_JS = files("whisperwick").joinpath("web3d/ending-content.js").read_text().replace(
     "export function", "function")
 
-JS = WHO_JS + ENDING_CONTENT_JS + """
+LIVE_JS = files("whisperwick").joinpath("web3d/live-talk.js").read_text().replace(
+    "export function", "function")
+
+JS = WHO_JS + ENDING_CONTENT_JS + LIVE_JS + """
 const $ = id => document.getElementById(id);
 const who = new WhoPicker();
 let have = 0, lastActions = '', mapBuilt = false, quiet = true, shown = null;
@@ -90,6 +93,7 @@ function drawYou(y) {
     list('Exits', y.exits.map(e => e.name), 'none'));
 }
 function drawFeed(s) {
+  drawLiveTalk(s, $("live-talk"));
   const ul = $('feed'), stick = ul.scrollTop + ul.clientHeight >= ul.scrollHeight - 30;
   // Two polls can be in flight at once (Send also polls), and both bring the same new lines.
   // The answer's lines start at feed_total - feed.length; skip any line already on the page.
