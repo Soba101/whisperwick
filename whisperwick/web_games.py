@@ -31,9 +31,12 @@ class GameManager:
         idle_seconds: float = IDLE_SECONDS,
         choose_roles: bool = False,
         default_role: str | None = None,
+        choose_crimes: bool = False,
+        default_crime: str = "random",
         clock: Callable[[], float] = time.monotonic,  # tests pass their own clock
     ):
         self.choose_roles, self.default_role = choose_roles, default_role
+        self.choose_crimes, self.default_crime = choose_crimes, default_crime
         self.launch = launch  # starts a fresh game thread with its own world and db
         self.max_games, self.idle_seconds, self.clock = max_games, idle_seconds, clock
         self.lock = threading.Lock()
@@ -49,10 +52,13 @@ class GameManager:
         """A finished game costs no model time, so it does not hold a seat. Lock held."""
         return sum(1 for g in self.games.values() if not g.player.finished)
 
-    def _create(self, role: str | None = None) -> Game | None:
+    def _create(self, role: str | None = None, crime: str | None = None) -> Game | None:
         if self._seats_used() >= self.max_games:
             return None
-        player, thread = self.launch(role) if self.choose_roles else self.launch()
+        if self.choose_crimes:
+            player, thread = self.launch(role, self.default_crime if crime is None else str(crime))
+        else:
+            player, thread = self.launch(role) if self.choose_roles else self.launch()
         game = Game(secrets.token_urlsafe(16), player, thread, self.clock())
         self.games[game.token] = game
         return game
@@ -76,14 +82,16 @@ class GameManager:
                 return game
             return self._create()
 
-    def replace(self, token: str | None, role: str | None = None) -> Game | None:
+    def replace(
+        self, token: str | None, role: str | None = None, crime: str | None = None
+    ) -> Game | None:
         """End the caller's game and start a fresh one (the New game button)."""
         with self.lock:
             self._reap()
             old = self.games.pop(token or "", None)
             if old:
                 old.player.stop()
-            return self._create(role)
+            return self._create(role, crime)
 
     def discard(self, token: str | None) -> None:
         """Leave the old game before choosing another role."""

@@ -20,6 +20,7 @@ class Scenario(BaseModel):
     role_id: str | None = None
     private_fact: str | None = None
     seed: int
+    crime_seed: int | None = None  # Shareable crime number; absent in legacy scenarios.
     start: dict[str, int]  # {"day": 1, "hour": 8}
     locations: list[Location]
     npcs: list[NPC]

@@ -6,10 +6,16 @@ ROLE_HTML = """
   <label for="role">Who are you?</label>
   <select id="role">
     <option value="">Wren, newcomer (original start)</option>
-    <option value="cousin">The mayor's cousin</option>
+    <option value="cousin">The victim's cousin</option>
     <option value="peddler">Travelling peddler</option>
-    <option value="partner">Victor's old business partner</option>
+    <option value="partner">The killer's former partner</option>
   </select>
+  <label for="crime-mode">Crime</label>
+  <select id="crime-mode">
+    <option value="random">Random crime</option>
+    <option value="number">Enter a crime number</option>
+  </select>
+  <input id="crime-number" aria-label="Crime number" inputmode="numeric" hidden>
   <button id="start-game">Start the day</button><p id="start-error"></p>
 </div>
 """
@@ -63,18 +69,25 @@ function drawRolePicker(s) {
   if (active && !picking) {
     guide(false);
     $('role').value = s.default_role || '';
+    $('crime-mode').value = s.default_crime && s.default_crime !== 'random' ? 'number' : 'random';
+    $('crime-number').value = s.default_crime === 'random' ? '' : s.default_crime || '';
+    $('crime-number').hidden = $('crime-mode').value !== 'number';
     // Polling must leave keyboard focus with the player's current control.
     $('role').focus();
   }
   picking = active;
   return active;
 }
+$('crime-mode').onchange = () => {
+  $('crime-number').hidden = $('crime-mode').value !== 'number';
+};
 $('start-game').onclick = async () => {
   $('start-game').disabled = true;
   try {
     const r = await fetch('/newgame', {method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({role: $('role').value || null})});
+      body: JSON.stringify({role: $('role').value || null,
+        crime: $('crime-mode').value === 'number' ? $('crime-number').value : 'random'})});
     if (r.ok) location.reload();
     else $('start-error').textContent = (await r.json()).error;
   } catch (e) { $('start-error').textContent = 'Could not start the game.'; }

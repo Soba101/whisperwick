@@ -102,12 +102,16 @@ def run_with_llm(
         on_turn=on_turn,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
-    extra = run_report.after_run(world, memories, client, stats)
+    if sc.crime_seed is None:
+        extra = run_report.after_run(world, memories, client, stats)
+    else:
+        extra = run_report.after_run(world, memories, client, stats, sc.secrets["victim"])
     typer.echo(f"\n{llm_run.stats_line(stats)}")
     if stats.get("stopped"):
         # Said loudly: a stopped run is not a normal result (#34).
         typer.echo(f"RUN STOPPED EARLY: {stats['stopped']}")
-    typer.echo("Interview (who killed the mayor?):")
+    label = "the mayor" if sc.crime_seed is None else world.npcs[sc.secrets["victim"]].name
+    typer.echo(f"Interview (who killed {label}?):")
     names = {i: n.name for i, n in world.npcs.items()}
     typer.echo("\n".join(run_report.summary_lines(extra["interview"], names, belief_log)))
     if player:
@@ -121,6 +125,8 @@ def run_with_llm(
         client,
     )
     data["authority"] = sc.authority
+    if sc.crime_seed is not None:
+        data["crime_seed"] = sc.crime_seed
     if sc.role_id:
         data.update(role=sc.role_id, private_fact=sc.private_fact, player_title=sc.player_title)
     data.update(extra)

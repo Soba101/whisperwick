@@ -40,7 +40,15 @@ class PlayerEnding:
             "accusation_pending": pending,
             # Only people already met appear before the truth is revealed.
             "accusation_choices": [{"id": p["id"], "name": p["name"]} for p in people],
-            "ending": ending.report(self.events, story.names_from(self.sc), self.sc.secrets,
-                                    self.sc.authority, self.accusation, self.sc.player_title)
-            if self.events is not None and not pending else None,
+            "ending": (f"Crime #{self.sc.crime_seed}\n" if self.sc.crime_seed is not None else "")
+            + ending.report(
+                self.events,
+                story.names_from(self.sc),
+                self.sc.secrets,
+                self.sc.authority,
+                self.accusation,
+                self.sc.player_title,
+            )
+            if self.events is not None and not pending
+            else None,
         }

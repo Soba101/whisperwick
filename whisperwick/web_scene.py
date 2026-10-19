@@ -15,7 +15,8 @@ def presentation(player) -> dict:
     daylight = max(0, math.sin((tick % 1440 - 360) * math.pi / 720))
     return {
         "player": {"id": PLAYER_ID, "name": "Wren"},
-        "hook": HOOK,
+        "hook": hook(player.sc),
+        "crime_seed": player.sc.crime_seed,
         "message_limit": MAX_MESSAGE_CHARS,
         "daylight": round(daylight, 3),
         "waiting_on": people.get(player.waiting_on),
@@ -32,3 +33,11 @@ def walk(world, event, sequence: int) -> dict:
     """Only called after the existing player feed has accepted the move event."""
     return {"id": event.actor, "name": world.npcs[event.actor].name,
             "from": event.data["from"], "to": event.data["to"], "sequence": sequence}
+
+
+def hook(sc):
+    if sc.crime_seed is None:
+        return HOOK
+    victim = next(n for n in sc.npcs if n.id == sc.secrets["victim"])
+    place = next(p for p in sc.locations if p.id == sc.secrets["place"])
+    return f"{victim.name} was found dead in {place.name} this morning."

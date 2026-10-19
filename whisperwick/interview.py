@@ -33,8 +33,16 @@ def schema(world: World) -> dict:
     }
 
 
-def messages(world: World, npc_id: str, stream: MemoryStream) -> list[dict]:
+def messages(
+    world: World, npc_id: str, stream: MemoryStream, victim: str | None = None
+) -> list[dict]:
     """A short in-character system message plus the question."""
+    # The fixed benchmark keeps its original question and retrieval words.
+    question, query = QUESTION, MEMORY_QUERY
+    if victim is not None:
+        name = world.npcs[victim].name
+        question = QUESTION.replace("Mayor Aldric", name)
+        query = MEMORY_QUERY.replace("Mayor Aldric", name)
     me = world.npcs[npc_id]
     lines = [
         f"You are {me.name} ({me.id}), the village {me.occupation}. Stay in character.",
@@ -46,12 +54,12 @@ def messages(world: World, npc_id: str, stream: MemoryStream) -> list[dict]:
     # k=12, more than a normal turn's 8: the answer should rest on the whole run,
     # not only on the last few hours.
     evidence, mem = llm_agent.memory_parts(
-        stream, world.clock.tick, world, npc_id, k=12, query=MEMORY_QUERY
+        stream, world.clock.tick, world, npc_id, k=12, query=query
     )
     lines += llm_agent.memory_block(evidence, mem)
     return [
         {"role": "system", "content": "\n".join(lines)},
-        {"role": "user", "content": QUESTION},
+        {"role": "user", "content": question},
     ]
 
 
@@ -61,6 +69,7 @@ def interview(
     client,
     npc_ids: list[str],
     stats: dict | None = None,
+    victim: str | None = None,
 ) -> dict[str, dict]:
     """One model call per living NPC, in sorted order. Errors are counted, never raised."""
     out = {}
@@ -70,7 +79,7 @@ def interview(
         # `in` check first: reading Memories[x] for a missing key would create a stream.
         stream = memories[npc_id] if npc_id in memories else MemoryStream()
         try:
-            reply = client.chat(messages(world, npc_id, stream), schema(world))
+            reply = client.chat(messages(world, npc_id, stream, victim), schema(world))
             suspect, why = reply["suspect"], str(reply["why"])
             if suspect is not None and suspect not in world.npcs:
                 raise ValueError(f"unknown suspect {suspect}")
