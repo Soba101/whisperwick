@@ -17,20 +17,26 @@ arches, round windows and pointed roof, and a stone hall with banners, a clock,
 flag and barred cell. Unknown IDs get a cottage with a stable roof tint. Pack pieces
 are fitted in local axes before rotation, so walls meet at corners. Warm window
 panes follow server daylight. Linked places have curved roads made from town road
-tiles; walking follows the same curves. Nature Kit trees, bushes, flowers and rocks,
+tiles; walking follows the same curves. Buildings and entrances face the island centre. Nature Kit trees, bushes, flowers and rocks,
 and town fences/hedges use seeds from place IDs. Entrances and paths stay clear.
-The central code-built well and path lamps remain.
+Small seeded groves fill gaps between places, with more bushes, flowers and rocks.
+Short fences and lamps line clear sections of the paths. The central code-built well remains.
 
 The renderer uses antialiasing, sRGB output, ACES filmic tone mapping, pixel ratio
 capped at two, and soft shadows. One directional sun casts shadows, with hemisphere
 fill. The server clock and daylight drive a gradient sky, matching horizon fog,
-sun position, dawn/dusk colours, night stars, and warm point lights by windows and
-path lamps. Smoke, breathing, walking bounce, candle flicker and camera glides are
+sun position, blue-gold mornings, dawn/dusk colours, night stars, and warm point
+lights by windows and path lamps. A blue sea below the earth rim has lighter shallows and fades only in the distance.
+Small white sphere clusters stay high and far from the camera. The screen-height sky
+gradient stays blue above a pale gold morning horizon; fog shares the horizon colour.
+Atmosphere follows camera framing. Smoke, breathing, walking bounce, candle flicker and camera glides are
 cosmetic and never sent to the server.
 
 Mini Characters have a fixed, distinct model for each known villager ID and Wren.
 Hal keeps a blue guard helmet, Victor a purple hat, Alice an apron, Bob brown,
-Sarah green, and Wren a teal cloak and glow ring. Unknown IDs choose a stable model.
+Sarah green, and Wren a teal cloak and glow ring. Figures are enlarged 1.6 times
+and stand in spaced arcs near the inward-facing doors, facing the camera when idle.
+Extra rows and a rim margin keep crowded groups on the island. Unknown IDs choose a stable model.
 Every animated instance uses SkeletonUtils.clone, its own mixer and cloned materials;
 geometry and textures belong to the shared model cache. Held people are desaturated
 and idle at the Town Hall cell spot. Bodies retain their public body styling.
@@ -46,20 +52,30 @@ mugs, bread, coins, candles, knives and generic crates keep their code-built sha
 
 All model loads are cached once, including failures. Scenery clones the cached
 scene; characters clone the skeleton. Replacement waits for a whole recipe to load.
-Failed models or textures leave the polish pass's code-built props in place. Removing
+Failed models or textures leave the polish pass's code-built props in place.
+Nature materials use nonmetallic bark, rocks and foliage: their embedded colours
+need diffuse lighting rather than a missing environment reflection. Foliage is
+slightly lighter, with brighter blue-sky hemisphere fill for morning shadows. Removing
 a figure during loading safely discards the late clone without disposing cache-owned
 geometry or textures. No model load changes server state.
 
 HTML place labels get first choice of clear screen positions; other labels stack
-into remaining slots or hide when crowded. Person/item names hide when zoomed out.
-Speech bubbles have tails, at most 80 characters with an ellipsis, and fade over
+into remaining slots, shifting horizontally when vertical slots are crowded. Names
+stay visible at village zoom, with colour dots and a bold starred player pill. Place
+labels are larger too; labels hide only outside the view or when no clear slot fits.
+Speech bubbles extract only the quoted words from feed lines, have tails, show at
+most 80 characters with an ellipsis, and fade over
 6.5 seconds; repeated polling of the same speech does not restart the timer. The
 full text remains in the expandable feed. Feed dots use the figure's colour when
 the line matches server-tagged speech, otherwise a neutral colour. No speaker ID is
 inferred from display names. NPC inventories stay private; hovering/clicking Wren
 lists her carried items.
 
-The initial three-quarter camera fits the island to the viewport. Orbit is damped
+The initial camera looks down about 38 degrees and fits the projected island rim
+to roughly 90% of the viewport width, with vertical clearance for tall buildings.
+Resize recomputes the framing, including phone widths. Loading and player moves
+ease the target slightly toward the player’s place; cursor-directed zoom reaches
+individual buildings with a minimum distance of 2.5 scene units. Orbit is damped
 and limited above ground; clicking a place glides the camera and submits a move
 only when the server offers that destination. Follow tracks Wren smoothly. The HUD
 uses parchment/wood colours, rounded panels, Google Fonts (Fraunces and DM Sans,
@@ -113,7 +129,7 @@ or plot secrets and supplies all seven server action descriptions.
 - `model-buildings.js`, `model-scenery.js`: modular recipes, roads and seeded art.
 - `model-characters.js`: stable identities, accessories, skeletons and animation.
 - `assets/`: only used GLBs, referenced colormaps and original CC0 licenses.
-- `labels.js`: screen collision placement, zoom visibility and timed bubbles.
+- `labels.js`: screen collision placement, coloured name pills and timed bubbles.
 - `controls.js`, `panels.js`: server action choices, feed, sightings and private notes.
 - `web3d_assets.py`: asset allowlist; `web_scene.py`: public presentation metadata.
 
@@ -124,18 +140,22 @@ live in JavaScript.
 ## Validation and remaining checks
 
 `UV_CACHE_DIR=/tmp/whisperwick-uv uv run ruff check .` passes. All JavaScript modules
-pass `node --check`. The full pytest run encountered only sandbox socket-binding
-restrictions in the 12 HTTP integration tests; the socket-free suite passes (639 passed, one skipped, 12 deselected). Model
-checks cover asset size, GLB structure, every texture dependency, required character
-clips, route MIME types, auth/traversal, and witnessed successful gestures without
-private item or inventory data. The cache override avoids the read-only default UV
-cache directory.
+pass `node --check`. The full pytest run has 691 passed and one skipped; 11 failures
+and one setup error all come from sandbox restrictions on binding local sockets.
+A follow-up run excluding only the 12 socket-dependent tests passes
+(691 passed, one skipped, 12 deselected). A Node collision check places 12 crowded
+labels without overlaps at 412×372 and 355×280 scene sizes (from the previous pass).
+A pass-3 Node check verifies speech prefix removal, 80-character trimming, full
+speech titles, plain speech and unchanged timers on repeated polling. The socket-free tests
+include asset size, GLB structure, texture dependencies,
+character clips, route MIME types, auth/traversal, visibility, and witnessed gestures.
+The cache override avoids the read-only default UV cache directory. Assets remain
+about 2 MB; this look pass adds no files to the asset packs.
 
 Browser rendering, 375 px layout, draw calls/FPS and a live-model game remain manual
-checks: this sandbox cannot bind a localhost preview server or resolve the pinned CDN.
-On an unrestricted machine, open fixture mode, inspect day/night windows, distinct
-characters and crowded labels, orbit/focus at desktop and phone widths, then walk,
-talk and take/drop/give/show in the goods scenario. Block a model or its texture in
-browser devtools and reload to check the corresponding procedural fallback. Check
-held figures behind the cell bars and repeated polling without gesture replay.
-No commit was made; existing work and the issue/polish/model briefs were preserved.
+checks: this sandbox cannot bind a localhost preview server. On an unrestricted
+machine, open fixture mode at 800×600 and 375 px, inspect names and sky at 08:00,
+check day/night windows, orbit/focus/zoom, then walk, talk and take/drop/give/show in
+the goods scenario. Block a model or its texture in browser devtools and reload to
+check the corresponding procedural fallback. Check held figures behind the cell
+bars and repeated polling without gesture replay. No commit was made.

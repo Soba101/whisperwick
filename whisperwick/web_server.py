@@ -177,6 +177,10 @@ class LocalServer(ThreadingHTTPServer):
     before the page could start. We only ever serve 127.0.0.1, so the name is known.
     """
 
+    # The 3D page asks for many models and textures at once. The default queue of 5
+    # waiting connections overflowed and reset requests, so some scripts never loaded.
+    request_queue_size = 128
+
     def server_bind(self):
         socketserver.TCPServer.server_bind(self)
         host, port = self.server_address[:2]

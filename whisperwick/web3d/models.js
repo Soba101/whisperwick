@@ -2,10 +2,21 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
 
+// Every Kenney model points at the same colormap.png: the file cache fetches it once.
+THREE.Cache.enabled=true;
 const loader=new GLTFLoader(), cache=new Map();
 // A failed request is cached too. Polling must never hammer a missing asset.
 export function loadModel(path) {
-  if(!cache.has(path)) cache.set(path,loader.loadAsync(new URL('./assets/'+path,import.meta.url).href));
+  if(!cache.has(path)) cache.set(path,loader.loadAsync(new URL('./assets/'+path,import.meta.url).href).then(gltf => {
+    // Nature Kit colours are embedded, but its export marks bark and leaves metallic.
+    // Dielectric materials keep them visible without an environment reflection map.
+    if(path.startsWith('nature/')) gltf.scene.traverse(o => {
+      if(!o.isMesh) return;
+      o.material.metalness=0; o.material.roughness=1;
+      if(/leaf|grass/i.test(o.material.name)) o.material.color.lerp(new THREE.Color(0x9cba78),.25);
+    });
+    return gltf;
+  }));
   return cache.get(path);
 }
 export function instance(gltf,pick,animated=false) {

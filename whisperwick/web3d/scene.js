@@ -12,7 +12,7 @@ import {Sky} from './sky.js';
 export class Village {
   constructor(pick) {
     this.pick=pick; this.scene=new THREE.Scene(); this.labels=new Labels(pick);
-    this.camera=new THREE.PerspectiveCamera(42,1,.1,400);
+    this.camera=new THREE.PerspectiveCamera(42,1,.1,1600);
     this.camera.position.set(39,43,53);
     this.renderer=new THREE.WebGLRenderer({antialias:true});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -23,7 +23,7 @@ export class Village {
     this.controls=new OrbitControls(this.camera,this.renderer.domElement);
     this.controls.enableDamping=true; this.controls.dampingFactor=.065;
     this.controls.maxPolarAngle=Math.PI/2.25; this.controls.minPolarAngle=.2;
-    this.controls.minDistance=12; this.controls.maxDistance=125;
+    this.controls.minDistance=2.5; this.controls.zoomToCursor=true; this.controls.maxDistance=125;
     this.controls.addEventListener('start',() => { this.goal=null; this.follow=false; });
     this.links=new Map(); this.spots=new Map(); this.curves=new Map(); this.follow=false;
     this.smoke=[]; this.figures=new Figures(this);
@@ -43,21 +43,27 @@ export class Village {
   resize() {
     const box=document.getElementById('village');
     this.renderer.setSize(box.clientWidth,box.clientHeight);
-    this.camera.aspect=box.clientWidth/box.clientHeight; this.camera.updateProjectionMatrix();
+    this.camera.aspect=box.clientWidth/Math.max(1,box.clientHeight); this.camera.updateProjectionMatrix();
+    if(this.island) this.frame();
   }
-  entrance(id) { return this.spots.get(id).clone().add(new THREE.Vector3(0,.2,5.5)); }
+  facing(id) { const p=this.spots.get(id); return Math.atan2(-p.x,-p.z); }
+  local(id,x,y,z) {
+    return new THREE.Vector3(x,y,z).applyAxisAngle(new THREE.Vector3(0,1,0),this.facing(id)).add(this.spots.get(id));
+  }
+  entrance(id) { return this.local(id,0,.2,5.5); }
   build(places) {
     const radius=Math.max(17,places.length*2.5), island=radius+12;
+    this.island=island;
     this.sky=new Sky(this.scene,this.renderer,island); ground(this.scene,island);
     // Sorting stable IDs also makes reordered YAML produce the same village.
     [...places].sort((a,b) => a.id.localeCompare(b.id)).forEach((p,i) => {
       const a=i*Math.PI*2/places.length;
       const spot=new THREE.Vector3(Math.cos(a)*radius,0,Math.sin(a)*radius);
       this.spots.set(p.id,spot); this.links.set(p.id,p.links);
-      const b=building(p,spot); this.scene.add(b.group);
+      const b=building(p,spot); b.group.rotation.y=this.facing(p.id); this.scene.add(b.group);
       this.labels.add(p.name,spot.clone().add(new THREE.Vector3(0,b.height,0)),{place:p.id},'place');
-      b.smoke.forEach(position => this.addSmoke(position));
-      if(p.id!=='loc_market') this.sky.addLamps([spot.clone().add(new THREE.Vector3(-1.4,2,3))]);
+      b.smoke.forEach(position => this.addSmoke(this.local(p.id,...position.clone().sub(spot).toArray())));
+      if(p.id!=='loc_market') this.sky.addLamps([this.local(p.id,-1.4,2,3)]);
     });
     const drawn=new Set();
     places.forEach(p => p.links.forEach(id => {
@@ -70,9 +76,36 @@ export class Village {
     }));
     this.sky.addLamps(dress(this.scene,places,this.spots,[...this.curves.values()],island));
     // Fit the entire base on both portrait and landscape viewports.
-    const distance=island*1.1/Math.sin(THREE.MathUtils.degToRad(21)*Math.min(1,this.camera.aspect));
-    this.camera.position.set(.5,.62,.72).normalize().multiplyScalar(distance);
-    this.controls.maxDistance=Math.max(125,distance*1.4);
+    this.frame();
+  }
+  frame() {
+    // Fit projected rim points, rather than treating the island as a tall sphere.
+    const center=this.spots.get(this.playerPlace)?.clone().multiplyScalar(.08) || new THREE.Vector3();
+    center.y=1;
+    const direction=new THREE.Vector3(.46,.616,.64).normalize();
+    let low=this.island, high=this.island*12;
+    for(let step=0;step<24;step++) {
+      const distance=(low+high)/2;
+      this.camera.position.copy(center).addScaledVector(direction,distance);
+      this.camera.lookAt(center); this.camera.updateMatrixWorld();
+      let fits=true;
+      for(let i=0;i<80;i++) {
+        const a=i/80*Math.PI*2;
+        for(const y of [-2.6,0]) {
+          const v=new THREE.Vector3(Math.cos(a)*this.island,y,Math.sin(a)*this.island).project(this.camera);
+          if(Math.abs(v.x)>.9 || Math.abs(v.y)>.84) fits=false;
+        }
+      }
+      for(const spot of this.spots.values()) {
+        const v=spot.clone().setY(10).project(this.camera);
+        if(Math.abs(v.x)>.94 || Math.abs(v.y)>.84) fits=false;
+      }
+      if(fits) high=distance; else low=distance;
+    }
+    this.camera.position.copy(center).addScaledVector(direction,high);
+    this.controls.target.copy(center); this.controls.maxDistance=high*1.25;
+    this.goal=center.clone(); this.controls.update();
+    this.sky.setDistance(high);
   }
   addSmoke(position) {
     // Shared geometry and material keep the chimney's soft puffs inexpensive.
@@ -87,6 +120,11 @@ export class Village {
   update(s) {
     if(!this.spots.size) this.build(s.places);
     this.sky.update(s); this.figures.update(s); this.daylight=s.daylight;
+    const place=s.player.place || s.you.place.id;
+    if(place!==this.playerPlace) {
+      this.playerPlace=place;
+      this.goal=this.spots.get(place)?.clone().multiplyScalar(.08).setY(1);
+    }
   }
   animate() {
     requestAnimationFrame(() => this.animate());

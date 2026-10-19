@@ -43,7 +43,7 @@ export function ground(scene,radius) {
     const x=pos.getX(i), z=pos.getY(i);
     const h=.06*Math.sin(x*.42)*Math.cos(z*.38);
     pos.setXYZ(i,x,h,z);
-    c.set(0x829765).multiplyScalar(.96+.07*Math.sin(x*.7+z*.4)); colors.push(c.r,c.g,c.b);
+    c.set(0x99ad70).multiplyScalar(.96+.07*Math.sin(x*.7+z*.4)); colors.push(c.r,c.g,c.b);
   }
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3)); geo.computeVertexNormals();
   const grass = new THREE.Mesh(geo,material(0xffffff,{vertexColors:true,side:THREE.DoubleSide}));
@@ -57,30 +57,38 @@ export function lamp(g,x,z,lights) {
 function tree(g,x,z,rand) {
   cylinder(g,.2,1.8,0x796044,x,.9,z,6);
   if (rand()>.5) {
-    cone(g,1.4,2.6,0x426f60,x,2.5,z); cone(g,1,2,0x5a8064,x,3.6,z);
+    cone(g,1.4,2.6,0x668d68,x,2.5,z); cone(g,1,2,0x80a373,x,3.6,z);
   } else {
-    ball(g,1.3,0x61815b,x,2.8,z,1); ball(g,.9,0x779361,x+.7,2.7,z+.25);
+    ball(g,1.3,0x81a16b,x,2.8,z,1); ball(g,.9,0x9bb478,x+.7,2.7,z+.25);
   }
 }
 export function dress(scene,places,spots,curves,radius) {
   const g = new THREE.Group(), lights = [];
+  const paths=curves.flatMap(c => c.getPoints(64));
+  const clear=(x,z,margin=2.5) => Math.hypot(x,z)<radius-2 &&
+    !paths.some(v => Math.hypot(v.x-x,v.z-z)<margin) &&
+    ![...spots.values()].some(v => {
+      const a=Math.atan2(-v.x,-v.z), dx=x-v.x, dz=z-v.z;
+      const across=dx*Math.cos(a)-dz*Math.sin(a), front=dx*Math.sin(a)+dz*Math.cos(a);
+      return Math.abs(across)<5.5 && front> -4.5 && front<11;
+    });
   places.forEach(p => {
     const rand = seeded(p.id), spot = spots.get(p.id);
-    for (let i=0;i<6;i++) {
-      const a=rand()*Math.PI*2, d=5.5+rand()*2.5;
+    for (let i=0;i<18;i++) {
+      const a=rand()*Math.PI*2, d=6+rand()*5;
       const x=spot.x+Math.cos(a)*d, z=spot.z+Math.sin(a)*d;
       // Keep entrances and every path clear, including their click targets.
-      if (Math.hypot(x,z)>radius-2 || (z>spot.z && Math.abs(x-spot.x)<4.5)) continue;
-      if (curves.some(c => c.getPoints(24).some(v => Math.hypot(v.x-x,v.z-z)<2.4))) continue;
+      if (!clear(x,z)) continue;
       const prop=new THREE.Group(), host=new THREE.Group();
-      if (i<2) tree(prop,0,0,rand);
-      else if (i<4) ball(prop,.65,0x67835d,0,.45,0,1);
+      if (i<6) tree(prop,0,0,rand);
+      else if (i<13) ball(prop,.65,0x67835d,0,.45,0,1);
       else ball(prop,.45,0x939080,0,.2,0);
       host.add(batch(prop)); host.position.set(x,0,z); scene.add(host);
-      const name=i<2 ? (i%2 ? 'tree_pineRoundC' : 'tree_oak') : i<4 ? 'plant_bush' : 'rock_smallA';
-      modelProp(host,'nature',name,i<2 ? [2.6,4.2,2.6] : i<4 ? [1.3,.9,1.3] : [.9,.55,.9]);
+      const name=i<6 ? (i%2 ? 'tree_pineRoundC' : 'tree_oak') : i<13 ? 'plant_bush' : 'rock_smallA';
+      modelProp(host,'nature',name,i<6 ? [2.6,4.2,2.6] : i<13 ? [1.3,.9,1.3] : [.9,.55,.9]);
       for (let j=0;j<4;j++) {
         const fx=x+rand()*2-1, fz=z+rand()*2-1;
+        if(!clear(fx,fz,2)) continue;
         cylinder(g,.025,.24,0x658052,fx,.12,fz,4);
         const flower=new THREE.Group(), fallback=new THREE.Group();
         ball(fallback,.1,[0xf0cb85,0xc58387,0xe6dcb6][j%3],0,.28,0);
@@ -92,10 +100,36 @@ export function dress(scene,places,spots,curves,radius) {
     const fence=new THREE.Group(), rails=new THREE.Group();
     for (let j=0;j<4;j++) box(rails,.12,.9,.12,0xb29970,-2+j*1.3,.45,0);
     [ .35,.7 ].forEach(y => box(rails,4.1,.1,.1,0xb29970,-.05,y,0));
-    fence.add(batch(rails)); fence.position.set(spot.x,0,spot.z-4); scene.add(fence);
+    fence.add(batch(rails)); const facing=Math.atan2(-spot.x,-spot.z);
+    fence.position.copy(new THREE.Vector3(0,0,-4).applyAxisAngle(new THREE.Vector3(0,1,0),facing).add(spot));
+    fence.rotation.y=facing; scene.add(fence);
     modelProp(fence,'town',p.id==='loc_temple' ? 'hedge' : 'fence',[4.1,.9,.3]);
   });
-  curves.forEach(c => { const p=c.getPoint(.5); lamp(g,p.x+1.3,p.z+1.3,lights); });
+  // Fill the gaps with small seeded groves rather than an evenly dotted lawn.
+  const rand=seeded('island_groves');
+  for(let i=0;i<20;i++) {
+    const a=rand()*Math.PI*2, d=5+rand()*(radius-8), cx=Math.cos(a)*d, cz=Math.sin(a)*d;
+    for(let j=0;j<3;j++) {
+      const x=cx+(rand()-.5)*4, z=cz+(rand()-.5)*4;
+      if(!clear(x,z,3) || Math.hypot(x,z)<4) continue;
+      const host=new THREE.Group(), fallback=new THREE.Group();
+      tree(fallback,0,0,rand); host.add(batch(fallback)); host.position.set(x,0,z); scene.add(host);
+      modelProp(host,'nature',j%2 ? 'tree_pineRoundC' : 'tree_oak',[2.5,3.4+rand(),2.5]);
+    }
+  }
+  curves.forEach(c => [.28,.65].forEach(u => {
+    const p=c.getPoint(u), t=c.getTangent(u), side=new THREE.Vector3(-t.z,0,t.x).normalize();
+    const position=p.clone().addScaledVector(side,2.3);
+    if(!clear(position.x,position.z,1.5)) return;
+    lamp(g,position.x,position.z,lights);
+    const fence=new THREE.Group(); fence.position.copy(p).addScaledVector(side,-2.7).setY(0);
+    if(!clear(fence.position.x,fence.position.z,1.5)) return;
+    fence.rotation.y=Math.atan2(-t.z,t.x); scene.add(fence);
+    const rails=new THREE.Group();
+    [-1.5,0,1.5].forEach(x => box(rails,.12,.9,.12,0xb29970,x,.45,0));
+    [.35,.7].forEach(y => box(rails,3,.1,.1,0xb29970,0,y,0)); fence.add(batch(rails));
+    modelProp(fence,'town','fence',[3,.9,.3]);
+  }));
   // The well anchors the empty centre of the diorama.
   const well = mesh(g,new THREE.CylinderGeometry(.9,.95,.9,12,1,true),0xb5b5a0,0,.5,0,
     {side:THREE.DoubleSide}); well.receiveShadow=true;

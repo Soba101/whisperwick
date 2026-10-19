@@ -3,7 +3,7 @@ import {pose} from './model-characters.js';
 import {dispose} from './models.js';
 import {character,tint} from './characters.js';
 import {item} from './items.js';
-import {hash} from './geometry.js';
+import {hash,clothing} from './geometry.js';
 
 export class Figures {
   constructor(village) { this.v=village; this.rows=new Map(); this.seen=new Map(); this.interactions=new Map(); }
@@ -40,12 +40,24 @@ export class Figures {
         const group=p.item ? item(p) : character(p,p.id===s.player.id);
         this.v.scene.add(group);
         const label=this.v.labels.add(p.name,new THREE.Vector3(),{person:p.id,item:p.item},p.item ? 'item' : 'person');
+        if(!p.item) {
+          label.node.style.setProperty('--person-color','#'+clothing(p.id).toString(16).padStart(6,'0'));
+          label.node.classList.toggle('player',p.id===s.player.id);
+        }
         r={group,label,place:null,phase:hash(p.id)%100}; this.rows.set(p.id,r);
       }
       const peers=sorted.filter(q => (q.motion?.to || q.place || s.you.place.id)===place && !!q.item===!!p.item && !q.held);
-      const index=peers.findIndex(q => q.id===p.id), a=index*Math.PI*2/Math.max(3,peers.length);
-      const target=spot.clone().add(new THREE.Vector3(Math.cos(a)*(p.item ? 3.7 : 2.3),.2,5.5+Math.sin(a)*1.4));
-      if(p.held && place==='loc_town_hall') target.copy(spot).add(new THREE.Vector3(2.3,.2,2.4));
+      const index=peers.findIndex(q => q.id===p.id);
+      // Local +z faces the island centre, so the arc cannot spill over the rim.
+      const count=peers.length, rank=Math.max(0,index), perRow=p.item ? 8 : 6;
+      const row=Math.floor(rank/perRow), slots=Math.min(perRow,count-row*perRow);
+      const angle=slots<=1 ? 0 : (rank%perRow-(slots-1)/2)*Math.min(.42,1.8/(slots-1));
+      const distance=(p.item ? 5.4 : 7)+row*2;
+      const target=this.v.local(place,Math.sin(angle)*distance,.2,Math.cos(angle)*distance);
+      // Very crowded scenarios still keep every public figure on solid ground.
+      const limit=this.v.island-2, radial=Math.hypot(target.x,target.z);
+      if(radial>limit) { target.x*=limit/radial; target.z*=limit/radial; }
+      if(p.held && place==='loc_town_hall') target.copy(this.v.local(place,2.3,.2,2.4));
       // Tween only consecutive observed placements; never infer an unseen route.
       r.record=p; r.expires=p.expires;
       const changed=r.place!==place || p.motion;
@@ -101,14 +113,16 @@ export class Figures {
         r.group.position.y+=walking ? Math.abs(Math.sin(t*Math.PI*7))*.16 : Math.sin(now*.002+r.phase)*.035;
         const delta=r.group.position.clone().sub(before);
         if(walking && Math.hypot(delta.x,delta.z)>.001) r.group.rotation.y=Math.atan2(delta.x,delta.z);
-        else if(r.label.until>now && r.label.said) {
+        else r.group.rotation.y=Math.atan2(this.v.camera.position.x-r.group.position.x,
+          this.v.camera.position.z-r.group.position.z);
+        if(!walking && r.label.until>now && r.label.said) {
           // Facing a visible neighbour is cosmetic, not a guess about a hidden recipient.
           const other=[...this.rows.values()].find(q => q!==r && !q.record.item && q.place===r.place);
           if(other) r.group.rotation.y=Math.atan2(other.target.x-r.target.x,other.target.z-r.target.z);
         }
       }
       if(r.group.userData.glow) r.group.userData.glow.intensity=.7+Math.sin(now*.007+r.phase)*.12;
-      r.label.position.copy(r.group.position).y+=p.item ? .75 : 2.4;
+      r.label.position.copy(r.group.position).y+=p.item ? .75 : 3.85;
     });
   }
 }

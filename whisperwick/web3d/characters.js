@@ -31,7 +31,7 @@ export function character(p,isPlayer) {
     const old=m.material; m.material=old.clone(); old.dispose();
     m.userData.color=m.material.color.clone();
   });
-  const host=new THREE.Group(); host.add(result); modelCharacter(host,p,isPlayer);
+  const host=new THREE.Group(); host.scale.setScalar(1.6); host.add(result); modelCharacter(host,p,isPlayer);
   return host;
 }
 export function tint(group,grey) {
