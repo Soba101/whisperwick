@@ -1,4 +1,6 @@
-# Week 14 plan (draft, for approval): a different crime every game
+# Week 14 plan (approved 2026-10-19): a different crime every game
+
+Answers: keep the six villagers and shuffle roles; an accomplice in about 1 game in 4; the player is never the killer in v1.
 
 Week 13 (roles and endings) is built and merged; its check runs are still going on the PC.
 Rules carry over: the world is physics only; villagers decide what they believe, want and do;
