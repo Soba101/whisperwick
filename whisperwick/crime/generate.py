@@ -23,13 +23,22 @@ def draw(base, goods, seed, rng):
         victim=victim,
         accomplice=accomplice,
         motive=rng.choice(pools.MOTIVES),
-        weapon=rng.choice(pools.WEAPONS),
+        weapon=rng.choice(tuple(pools.WEAPONS)),
         place=place,
         hour=rng.choice(pools.HOURS),
         witness=rng.choice(witnesses),
         innocent=rng.choice(witnesses),
-        misleading=rng.sample(["quarrel", "visit"], rng.randint(1, 2)),
+        misleading=rng.sample(tuple(pools.MISLEADING), rng.randint(1, 2)),
     )
+    # A weapon always exists; the other traces vary between games.
+    sc.secrets["clues"] = ["weapon", *rng.sample(
+        [key for key in pools.CLUES if key != "weapon"], 2
+    )]
+    job = rng.choice(tuple(pools.ACCOMPLICE_JOBS)) if accomplice else None
+    sc.secrets["accomplice_job"] = job
+    elsewhere = [loc for loc in pools.PLACES if loc != place]
+    sc.secrets["weapon_place"] = rng.choice(elsewhere) if job == "hid_weapon" else place
+    sc.secrets["trail_place"] = rng.choice(elsewhere)
     for npc in sc.npcs:
         npc.alive = npc.id != victim
         if npc.id == victim:

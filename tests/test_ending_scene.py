@@ -105,5 +105,11 @@ def test_generated_crime_account_names_hour_place_weapon_and_motive():
     from whisperwick.crime import generate
     sc = generate(7)
     text = ending_scene.account([], story.names_from(sc), sc.secrets)
-    assert text.startswith("Last night at 23:00, Sarah killed Bob in The Inn with the knife")
-    assert "over an unpaid debt" in text
+    s = sc.secrets
+    names = story.names_from(sc)
+    prefix = "Just after midnight, " if s["hour"] == 0 else f"Last night at {s['hour']:02d}:00, "
+    expected = (f"{prefix}{names[s['murderer']]} killed {names[s['victim']]} "
+                f"in {names[s['place']]} with the {s['weapon']}, over {s['motive']}.")
+    if s["accomplice"]:
+        expected += f" {names[s['accomplice']]} was an accomplice."
+    assert text == expected
