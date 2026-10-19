@@ -1,10 +1,12 @@
 import {Controls} from './controls.js';
 import {Panels} from './panels.js';
+import {Voice} from './voice.js';
 
 const fixture = new URLSearchParams(location.search).get('fixture') === '1';
 const panels = new Panels();
 let village = null, pending = false;
 const controls = new Controls(post);
+const voice = new Voice();
 // A failed CDN or WebGL context still leaves the HUD and controls usable.
 try {
   const {Village} = await import('./scene.js');
@@ -39,7 +41,7 @@ async function poll() {
   const s = await r.json();
   if (s.gone) { location.reload(); return; }
   if (!s.you?.place) return;
-  panels.draw(s); controls.update(s); village?.update(s);
+  panels.draw(s); controls.update(s); voice.update(s); village?.update(s);
   if (fixture) document.getElementById('busy').textContent = 'Fixture preview — no model or game actions';
 }
 async function loop() {

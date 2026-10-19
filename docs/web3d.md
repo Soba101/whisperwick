@@ -117,6 +117,36 @@ python3 -m http.server 8001 --bind 127.0.0.1 --directory whisperwick
 The fixture still needs CDN access and WebGL. It contains no private inventories
 or plot secrets and supplies all seven server action descriptions.
 
+## Optional voice (issue #101)
+
+Voice starts off. The header toggle remembers its setting in browser localStorage;
+blocked storage leaves the controls usable. A toggle tap unlocks Safari audio.
+After reloading with Voice on, tap Enable audio if playback needs another gesture.
+Skip advances one speech line; Stop clears playback until new lines arrive.
+Only new, quoted feed lines matched exactly to the server speech map are spoken.
+Wren's lines, initial history and narration stay silent. Moving clears the queue.
+Stable villager IDs choose cached voices, pitch and rate; local voices get priority.
+Voice availability depends on installed voices, and nonlocal voices can use the
+browser's speech service when no local voices exist.
+
+Tap Mic to download Whisper the first time, then tap again to record. Tap Stop mic
+to transcribe; recordings also stop after one minute. Whisper uses the pinned
+Transformers.js 3.0.2 import from jsDelivr and onnx-community/whisper-tiny.en from
+Hugging Face. Model files use the browser cache. WebGPU is tried first, with
+single-threaded WASM as fallback. Audio is decoded, mixed to mono and resampled to
+16 kHz locally. Microphone access requires HTTPS or localhost and permission.
+Review the resulting text and press Send yourself. Dictation never submits actions.
+Changing action/target, moving or disabling Voice discards pending dictation.
+If the model cannot load, a separate browser-recognition button appears only
+alongside a warning that it may send audio to the browser maker.
+
+`node tests/web3d_voice.mjs` checks filtering, stable voice selection, cancellation
+and message-only dictation using browser mocks. The socket-free route tests check
+the new assets, authentication and the unchanged external-link-free 2D page.
+Real iPhone Safari and desktop browser checks remain manual: first-tap audio unlock,
+installed voices, Skip/Stop, microphone permission, recording codecs, model download
+progress/cache, WebGPU/WASM inference, and the disclosed browser fallback.
+
 ## Files
 
 - `index.html`, `style.css`: responsive parchment HUD and scene container.
@@ -131,6 +161,7 @@ or plot secrets and supplies all seven server action descriptions.
 - `assets/`: only used GLBs, referenced colormaps and original CC0 licenses.
 - `labels.js`: screen collision placement, coloured name pills and timed bubbles.
 - `controls.js`, `panels.js`: server action choices, feed, sightings and private notes.
+- `voice.js`, `tts.js`, `stt.js`: optional browser speech and message-only dictation.
 - `web3d_assets.py`: asset allowlist; `web_scene.py`: public presentation metadata.
 
 Every JavaScript module is below 200 lines. Speech and motion metadata use the

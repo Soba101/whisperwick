@@ -85,3 +85,9 @@ textarea { width:100%; resize:vertical; background:#fff6e4; } #command label:has
   margin-right:5px; border-radius:50%; background:var(--person-color); border:1px solid #0002; }
 .label.person.player { font-weight:700; border:2px solid #527f77; color:#275c56; background:#fff2cd; }
 .label.person.player > span::after { content:' ★'; color:#997124; }
+
+/* Voice remains a small optional toolbar at phone widths. */
+#voice-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:8px 12px; }
+#voice-count,#voice-status { font-size:12px; }
+#voice-status:empty { display:none; }
+#mic { touch-action:manipulation; }
