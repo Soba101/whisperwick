@@ -28,7 +28,7 @@ SIDECAR = {
 
 def test_talk_and_move_lines_use_display_names():
     text = format_story([TALK, MOVE], NAMES)
-    assert '08:05  Market       Victor -> Bob: "Morning."' in text
+    assert '08:05  Market:       Victor -> Bob: "Morning."' in text
     assert "08:10  Hal walks Town Hall -> Market" in text
 
 

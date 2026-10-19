@@ -43,7 +43,7 @@ def hhmm(tick: int) -> str:
 def format_event(e: Event, names: dict[str, str]) -> str | None:
     """One line for a talk, move, item or custody event. Other events (like look) are left out."""
     if e.type == "talk":
-        place = show(names, e.location).ljust(PLACE_WIDTH)
+        place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "08:00  The Inn: Alice ..."
         who, to = show(names, e.actor), show(names, e.data["to"])
         line = f'{hhmm(e.tick)}  {place} {who} -> {to}: "{e.data["message"]}"'
         # A claim is shown after the words, by display name (or id if none is known).
@@ -64,10 +64,10 @@ def format_event(e: Event, names: dict[str, str]) -> str | None:
             "give": f"gives the {item} to {to}",
             "show": f"shows the {item} to {to}",
         }
-        place = show(names, e.location).ljust(PLACE_WIDTH)
+        place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "08:00  The Inn: Alice ..."
         return f"{hhmm(e.tick)}  {place} {who} {verbs[e.type]}"
     if e.type in ("arrest", "release"):
-        place = show(names, e.location).ljust(PLACE_WIDTH)
+        place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "08:00  The Inn: Alice ..."
         verb = "arrests" if e.type == "arrest" else "releases"
         who, target = show(names, e.actor), show(names, e.data["target"])
         return f"{hhmm(e.tick)}  {place} {who} {verb} {target}"
