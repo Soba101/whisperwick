@@ -32,6 +32,7 @@ def launcher(
         if chosen.crime_seed is not None:
             typer.echo(f"Crime #{chosen.crime_seed}")
         player, db = WebPlayer(chosen), db_for(next(numbers))
+        player.feedback_path = Path(db).parent / "feedback.jsonl"
 
         def game() -> None:
             error = None

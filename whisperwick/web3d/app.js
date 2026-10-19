@@ -1,6 +1,7 @@
 import {Controls} from './controls.js';
 import {Panels} from './panels.js';
 import {Ending} from './ending.js';
+import {setupFeedback} from './feedback.js';
 import {Voice} from './voice.js';
 
 const fixture = new URLSearchParams(location.search).get('fixture') === '1';
@@ -8,7 +9,8 @@ const panels = new Panels();
 let village = null, pending = false;
 const controls = new Controls(post);
 const voice = new Voice();
-const ending = new Ending(post);
+const openFeedback = setupFeedback('3d', fixture);
+const ending = new Ending(post, openFeedback);
 // A failed CDN or WebGL context still leaves the HUD and controls usable.
 try {
   const {Village} = await import('./scene.js');

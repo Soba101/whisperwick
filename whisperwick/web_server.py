@@ -13,7 +13,7 @@ import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from whisperwick import web3d_assets, web_auth
+from whisperwick import feedback, web3d_assets, web_auth
 from whisperwick.crime.selection import crime_number
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
@@ -161,6 +161,9 @@ class Handler(BaseHTTPRequestHandler):
         game = self.games.get(token)
         if game is None:
             return self.send_json(409, {"error": "no game here, reload the page"})
+        if path == "/feedback":
+            code, result = feedback.save(game, body)
+            return self.send_json(code, result)
         player = game.player
         if path == "/accuse":
             with player.cv:

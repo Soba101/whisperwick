@@ -1,0 +1,10 @@
+/* A native modal keeps focus inside, including when opened over the ending. */
+.feedback-dialog { color:#493b2d; background:#fbf1dd; border:1px solid #b99767;
+  border-radius:12px; padding:24px; width: min(420px, 85vw); max-height:85vh;
+  overflow:auto; box-sizing:border-box; }
+.feedback-dialog::backdrop { background:#29231b88; }
+.feedback-dialog h2 { margin-top:0; }
+.feedback-dialog label { display:block; margin:8px 0; }
+.feedback-dialog textarea { display:block; width:100%; box-sizing:border-box; }
+.feedback-dialog input[type=checkbox] { width:auto; margin-right:8px; }
+.feedback-dialog button { margin-right:8px; min-height:40px; }
