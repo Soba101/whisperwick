@@ -14,6 +14,7 @@ from whisperwick.web_style import CSS
 
 BODY = ROLE_HTML + GUIDE + f"""
 <header class="page-head"><h1>Whisperwick</h1>
+<button id="view3d" onclick="location.assign('/3d')">3D view</button>
 <button id="help" aria-label="How to play">How to play</button>
 <div class="sub"><span id="clock"></span><span id="where"></span></div>
 <p class="hook">{HOOK}</p>

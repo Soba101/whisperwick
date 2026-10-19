@@ -37,6 +37,10 @@ button,select,textarea { font:inherit; background:#f7ecd4; color:inherit; border
   border-radius:10px; padding:9px 12px; max-width:100%; }
 button { cursor:pointer; min-height:40px; transition:background .15s,box-shadow .15s; }
 button:hover:not(:disabled) { background:#e9dab9; box-shadow:0 2px 6px #66513618; }
+/* A link that looks like a button: the switch back to the 2D view. */
+a.btn { display:inline-flex; align-items:center; min-height:40px; padding:9px 12px; background:#f7ecd4;
+  color:inherit; border:1px solid #bba987; border-radius:10px; text-decoration:none; }
+a.btn:hover { background:#e9dab9; }
 button:disabled { opacity:.42; cursor:not-allowed; filter:saturate(.35); }
 button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible { outline:3px solid #b57c49; outline-offset:3px; }
 button[aria-pressed=true],#send { background:#65765a; color:#fff8e8; border-color:#56664c; }
