@@ -1,6 +1,7 @@
 """Feed and live turn labels. Called only by the run thread, with the player lock."""
 
-from whisperwick import player_terminal, story, web_scene, web_silence
+from whisperwick import narrator, player_terminal, story, web_scene, web_silence
+from whisperwick.actions import Intent, do_look
 from whisperwick.player import PLAYER_ID
 from whisperwick.world import World
 
@@ -32,20 +33,17 @@ class WebPlayerFeed:
     def _show_look(self, world: World, seen: dict) -> None:
         """Wren's own look. A look is not a logged event, so without this line the feed
         showed nothing and the button seemed broken (playtest, 3D page). Lock held."""
-        def names(ids, table):
-            return ", ".join(table[i].name for i in ids)
+        self.scene_lines.add(len(self.feed))
+        self.feed.append(f"{story.hhmm(world.clock.tick)}  "
+                         + narrator.scene(world, seen, self.sc.seed))
 
-        held = set(seen.get("held", []))
-        people = ", ".join(world.npcs[n].name + (" (held)" if n in held else "")
-                           for n in seen["people"])
-        parts = [f"People: {people or 'nobody'}."]
-        if seen["bodies"]:
-            parts.append(f"Bodies: {names(seen['bodies'], world.npcs)}.")
-        parts.append(f"On the ground: {names(seen['items'], world.items) or 'nothing'}.")
-        parts.append(f"Exits: {names(seen['exits'], world.locations)}.")
-        place = world.locations[seen["location"]].name
-        self.feed.append(f"{story.hhmm(world.clock.tick)}  {place}: You look around. "
-                         + " ".join(parts))
+    def _show_arrival(self, world: World) -> None:
+        """Include the starting place. Repeated refreshes must not repeat the scene."""
+        here = world.npcs[PLAYER_ID].location
+        if here != self.scene_place:
+            self.scene_place = here
+            seen = do_look(world, Intent(actor=PLAYER_ID, action="look")).observation
+            self._show_look(world, seen)
 
     def _close_turn(self, world: World) -> None:
         """Show a quiet reply after the villager's real turn has finished. Lock held."""

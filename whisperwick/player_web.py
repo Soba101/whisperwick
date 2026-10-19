@@ -49,6 +49,8 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         self.turn_of: tuple | None = None  # Actor, starting errors, starting feed count, tick.
         self.lines_by: dict[str, int] = {}
         self.feed: list[str] = []
+        self.scene_lines: set[int] = set()  # Feed positions, never inferred from prose.
+        self.scene_place: str | None = None
         self.interactions: dict[str, dict] = {}  # Only witnessed item gestures.
         self.motions: dict[str, dict] = {}  # Only witnessed walks, never hidden positions.
         self.reply_to: dict | None = None  # Last direct speaker, with a feed sequence.
@@ -106,6 +108,8 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
                 "finished": self.finished,
                 "rejection": self.rejection,
                 "feed": self.feed[since:],
+                "feed_flags": [{"scene": i in self.scene_lines}
+                               for i in range(len(self.feed))[since:]],
                 "feed_total": len(self.feed),
                 "outcome": self.outcome if self.ending.accusation is not None else None,
                 "secret": self.secret if self.ending.accusation is not None else None,
@@ -118,6 +122,7 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
         """Take a new picture of what Wren sees. Lock held by the caller."""
         self.world = world
         self._catch_up(world)
+        self._show_arrival(world)
         self._close_turn(world)
         self.view = web_state.you_view(world, self.sc.player_title)
         self.known.update(self.view)
@@ -178,6 +183,9 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
             self.rejection = None if result.ok else result.reason
             if result.ok and intent.action == "look" and self.world and result.observation:
                 self._show_look(self.world, result.observation)
+            if result.ok and intent.action == "move" and self.world:
+                self._catch_up(self.world)  # Show the walk before its arrival scene.
+                self._show_arrival(self.world)
             if not result.ok:
                 self.auto_left = 0  # show the reason now, do not wait
 

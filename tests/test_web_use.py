@@ -53,7 +53,8 @@ def test_use_gesture_is_only_a_witnessed_successful_fact():
     assert snapshot(world, player)['interactions'] == []
     assert world.act(dict(actor='npc_victor', action='use', item='item_apples')).ok
     s = snapshot(world, player)
-    assert s['interactions'] == [{'id': 'npc_victor', 'sequence': 1}]
+    # The starting scene occupies the first feed position.
+    assert s['interactions'] == [{'id': 'npc_victor', 'sequence': 2}]
     assert 'Victor eats the basket of apples' in s['feed'][-1]
     assert snapshot(world, player)['interactions'] == s['interactions']
     # The existing gesture path plays this clip for every accepted interaction.

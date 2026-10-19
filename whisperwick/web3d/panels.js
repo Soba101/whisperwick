@@ -33,6 +33,7 @@ export class Panels {
       // Full lines: cutting at 130 characters hid the end of what people said (playtest
       // on a phone). The speech bubbles in the scene are the short form.
       const row = el('p',line); row.className='line';
+      if (s.feed_flags?.[i]?.scene) row.classList.add('scene');
       const dot=el('span',''); dot.className='speaker-dot'; dot.setAttribute('aria-hidden','true');
       // Match server-tagged speech exactly; never infer identity from a display name.
       const speaker=Object.entries(s.speech || {}).find(([,text]) => text===line)?.[0];
