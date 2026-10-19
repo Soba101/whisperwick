@@ -17,19 +17,18 @@ from whisperwick import (
     replay_command,
     screen_command,
     story,
-    web_play,
 )
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_cli import judge_client, run_with_llm
-from whisperwick.player_script import load_script
-from whisperwick.player_terminal import TerminalPlayer
+from whisperwick.play_command import play
 from whisperwick.scenario import build_world, load_scenario
 from whisperwick.sim import run as run_sim
 
 app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.")
 
 app.add_typer(screen_command.app, name="screen")
+app.command()(play)
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
 
@@ -80,46 +79,6 @@ def run(
     typer.echo(f"\n{len(world.log.all())} events.")
 
 
-@app.command()
-def play(
-    script: Annotated[
-        Path | None, typer.Option(help="Player script YAML. Without it you play in the terminal.")
-    ] = None,
-    scenario: Annotated[Path, typer.Option(help="Scenario YAML file.")] = DEFAULT_SCENARIO,
-    days: Annotated[int, typer.Option(help="Game days to play.")] = 1,
-    seed: Annotated[int | None, typer.Option(help="Override the scenario's seed.")] = None,
-    db: Annotated[str | None, typer.Option(help="SQLite file for the event log.")] = None,
-    web: Annotated[bool, typer.Option(help="Play in a local web page instead.")] = False,
-    port: Annotated[int, typer.Option(help="Port for --web (127.0.0.1 only).")] = 8000,
-    key: Annotated[
-        str | None,
-        typer.Option(
-            help="--web: key every visitor needs (?key=KEY once).", envvar="WHISPERWICK_WEB_KEY"
-        ),
-    ] = None,
-    allow_host: Annotated[
-        list[str] | None, typer.Option(help="--web: extra Host name to accept (needs --key).")
-    ] = None,
-    max_games: Annotated[int, typer.Option(help="--web: games running at once.")] = 3,
-) -> None:
-    """Play Wren in the village (terminal or --web), or run a player script. Needs a model."""
-    sc = load_scenario(scenario)
-    if web:
-        db_path = db or llm_run.default_db_path(sc.name)
-        return web_play.serve(
-            sc, scenario, db_path, seed, days * 24 * 60, port, key, tuple(allow_host or ()),
-            max_games,
-        )
-    try:
-        player = load_script(script) if script else TerminalPlayer()
-    except (ValueError, OSError) as e:
-        # A broken script is a data bug: say so plainly instead of a traceback.
-        typer.echo(f"Bad player script: {e}", err=True)
-        raise typer.Exit(1) from e
-    name = getattr(player, "name", "terminal")
-    run_with_llm(
-        sc, scenario, db or llm_run.default_db_path(sc.name), seed, days * 24 * 60, player, name
-    )
 
 
 @app.command("story")
@@ -175,7 +134,7 @@ def outcome_command_(
         Path | None, typer.Option(help="Scenario YAML. Only given to also print its secret.")
     ] = None,
 ) -> None:
-    """Arrests, releases and who is held at the end. World events only. No model is called."""
+    """Ending facts, saved truth and the player accusation. No model is called."""
     try:
         typer.echo(outcome_command.outcome_run(db, scenario))
     except FileNotFoundError as e:

@@ -1,0 +1,10 @@
+{
+  "commit": "5783dce48ca16fe76407c7eaba56c4b9a1804b49",
+  "ticks": 300,
+  "sha256": {
+    "murder_of_the_mayor:1": "9899de2ef0e60bf9e992a31400f965b20356b42674c18d69a3ef9311c0bee66d",
+    "murder_of_the_mayor:42": "147ed9112ffa929062c0040887d544f19ba56292a4c3ba2e5d617161b4e61bd7",
+    "murder_of_the_mayor_goods:1": "9899de2ef0e60bf9e992a31400f965b20356b42674c18d69a3ef9311c0bee66d",
+    "murder_of_the_mayor_goods:42": "147ed9112ffa929062c0040887d544f19ba56292a4c3ba2e5d617161b4e61bd7"
+  }
+}

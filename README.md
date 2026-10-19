@@ -49,6 +49,31 @@ uv run whisperwick play --web                             # play in a web page (
 
 Both need a model server (see `.env.example`). Type `help` in the game for commands.
 
+The 2D page first asks you to choose the mayor's cousin (`cousin`), a travelling peddler
+(`peddler`), Victor's old business partner (`partner`), or the original newcomer start.
+Each role has starting items and one private fact under **What you know**. The cousin
+and partner also have one villager who already knows them. Villagers decide how to respond.
+`--role` preselects a role in the web picker and selects it directly for terminal or script play:
+
+```bash
+uv run whisperwick play --role cousin --seed 1
+uv run whisperwick play --role peddler --seed 1
+uv run whisperwick play --role partner --seed 1
+uv run whisperwick play --web --role partner --seed 1
+uv run whisperwick play --role peddler --script players/none.yaml --days 3 --seed 1
+```
+
+Web play defaults to one village day. Explicit `--days` values are preserved, including
+three-day scripted measurements. Omitting `--role` keeps the original world start.
+At the end of a web game, privately name someone or nobody to reveal the ending.
+The accusation is saved in the run's JSON sidecar; villagers never see it.
+The report gives the truth, Hal's custody and arrest times, your accusation, and counted
+gives and shows to Victor. Read the same report later without calling a model:
+
+```bash
+uv run whisperwick outcome data/web-YYYYMMDD-HHMMSS-1.db
+```
+
 After each run every villager is interviewed (who killed the mayor?), saved in the sidecar JSON.
 Compare runs side by side (suspects, where items ended up, key events), no model needed:
 

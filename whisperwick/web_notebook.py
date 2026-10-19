@@ -81,7 +81,9 @@ function drawNotebook(s) {
   const items = k.items.map(i => i.name + ' - ' + (i.carried ? 'you carry it'
     : i.place ? 'last seen on the ground ' + sighting(i)
     : 'last carried at ' + i.carried_place.name + ', ' + i.carried_clock));
-  $('known-panel').replaceChildren(knownSection('People', people.sort()),
+  $('known-panel').replaceChildren(
+    ...(k.private_fact ? [knownSection('Starting fact', [k.private_fact])] : []),
+    knownSection('People', people.sort()),
     knownSection('Places', k.places.map(p => p.name)), knownSection('Items', items));
 }
 // Initialize notes before polling can render a state.

@@ -9,11 +9,13 @@ under the lock. That way the page can never see more than Wren could see.
 import threading
 from collections import deque
 
-from whisperwick import player_terminal, web_scene, web_silence, web_state
+from whisperwick import web_scene, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID, PlayerSource
+from whisperwick.player_ending import PlayerEnding
 from whisperwick.scenario import Scenario
 from whisperwick.web_known import Known
+from whisperwick.web_player_feed import WebPlayerFeed
 from whisperwick.world import World
 
 # Actions the page may send. Arrest and release are for the authority, not for Wren.
@@ -28,9 +30,10 @@ NIGHT_END = 6 * 60
 POLL_SECONDS = 0.2  # how often turn() looks up, so quit and stop are noticed
 
 
-class WebPlayer(PlayerSource):
+class WebPlayer(WebPlayerFeed, PlayerSource):
     def __init__(self, sc: Scenario):
         self.sc = sc
+        self.ending = PlayerEnding(sc)
         self.cv = threading.Condition()  # guards everything below
         self.inbox: deque = deque()  # ("act", Intent), ("wait", minutes) or ("quit", None)
         self.awaiting = False  # True only while turn() is blocked, waiting for Wren
@@ -90,7 +93,10 @@ class WebPlayer(PlayerSource):
                 **web_scene.presentation(self),
                 "clock": world.clock.label() if world else "",
                 "you": self.view,
-                "known": self.known.snapshot(),
+                "known": {**self.known.snapshot(),
+                          **({"private_fact": self.sc.private_fact}
+                             if self.sc.private_fact else {})},
+                **self.ending.snapshot(self.known.snapshot()["people"]),
                 "actions": self.actions,
                 "places": self.places,
                 "awaiting": self.awaiting and not self.finished,
@@ -100,51 +106,19 @@ class WebPlayer(PlayerSource):
                 "rejection": self.rejection,
                 "feed": self.feed[since:],
                 "feed_total": len(self.feed),
-                "outcome": self.outcome,
-                "secret": self.secret,
+                "outcome": self.outcome if self.ending.accusation is not None else None,
+                "secret": self.secret if self.ending.accusation is not None else None,
                 "error": self.error,
             }
 
     # ---- called from the run loop thread ----
-
-    def _catch_up(self, world: World) -> None:
-        """Add feed lines for log events not looked at yet. Safe to call at any time:
-        it goes by position in the log, so no event is ever added twice. Lock held."""
-        events = world.log.all()
-        fresh, self.seen = events[self.seen :], len(events)
-        for event in fresh:
-            lines = player_terminal.player_lines(world, [event], claims=False)  # words only
-            self.feed += lines
-            if lines and event.type == "talk":
-                self.speech[event.actor] = lines[-1]
-            if lines and event.type in {"give", "take", "show"}:
-                self.interactions[event.actor] = {"id": event.actor, "sequence": len(self.feed)}
-            if lines and event.type == "move":
-                self.motions[event.actor] = web_scene.walk(world, event, len(self.feed))
-            self.lines_by[event.actor] = self.lines_by.get(event.actor, 0) + len(lines)
-            if lines and event.actor != PLAYER_ID:
-                self.others += 1  # something Wren can see that someone else did or said
-
-    def _close_turn(self, world: World) -> None:
-        """Show a quiet reply after the villager's real turn has finished. Lock held."""
-        if self.turn_of is None:
-            return
-        npc_id, errors, lines, tick = self.turn_of
-        self.turn_of, self.waiting_on = None, None
-        if self.lines_by.get(npc_id, 0) > lines:
-            return  # Its real action is already visible.
-        if world.npcs[npc_id].location == world.npcs[PLAYER_ID].location:
-            errored = self.stats.get("errors", 0) > errors
-            self.feed.append(web_silence.silence_line(world, npc_id, errored, tick))
-            self.others += 1  # A quiet reply also gives Wren her turn back.
-            self.lines_by[npc_id] = lines + 1
 
     def _refresh(self, world: World) -> None:
         """Take a new picture of what Wren sees. Lock held by the caller."""
         self.world = world
         self._catch_up(world)
         self._close_turn(world)
-        self.view = web_state.you_view(world)
+        self.view = web_state.you_view(world, self.sc.player_title)
         self.known.update(self.view)
         self.actions = web_state.actions_for(self.view)
 
@@ -157,33 +131,9 @@ class WebPlayer(PlayerSource):
             if self.world is not None:
                 self._refresh(self.world)
                 self.outcome, self.secret = web_state.finish_view(self.world, self.sc)
+                self.ending.finish(self.world.log.all())
             self.finished, self.awaiting = True, False
             self.cv.notify_all()
-
-    def on_event(self, world: World, event) -> None:
-        """Run-loop hook: a villager event was just applied. Show it now if Wren may see it."""
-        with self.cv:
-            self._catch_up(world)  # the event is already in the log; same filter as always
-
-    def on_turn(self, world: World, npc_id: str | None) -> None:
-        """Run-loop hook: a model call starts (npc_id None = the day's thinking phase).
-
-        The label names a villager only when that villager is where Wren is, so the
-        page never shows who is where outside Wren's view.
-        """
-        with self.cv:
-            self._catch_up(world)  # also shows Wren's own action right away
-            self._close_turn(world)
-            if npc_id is not None and npc_id == self.waiting_on:
-                # The tick is kept: the turn is closed later, often after the clock has moved on.
-                self.turn_of = (npc_id, self.stats.get("errors", 0), self.lines_by.get(npc_id, 0),
-                                world.clock.tick)
-            if npc_id is None:
-                self.busy = "The villagers are thinking about the day..."
-            elif world.npcs[npc_id].location == world.npcs[PLAYER_ID].location:
-                self.busy = f"{world.npcs[npc_id].name} is thinking..."
-            else:
-                self.busy = "Someone elsewhere is acting..."
 
     def turn(self, world: World) -> list[Intent] | None:
         with self.cv:

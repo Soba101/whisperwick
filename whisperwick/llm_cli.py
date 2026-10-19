@@ -120,12 +120,20 @@ def run_with_llm(
         scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path,
         client,
     )
+    data["authority"] = sc.authority
+    if sc.role_id:
+        data.update(role=sc.role_id, private_fact=sc.private_fact, player_title=sc.player_title)
     data.update(extra)
     data["group_turns"] = group_turns
     # The seed lets `eval` group runs that differ only in the player script.
     data["seed"] = sc.seed if seed is None else seed
     data.update(sidecar_part(agent_memory, agent_log, notebooks))
     llm_run.write_sidecar(path, data)
+    if isinstance(player, WebPlayer):
+        # Serialize with an accusation that may arrive just as the run ends.
+        with player.cv:
+            player.ending.sidecar = path
+            player.ending.save()
     typer.echo(f"Sidecar: {path}")
 
 
