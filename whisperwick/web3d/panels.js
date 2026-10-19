@@ -29,14 +29,15 @@ export class Panels {
     const start = s.feed_total-s.feed.length;
     s.feed.forEach((line,i) => {
       if (start+i < this.have) return;
-      const details = el('details','');
-      const summary=el('summary',line.length > 130 ? line.slice(0,130)+'…' : line);
+      // Full lines: cutting at 130 characters hid the end of what people said (playtest
+      // on a phone). The speech bubbles in the scene are the short form.
+      const row = el('p',line); row.className='line';
       const dot=el('span',''); dot.className='speaker-dot'; dot.setAttribute('aria-hidden','true');
       // Match server-tagged speech exactly; never infer identity from a display name.
       const speaker=Object.entries(s.speech || {}).find(([,text]) => text===line)?.[0];
       if(speaker) dot.style.setProperty('--speaker','#'+clothing(speaker).toString(16).padStart(6,'0'));
-      summary.prepend(dot); details.append(summary,el('p',line));
-      feed.append(details);
+      row.prepend(dot);
+      feed.append(row);
     });
     this.have = Math.max(this.have,s.feed_total);
     if (stick) feed.scrollTop = feed.scrollHeight;
