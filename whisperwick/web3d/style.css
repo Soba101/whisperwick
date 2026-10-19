@@ -1,5 +1,6 @@
 /* The scene and HUD each keep their own scroll area on a small screen. */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@500;600&display=swap');
+@import url('./ending.css');
 :root { color-scheme:light; font:14px 'DM Sans',sans-serif; background:#e7dbc1; color:#493f32; }
 * { box-sizing:border-box; }
 body { margin:0; overflow-x:hidden; }

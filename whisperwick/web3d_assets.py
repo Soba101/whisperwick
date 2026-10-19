@@ -6,6 +6,10 @@ from importlib.resources import files
 ASSETS = {
     "index.html": "text/html; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
+    "ending.css": "text/css; charset=utf-8",
+    "ending-content.js": "text/javascript; charset=utf-8",
+    "ending.js": "text/javascript; charset=utf-8",
+    "ending-camera.js": "text/javascript; charset=utf-8",
     "app.js": "text/javascript; charset=utf-8",
     "scene.js": "text/javascript; charset=utf-8",
     "palette.js": "text/javascript; charset=utf-8",

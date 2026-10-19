@@ -44,10 +44,14 @@ BODY = ROLE_HTML + GUIDE + f"""
       <div id="reject" class="warn" hidden></div>
     </div>
     """ + ENDING_HTML + """
-    <div class="card" id="end" hidden><h2>The game is over</h2><pre id="outcome"></pre>
+    <button id="view-ending" hidden>View ending</button>
+    <dialog class="ending-screen" id="end" hidden aria-labelledby="ending-title">
+      <h1 id="ending-title">The day is over</h1>
+      <div id="ending-content" class="ending-content"></div><pre id="outcome"></pre>
       <div id="secretbox" hidden><h2>Scenario secret (shown only now, not part of the world)</h2>
         <pre id="secret"></pre></div><div id="err" class="warn"></div>
-      <div class="row"><button id="again">New game</button></div></div>
+      <div class="row"><button id="again">Play again</button>
+        <button id="close-ending">Close</button></div></dialog>
   </div>
 </div>
 """

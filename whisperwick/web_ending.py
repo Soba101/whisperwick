@@ -30,6 +30,7 @@ ENDING_HTML = """
 """
 
 ENDING_JS = """
+let endingClosed = false, endingDrawn = false;
 function drawEnd(s) {
   $('bar').hidden = s.finished;
   $('end').hidden = !s.finished;
@@ -38,6 +39,16 @@ function drawEnd(s) {
   $('secretbox').hidden = !s.secret;
   $('secret').textContent = s.secret || '';
   $('err').textContent = s.error || '';
+  if (s.ending_scene) {
+    if (!endingDrawn) {
+      renderEnding($('ending-content'), s.ending_scene);
+      endingDrawn = true;
+    }
+    $('outcome').hidden = $('secretbox').hidden = true;
+    $('end').hidden = endingClosed;
+    $('view-ending').hidden = !endingClosed;
+    if (!endingClosed && !$('end').open) $('end').showModal();
+  }
 }
 
 // Inert keeps pointer and keyboard interaction inside the open guide.
@@ -98,6 +109,15 @@ function drawAccusation(s) {
   $('end').hidden = !s.finished || !!s.accusation_pending;
   if (s.accusation_pending) fill($('accused'), s.accusation_choices, 'Nobody');
 }
+function closeEnding() {
+  endingClosed = true; $('end').close(); $('end').hidden = true;
+  $('view-ending').hidden = false; $('view-ending').focus();
+}
+$('close-ending').onclick = closeEnding;
+$('end').oncancel = e => { e.preventDefault(); closeEnding(); };
+$('view-ending').onclick = () => {
+  endingClosed = false; $('end').hidden = false; $('end').showModal();
+};
 $('record-accusation').onclick = () => post('/accuse', {target: $('accused').value || null});
 // New game returns to the picker. No world starts before the next role choice.
 $('again').onclick = async () => {

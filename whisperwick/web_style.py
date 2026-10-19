@@ -1,5 +1,7 @@
 """Inline styles for the offline play page. Colours follow the device theme."""
 
+from importlib.resources import files
+
 CSS = """
 :root { color-scheme: light; --bg:#f2ede2; --surface:#fffcf5; --text:#302e26;
   --muted:#6d695c; --line:#ded7c8; --accent:#38604f; --warn:#a33329;
@@ -112,3 +114,6 @@ pre { white-space:pre-wrap; margin:0; font:inherit; }
   #quit { margin-left:var(--s4); }
 }
 """
+
+# Share ending typography while keeping every 2D asset inline and offline.
+CSS += files("whisperwick").joinpath("web3d/ending.css").read_text()

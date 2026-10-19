@@ -1,0 +1,30 @@
+/* Warm paper and a bounded reading measure keep the reveal calm and readable. */
+.ending-screen { color:#493b2d; background:#fbf1dd; border:0; padding:clamp(20px,5vw,64px);
+  overflow:auto; overflow-wrap:anywhere; box-sizing:border-box; line-height:1.65; }
+.ending-screen::backdrop { background:#29231b66; }
+.ending-screen h1 { font:500 clamp(28px,5vw,46px)/1.2 Georgia,serif; margin:0 0 28px; }
+.ending-content,.ending-screen > pre,.ending-screen > .row { max-width:740px; margin-inline:auto; }
+.ending-content section { padding:22px 0; border-top:1px solid #dac8a9; }
+.ending-content h2 { font:500 26px/1.3 Georgia,serif; margin:0 0 16px; }
+.ending-content h3 { font:600 17px/1.4 Georgia,serif; margin:24px 0 10px; }
+.ending-content p { margin:8px 0; }
+.ending-timeline { padding-left:24px; border-left:2px solid #b99767; margin-left:6px; }
+.ending-timeline li { padding:8px 0 8px 4px; }
+.ending-timeline time { font-size:13px; color:#765f45; }
+.ending-screen button { min-height:44px; }
+/* Native dialogs contain keyboard focus and support Escape without extra traps. */
+#end.ending-screen { position:fixed; inset:0; width:100%; height:100%; max-width:none;
+  max-height:none; margin:0; border-radius:0; }
+.ending-screen .row { display:flex; flex-wrap:wrap; gap:12px; padding-top:20px; }
+#ending3d { position:fixed; inset:0 0 0 auto; margin:0; width:42%; max-width:none;
+  height:100%; max-height:none; padding:28px; box-shadow:-10px 0 40px #30241622; }
+#ending3d::backdrop { background:transparent; }
+body.ending-scene main { display:block; padding:0; }
+body.ending-scene #village { position:fixed; inset:0 42% 0 0; height:100%; border-radius:0; }
+body.ending-scene header,body.ending-scene aside,body.ending-scene footer,
+body.ending-scene #voice-tools { display:none; }
+@media(max-width:700px) {
+  #ending3d { inset:42% 0 0; width:100%; height:58%; padding:20px; }
+  body.ending-scene #village { inset:0 0 58%; height:42%; min-height:0; }
+  .ending-content h2 { font-size:23px; }
+}
