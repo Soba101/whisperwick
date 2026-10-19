@@ -1,4 +1,6 @@
-# Week 13 plan (draft, for approval): roles and endings
+# Week 13 plan (approved 2026-10-19): roles and endings
+
+Answers: side = plain facts; 1 day for play, 3 days for measured runs; role choice in the 2D page first.
 
 Gate 2: GO, provisional (#87). Direction draft: #88 (answers Q1-Q12). Build order (Q12): roles and endings
 first, the engine-written narrator after (week 14 candidate).
@@ -63,7 +65,7 @@ Shown in the 2D page and the 3D page (#96), and printed by `whisperwick outcome`
 - Villagers unchanged without a player: the `none` script with no role must give the same events as main
   (determinism test on a stub agent).
 - Live: the peddler (no villager change) and the partner (Victor knows you), 5 runs each on seeds 1-2 with the
-  existing scripted players, 1 day, about 20 runs. Bars, from #90: Right person and Decisive not worse beyond
+  existing scripted players, 3 days (measured runs keep 3 days), about 20 runs. Bars, from #90: Right person and Decisive not worse beyond
   noise against 5 fresh runs per seed without a role. ClaimGap and Requests reported, not judged.
 - You play each role once in the demo and say whether the ending felt fair.
 
