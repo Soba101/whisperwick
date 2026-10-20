@@ -90,3 +90,21 @@ lines in a run vs about 1,200) and a quarter of actions were refused. Cause: mod
 gestures with words are refused ("use talk"), items in view may be named, raw ids are refused, the cap is
 120 characters. A short live game after the fix: talk back to normal, 9% refused, mostly over-long gestures
 before the cap change. The check batch reruns as data/w16b-*.
+
+## Results: check runs (2026-10-21, #120)
+10 runs (`none`, no role, memory on, 3 days), seeds 1-2 x 5, data/w16b-* (code db18a29: gesture fixes, before
+the exclamation rule). Baseline: week 12 noise runs (w12n, 10 per seed). Eval in data/w16b-eval-s*.txt.
+
+| Seed | Group | Right | Wrong | Nobody | Decisive | Median requests |
+|---|---|---:|---:|---:|---:|---:|
+| 1 | baseline (10) | 2 | 1 | 5 | 3 | 1,313 |
+| 1 | week 16 (5) | 2 | 0 | 3 | 1 | 712 |
+| 2 | baseline (10) | 9 | 1 | 0 | 8 | 1,638 |
+| 2 | week 16 (5) | 0 | 1 | 4 | 0 | 732 |
+
+- Villagers talk a third as much: 378 talk events per run against 1,147, with 39 gestures per run instead.
+  A gesture asks no one to answer, so conversations end sooner and news reaches Hal less.
+- Seed 2 collapsed: right person 9/10 to 0/5, decisive 8/10 to 0/5. Far past noise (#90).
+- Nobody made an action in 10 runs, and the wish list is empty.
+- Bar (not worse beyond noise) **not met**. Finding #122. Decision for Donovan: keep gestures, limit them, or turn
+  them off by default.
