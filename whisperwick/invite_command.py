@@ -50,7 +50,8 @@ def players() -> None:
     with locked(store.folder):
         # Only live links, as on the admin page.
         for player in (p for p in store.read() if not p["revoked"]):
-            typer.echo(json.dumps({k: v for k, v in player.items() if k != "key_hash"}))
+            typer.echo(json.dumps({k: v for k, v in player.items()
+                                   if k not in ("key_hash", "key")}))
 
 
 def revoke(name: Annotated[str, typer.Argument(help="Player name.")]) -> None:

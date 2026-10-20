@@ -63,8 +63,12 @@ def test_approve_and_invite_store_only_hashes(tmp_path):
     other = json.loads(post(store, games, "/admin/invite", {"name": "Dee"})["body"])["link"]
     key2 = other.split("?key=")[1]
     assert "?key=" in other and key_hash(key2) in (tmp_path / "players.json").read_text()
+    # The owner page lists each live player's link to copy again; other files never hold it.
+    page = request(store, games, "/admin", key=OWNER)["body"].decode()
+    assert key in page and key2 in page
     for f in tmp_path.iterdir():
-        assert key not in f.read_text() and key2 not in f.read_text()
+        if f.name != "players.json":
+            assert key not in f.read_text() and key2 not in f.read_text()
 
 
 def test_decline_removes_request(tmp_path):
@@ -115,3 +119,11 @@ def test_game_pages_have_no_admin_link(tmp_path):
     player = store.invite("Alice")
     for key in (OWNER, player):
         assert b'href="/admin"' not in request(store, games, key=key)["body"]
+
+
+def test_reissue_gives_an_old_player_a_new_link_and_kills_the_old_one(tmp_path):
+    store, games = Players(tmp_path), manager()
+    old = store.invite("Ed")
+    result = json.loads(post(store, games, "/admin/reissue", {"name": "Ed"})["body"])
+    new = result["link"].split("?key=")[1]
+    assert new != old and store.authenticate(old) is None and store.authenticate(new) == "Ed"

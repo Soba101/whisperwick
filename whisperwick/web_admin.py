@@ -4,14 +4,15 @@ import hmac
 import secrets
 
 from whisperwick import feedback
-from whisperwick.invite_actions import invite_link
+from whisperwick.invite_actions import invite_link, link_for
 from whisperwick.invite_files import locked, rows, valid_name
 from whisperwick.web_admin_page import render_admin
 
 # One random token lives only in this process. A restart invalidates open admin forms.
 CSRF_TOKEN = secrets.token_urlsafe(32)
 CSRF_HEADER = "X-CSRF-Token"
-ACTIONS = {"/admin/approve", "/admin/decline", "/admin/invite", "/admin/revoke", "/admin/stop"}
+ACTIONS = {"/admin/approve", "/admin/decline", "/admin/invite", "/admin/revoke", "/admin/stop",
+           "/admin/reissue"}
 
 
 class AdminRoutes:
@@ -22,9 +23,12 @@ class AdminRoutes:
             return self.send_json(404, {"error": "not found"})
         try:
             with locked(self.players.folder):
-                # Hashes are authentication data, not page data.
-                players = [{k: v for k, v in p.items() if k != "key_hash"}
-                           for p in self.players.read()]
+                # Hashes are authentication data, not page data. The raw key becomes a
+                # copyable link on this owner-only page, and nowhere else.
+                host = self.headers.get("Host")
+                players = [{**{k: v for k, v in p.items() if k not in ("key_hash", "key")},
+                            "link": link_for(host, p["key"], self.secure()) if p.get("key")
+                            else None} for p in self.players.read()]
                 requests = rows(self.requests.path)
             entries = feedback.recent(self.players.folder / "feedback.jsonl")
             page = render_admin(self.csrf_token, self.games.active(), self.games.max_games,
@@ -53,6 +57,11 @@ class AdminRoutes:
                 if path in ("/admin/approve", "/admin/invite"):
                     # The Host allowlist was checked before this route. Local links use HTTP.
                     result["link"] = invite_link(self.players, name, path == "/admin/approve",
+                                                 self.headers.get("Host"), self.secure())
+                elif path == "/admin/reissue":
+                    # Older players have no stored key: replace their link with a new one.
+                    self.games.stop_player(self.players.revoke(name))
+                    result["link"] = invite_link(self.players, name, False,
                                                  self.headers.get("Host"), self.secure())
                 elif path == "/admin/decline":
                     self.requests.decline(name)

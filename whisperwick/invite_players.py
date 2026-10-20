@@ -66,7 +66,10 @@ class Players:
             if approve and match is None:
                 raise ValueError("No waiting request for that name.")
             key = secrets.token_urlsafe(32)
-            players.append({"name": name, "key_hash": key_hash(key), "created": now(),
+            # The raw key is kept too (2026-10-21) so the owner can copy a live link again from
+            # the admin page. Same protection as the owner key file: data/, owner-only, never
+            # committed. Login still checks the hash.
+            players.append({"name": name, "key_hash": key_hash(key), "key": key, "created": now(),
                             "last_seen": None, "games": 0, "revoked": False})
             self.write(players)
             write_rows(path, [r for r in waiting if r is not match])

@@ -59,7 +59,10 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
         people.append(f'<h3>{text(p["name"])}</h3><p class="details">'
                       f'Last seen: {when(p["last_seen"])} · Games: {text(p["games"])}<br>'
                       f'Playing now: {"Yes" if p["name"] in playing else "No"}</p>'
-                      '<button type="button" class="danger" data-confirm>Revoke</button>'
+                      '<div class="actions">'
+                      + (f'<button type="button" data-copy-link="{text(p["link"])}">Copy link'
+                         '</button>' if p.get("link") else button("reissue", p["name"], "New link"))
+                      + '<button type="button" class="danger" data-confirm>Revoke</button></div>'
                       + confirm)
     entries = [f'<h3>{text(f.get("player"), "Unknown player")}</h3>'
                f'<p class="details">{when(f.get("time"))} · {text(f.get("page"))} · '
@@ -82,7 +85,7 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
             '<button type="button" id="refresh">Refresh</button></header>'
             '<p id="notice" role="status" aria-live="polite"></p>'
             '<aside class="card" id="personal-link" hidden><h2>Personal link</h2>'
-            '<p>Copy it now. It will not be shown again.</p>'
+            '<p>Send it only to this player. You can copy it again from Players.</p>'
             '<label>New personal link <input id="link-value" readonly autocomplete="off"></label>'
             '<div class="actions"><button type="button" id="copy">Copy</button>'
             '<button type="button" id="dismiss">Dismiss</button></div>'

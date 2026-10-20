@@ -21,14 +21,14 @@ def store(tmp_path):
     return Players(tmp_path / "data")
 
 
-def test_only_hashes_on_disk_and_case_insensitive_unique_names(store):
+def test_keys_on_disk_and_case_insensitive_unique_names(store):
+    # Since 2026-10-21 the raw key is stored so the owner page can copy the link again.
     key = store.invite("Alice")
     assert len(base64.urlsafe_b64decode(key + "=")) == 32
     player, = store.read()
     assert player == {"name": "Alice", "key_hash": hashlib.sha256(key.encode()).hexdigest(),
-                      "created": player["created"], "last_seen": None, "games": 0, "revoked": False}
-    for path in store.folder.iterdir():
-        assert key not in path.read_text()
+                      "key": key, "created": player["created"], "last_seen": None, "games": 0,
+                      "revoked": False}
     with pytest.raises(ValueError, match="already exists"):
         store.invite("ALICE")
     with pytest.raises(ValueError, match="reserved"):

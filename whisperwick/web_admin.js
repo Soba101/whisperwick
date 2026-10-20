@@ -73,7 +73,13 @@ async function act(action, body, button) {
 document.addEventListener('click', async event => {
   const button = event.target.closest('button');
   if (!button || busy) return;
-  if (button.id === 'refresh') {
+  if (button.dataset.copyLink) {
+    // A live player's saved link: show it in the link box and copy it like a new one.
+    linkValue.value = button.dataset.copyLink;
+    linkBox.hidden = false;
+    document.getElementById('copy').click();
+    linkBox.scrollIntoView({block:'nearest'});
+  } else if (button.id === 'refresh') {
     busy = true;
     button.disabled = true;
     try { await refresh(); notice.textContent = 'Updated.'; }
