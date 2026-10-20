@@ -18,7 +18,7 @@ _LOCK = threading.Lock()
 
 def validate(body: dict) -> dict:
     """Accept only bounded, plain data. A bool is not a numeric rating."""
-    if set(body) - {"page", "rating", "tags", "text"}:
+    if set(body) - {"page", "rating", "tags", "text", "kind"}:
         raise ValueError("unknown feedback field")
     page, rating = body.get("page"), body.get("rating")
     tags, text = body.get("tags", []), body.get("text", "")
@@ -34,7 +34,12 @@ def validate(body: dict) -> dict:
         raise ValueError("duplicate tags")
     if not isinstance(text, str) or len(text) > 2000:
         raise ValueError("text must be at most 2000 characters")
-    return {"page": page, "rating": None if rating == "" else rating, "tags": tags, "text": text}
+    # "moment": the "Something odd?" button, sent mid-game so the time and lines are kept.
+    kind = body.get("kind", "general")
+    if kind not in ("general", "moment"):
+        raise ValueError("kind must be general or moment")
+    return {"page": page, "rating": None if rating == "" else rating, "tags": tags, "text": text,
+            "kind": kind}
 
 
 def save(game, body: dict) -> tuple[int, dict]:
@@ -47,12 +52,18 @@ def save(game, body: dict) -> tuple[int, dict]:
     with player.cv:
         context = {"crime": player.sc.crime_seed, "role": player.sc.role_id,
                    "clock": player.view.get("clock", "")}
+        # The exact moment (2026-10-21): game minute, place and the last lines this player
+        # saw. Only what the player's own feed already showed, never hidden world state.
+        world = getattr(player, "world", None)
+        context["tick"] = world.clock.tick if world is not None else None
+        context["place"] = (player.view.get("place") or {}).get("name")
+        context["last_lines"] = list(player.feed[-5:])
     entry = {"time": datetime.now(UTC).isoformat(),
              "player": game.name,
              "game_id": hashlib.sha256(game.token.encode()).hexdigest(), **context, **fields}
     path = getattr(player, "feedback_path", DEFAULT_PATH)
     with _LOCK:
-        if game.feedback_count >= 10:
+        if game.feedback_count >= 30:
             return 429, {"error": "Feedback limit reached for this game."}
         try:
             path.parent.mkdir(parents=True, exist_ok=True)

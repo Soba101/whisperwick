@@ -25,8 +25,11 @@ export function setupFeedback(page, preview = false) {
   const send = node('button', 'Send'); send.type = 'submit';
   const cancel = node('button', 'Cancel'); cancel.type = 'button';
   cancel.onclick = () => dialog.close();
-  form.append(ratingLabel, tags, textLabel, status, send, cancel);
+  const hint = node('p', ''); hint.className = 'feedback-hint'; hint.hidden = true;
+  form.append(hint, ratingLabel, tags, textLabel, status, send, cancel);
   dialog.append(title, form); document.body.append(dialog);
+  // Report mode: the "Something odd?" button. The server keeps the game time and lines.
+  let kind = 'general';
   form.onsubmit = async e => {
     e.preventDefault();
     if (preview) { status.textContent = 'Fixture preview: no feedback is sent.'; return; }
@@ -35,7 +38,8 @@ export function setupFeedback(page, preview = false) {
       const r = await fetch('/feedback', {method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({page, rating: rating.value ? Number(rating.value) : null,
-          tags: [...tags.querySelectorAll('input:checked')].map(x => x.value), text: text.value})});
+          tags: [...tags.querySelectorAll('input:checked')].map(x => x.value), text: text.value,
+          kind})});
       const data = await r.json();
       status.textContent = r.ok ? 'Thanks, saved.' : data.error;
       if (r.ok) { form.reset(); cancel.textContent = 'Close'; }
@@ -44,10 +48,20 @@ export function setupFeedback(page, preview = false) {
       status.textContent = 'Could not save feedback. Please try again.'; send.disabled = false;
     }
   };
-  const open = () => {
+  const open = (moment = false) => {
     status.textContent = ''; send.disabled = false; cancel.textContent = 'Cancel';
+    kind = moment ? 'moment' : 'general';
+    title.textContent = moment ? 'Report this moment' : 'Feedback';
+    hint.textContent = moment
+      ? 'We save the game time, where you are and the last lines you saw. Say what felt wrong.'
+      : '';
+    hint.hidden = !moment;
+    const bug = tags.querySelector('input[value="bug"]');
+    if (moment && bug) bug.checked = true;
     if (!dialog.open) dialog.showModal();
+    if (moment) text.focus();
   };
-  document.querySelectorAll('[data-feedback]').forEach(button => button.onclick = open);
+  document.querySelectorAll('[data-feedback]').forEach(button => button.onclick = () => open());
+  document.querySelectorAll('[data-report]').forEach(button => button.onclick = () => open(true));
   return open;
 }

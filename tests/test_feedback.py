@@ -96,9 +96,10 @@ def test_limit_shared_across_views_and_concurrent_posts(game):
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         codes = list(pool.map(lambda i: post(game, {"page": "3d" if i % 2 else "2d"})[0],
-                              range(20)))
-    assert codes.count(200) == 10 and codes.count(429) == 10
-    assert len(game.player.feedback_path.read_text().splitlines()) == 10
+                              range(40)))
+    # 30 per game since the report button (2026-10-21).
+    assert codes.count(200) == 30 and codes.count(429) == 10
+    assert len(game.player.feedback_path.read_text().splitlines()) == 30
 
 
 def test_cli_newest_first_and_last(tmp_path, monkeypatch):
@@ -148,3 +149,23 @@ def test_launcher_saves_beside_run_database(tmp_path, monkeypatch):
     player, thread = launch()
     thread.join(timeout=2)
     assert player.feedback_path == tmp_path / "runs" / "feedback.jsonl"
+
+
+def test_a_reported_moment_keeps_time_place_and_last_lines():
+    # 2026-10-21: "Something odd?" saves the exact game moment with the report.
+    import threading
+    from types import SimpleNamespace
+    player = SimpleNamespace(cv=threading.Condition(), feed=[f"line {i}" for i in range(8)],
+                             view={"clock": "day 1 08:40", "place": {"name": "Market"}},
+                             world=SimpleNamespace(clock=SimpleNamespace(tick=520)),
+                             sc=SimpleNamespace(crime_seed=7, role_id=None))
+    game = SimpleNamespace(player=player, name="Billy", token="t", feedback_count=0)
+    import json
+    import pathlib
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        player.feedback_path = pathlib.Path(d) / "feedback.jsonl"
+        code, _ = feedback.save(game, {"page": "3d", "kind": "moment", "text": "odd"})
+        entry = json.loads(player.feedback_path.read_text())
+    assert code == 200 and entry["kind"] == "moment" and entry["tick"] == 520
+    assert entry["place"] == "Market" and entry["last_lines"] == [f"line {i}" for i in range(3, 8)]

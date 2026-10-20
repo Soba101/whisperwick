@@ -97,3 +97,7 @@ textarea { width:100%; resize:vertical; background:#fff6e4; } #command label:has
 /* Keep tentative words readable without changing the committed feed. */
 #live-talk { overflow-wrap:anywhere; }
 #live-talk strong { font-style:italic; font-weight:normal; }
+
+/* "Something odd?" sits above the feed so a playtester can flag the exact moment. */
+#feed-panel .report { font-size:12px; min-height:32px; padding:6px 10px; margin:0 0 8px; color:#526b5b; }
+.feedback-hint { color:#6b604e; font-size:13px; }

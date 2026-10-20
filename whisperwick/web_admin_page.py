@@ -17,6 +17,7 @@ main,.admin-head,#notice,#personal-link{max-width:900px;margin-inline:auto}
 label{display:block}label input{display:block;width:100%}
 #personal-link input{width:100%;margin-bottom:var(--s3)}
 #notice{min-height:1.6em;overflow-wrap:anywhere}
+.lines{white-space:pre-wrap;font-size:13px;background:var(--soft);padding:var(--s3);border-radius:10px}
 """
 ADMIN_JS = files("whisperwick").joinpath("web_admin.js").read_text()
 
@@ -64,12 +65,17 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
                          '</button>' if p.get("link") else button("reissue", p["name"], "New link"))
                       + '<button type="button" class="danger" data-confirm>Revoke</button></div>'
                       + confirm)
-    entries = [f'<h3>{text(f.get("player"), "Unknown player")}</h3>'
+    entries = [f'<h3>{"⚑ " if f.get("kind") == "moment" else ""}'
+               f'{text(f.get("player"), "Unknown player")}</h3>'
                f'<p class="details">{when(f.get("time"))} · {text(f.get("page"))} · '
                f'Rating: {text(f.get("rating"))} · Crime: {text(f.get("crime"))} · '
-               f'Role: {text(f.get("role"))} · {text(f.get("clock"))}</p>'
+               f'Role: {text(f.get("role"))} · {text(f.get("clock"))}'
+               f'{" · " + text(f.get("place")) if f.get("place") else ""}</p>'
                f'<p>{text(", ".join(f.get("tags", [])), "No tags")}</p>'
-               f'<p>{text(f.get("text"), "No comment")}</p>' for f in feedback]
+               f'<p>{text(f.get("text"), "No comment")}</p>'
+               # A reported moment keeps the last lines the player saw, oldest first.
+               + (f'<pre class="lines">{text(chr(10).join(f["last_lines"]))}</pre>'
+                  if f.get("last_lines") else "") for f in feedback]
     invite = ('<form id="invite"><label>Name <input name="name" required maxlength="40" '
               'autocomplete="off"></label><button>Invite</button></form>')
     content = (section("Seats", seats, "Nobody is playing.", "")

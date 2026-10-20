@@ -14,6 +14,8 @@ CSS = """
 body { font:15px/1.6 system-ui,sans-serif; background:var(--bg); color:var(--text);
   margin:0; padding:var(--s6); }
 body.modal-open { overflow:hidden; }
+.report { font-size:13px; min-height:34px; margin-bottom:var(--s3); color:var(--accent); }
+.feedback-hint { color:var(--muted); }
 .crime-hint { width:100%; margin:var(--s2) 0 0; color:var(--muted); font-size:13px; }
 h1,h2,h3 { font-family:Fraunces,"Iowan Old Style",Georgia,serif; line-height:1.2; }
 h1 { font-size:32px; margin:0; } h2 { font-size:21px; margin:0 0 var(--s3); }

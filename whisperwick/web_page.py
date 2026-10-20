@@ -37,6 +37,7 @@ BODY = ROLE_HTML + GUIDE + f"""
   </div>
   <div>
     <div class="card" id="feedcard"><h2>What you see and hear</h2>
+      <button class="report" type="button" data-report>⚑ Something odd? Report this moment</button>
       <ul id="feed"></ul><div id="live-talk" role="status"></div>
       <div id="busy" hidden>The villagers are acting...</div></div>
     <div class="card" id="bar">
