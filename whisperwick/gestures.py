@@ -31,7 +31,11 @@ PHYSICAL = re.compile(
 
 
 # Speech belongs in talk: a gesture with a question, quotes or someone addressed is words.
-SPEECH = re.compile(r'[?"\u201c\u201d]|\b(?:[Yy]ou|[Yy]our|I|I\'m|I\'ll)\b')
+# Exclamations, interjections and orders are speech too ("Whoa, careful with that basket!
+# Don't let them roll", playtest 2026-10-21).
+SPEECH = re.compile(r'[?!"\u201c\u201d]|\b(?:[Yy]ou|[Yy]our|I|I\'m|I\'ll)\b'
+                    r"|^(?:[Hh]ey|[Ww]hoa|[Oo]h|[Aa]h|[Hh]m+|[Ww]ell|[Ll]ook|[Ll]isten|[Cc]areful)\b"
+                    r"|\b(?:[Dd]on't|[Dd]o not|[Ll]et's|[Ll]et me)\b")
 
 
 def has_word(text: str, word: str) -> bool:

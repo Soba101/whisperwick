@@ -46,7 +46,9 @@ def format_event(e: Event, names: dict[str, str], viewer: str | None = None) -> 
     """One line for a talk, move, item or custody event. Other events (like look) are left out."""
     if e.type == "gesture":
         words = gesture_line(e.data["text"], show(names, e.actor), e.actor)
-        return f"{hhmm(e.tick)}  {words}"
+        # Same "08:40  Market: ..." shape as every other line (playtest 2026-10-21).
+        place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)
+        return f"{hhmm(e.tick)}  {place} {words}"
     if "steps" in e.data:
         lines = step_lines(e, names, viewer)
         return f"{hhmm(e.tick)}  " + "; ".join(lines) if lines else None

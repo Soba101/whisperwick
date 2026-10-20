@@ -107,3 +107,20 @@ def test_pointing_at_an_item_in_view_is_a_gesture():
                           "message": f"points at the {name}"}).ok
     wave = {"actor": "npc_bob", "action": "gesture", "message": "waves hand dismissively"}
     assert w.act(wave).ok
+
+
+@pytest.mark.parametrize("words", [
+    "Whoa, careful with that basket. Those apples look ripe and heavy!",
+    "Don't let them go rolling into my good shoes.", "Hey, over here.",
+])
+def test_exclamations_and_orders_are_speech(words):
+    result = fresh_world().act({"actor": "npc_bob", "action": "gesture", "message": words})
+    assert not result.ok and "use talk" in result.reason
+
+
+def test_gesture_lines_carry_the_place_like_other_lines():
+    w = fresh_world()
+    event = w.act({"actor": "npc_bob", "action": "gesture", "message": "waves cheerfully"}).event
+    from whisperwick import story
+    line = format_event(event, story.names_from(load_scenario(SCENARIO)))
+    assert "Bob waves cheerfully" in line and w.locations[event.location].name + ":" in line
