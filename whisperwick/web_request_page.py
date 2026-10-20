@@ -3,8 +3,15 @@
 REQUEST_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Whisperwick</title><style>
-body{max-width:32rem;margin:3rem auto;padding:1rem;font-family:system-ui}
-label,input,textarea{display:block;margin:.6rem 0}input,textarea{width:95%}
+/* The 3D page's parchment colours, so the first page a stranger sees matches the game. */
+:root{color-scheme:light}
+body{max-width:32rem;margin:3rem auto;padding:1rem;font:15px/1.6 system-ui,sans-serif;
+background:#e7dbc1;color:#493f32}h1{font:600 30px Fraunces,"Iowan Old Style",Georgia,serif}
+label,input,textarea{display:block;margin:.6rem 0}
+input,textarea{width:95%;font:inherit;color:inherit;
+background:#f8eed8;border:1px solid #c9b89b;border-radius:10px;padding:8px 10px}
+button{font:inherit;font-weight:600;min-height:40px;padding:8px 16px;border-radius:10px;
+cursor:pointer;background:#65765a;color:#fff8e8;border:1px solid #56664c}
 </style></head><body><h1>Whisperwick</h1><p>Ask for the link with the key.</p>
 <p>Request an invitation. Your name and note go to the host.</p>
 <form id="request"><label>Name <input name="name" required minlength="1" maxlength="40"

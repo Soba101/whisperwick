@@ -1,22 +1,20 @@
-"""Inline styles for the offline play page. Colours follow the device theme."""
+"""Inline styles for the offline play page. Colours match the 3D page (light parchment)."""
 
 from importlib.resources import files
 
 CSS = """
-:root { color-scheme: light; --bg:#f2ede2; --surface:#fffcf5; --text:#302e26;
-  --muted:#6d695c; --line:#ded7c8; --accent:#38604f; --warn:#a33329;
-  --on-accent:#fff; --soft:#e9e5d9; --shadow:0 4px 24px #3931220d;
-  --radius:12px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; }
-@media (prefers-color-scheme: dark) {
-  :root { color-scheme:dark; --bg:#171e1c; --surface:#222c28; --text:#eeeade;
-    --muted:#b6bdaf; --line:#435047; --accent:#a6cfb5; --warn:#ffaea0;
-    --on-accent:#172c20; --soft:#303d35; --shadow:0 4px 24px #0003; }
-}
+:root { color-scheme: light; --bg:#e7dbc1; --surface:#f8eed8; --text:#493f32;
+  --muted:#6b604e; --line:#c9b89b; --accent:#526b5b; --warn:#a33329;
+  --on-accent:#fff8e8; --soft:#e9dfc7; --shadow:0 5px 20px #65533a15;
+  --radius:16px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; }
+/* Same parchment palette as the 3D page (2026-10-21), so every page looks like one game.
+   The 3D page is light only, so these pages are too.
+   Its web fonts stay out: this page is offline. */
 * { box-sizing:border-box; }
 body { font:15px/1.6 system-ui,sans-serif; background:var(--bg); color:var(--text);
   margin:0; padding:var(--s6); }
 body.modal-open { overflow:hidden; }
-h1,h2,h3 { font-family:"Iowan Old Style",Georgia,serif; line-height:1.2; }
+h1,h2,h3 { font-family:Fraunces,"Iowan Old Style",Georgia,serif; line-height:1.2; }
 h1 { font-size:32px; margin:0; } h2 { font-size:21px; margin:0 0 var(--s3); }
 h3 { font-size:18px; margin:0 0 var(--s2); }
 p { margin:0 0 var(--s3); }

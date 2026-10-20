@@ -12,12 +12,12 @@ from whisperwick.web_request_page import REQUEST_PAGE
 class ReadRoutes:
     def welcome(self, token) -> str:
         seat = self.games.seat_label(token, self.player_name)
-        link = ' · <a href="/admin">Admin</a>' if self.owner_cookie_ok() else ""
-        return f"<span>Welcome, {escape(self.player_name or 'owner')} · {seat}{link}</span>"
+        # No Admin link on game pages: admin has its own link and key (2026-10-21).
+        return f"<span>Welcome, {escape(self.player_name or 'owner')} · {seat}</span>"
 
     def start_page(self, token) -> str:
         seat = self.games.seat_label(token, self.player_name)
-        return render_page(self.player_name or "owner", seat, admin=self.owner_cookie_ok())
+        return render_page(self.player_name or "owner", seat)
 
     def redirect(self, where: str, cookie: str | None = None) -> None:
         self.send_response(302)

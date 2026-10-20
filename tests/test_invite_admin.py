@@ -104,7 +104,8 @@ def test_pages_are_offline_and_escape_saved_text(tmp_path):
         assert not re.search(r'(src|href)="(http|//)', html)
 
 
-def test_admin_link_only_for_owner(tmp_path):
+def test_game_pages_have_no_admin_link(tmp_path):
+    # Admin has its own link and key since 2026-10-21, so no game page links to it.
     store = Players(tmp_path)
 
     def launch(role=None, player_name="owner"):
@@ -112,5 +113,5 @@ def test_admin_link_only_for_owner(tmp_path):
 
     games = GameManager(launch, choose_roles=True)
     player = store.invite("Alice")
-    assert b'href="/admin"' in request(store, games, key=OWNER)["body"]
-    assert b'href="/admin"' not in request(store, games, key=player)["body"]
+    for key in (OWNER, player):
+        assert b'href="/admin"' not in request(store, games, key=key)["body"]
