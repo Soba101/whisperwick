@@ -107,3 +107,29 @@ web panel, terminal introduction and ending. Prompt regression tests cover all t
 roles, including the peddler's visible trade and the one villager's authored memory.
 Endings use scenario authority IDs and the saved murderer ID; sidecars retain authority
 and player title so the ending still works when the scenario file is unavailable.
+
+## Results: check runs, 2026-10-20 (#97)
+20 runs (`none` script, memory on, 3 days), roles peddler and partner x seeds 1-2 x 5. Baseline: the week 12
+noise runs (w12n, 10 per seed, no role, week 12 code). Data: data/w13r-*, eval in data/w13r-eval-*.txt and
+data/w13r-base-s*.txt.
+
+| Seed | Group | Right | Wrong | Nobody | Mixed | Decisive (GuardStall < 6 h) | Median requests |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1 | no role (10) | 2 | 1 | 5 | 2 | 3 | 1,313 |
+| 1 | peddler (5) | 4 | 0 | 1 | 0 | 4 | 1,048 |
+| 1 | partner (5) | 2 | 0 | 3 | 0 | 1 | 902 |
+| 2 | no role (10) | 9 | 1 | 0 | 0 | 8 | 1,638 |
+| 2 | peddler (5) | 2 | 1 | 1 | 1 | 2 | 1,432 |
+| 2 | partner (5) | 3 | 0 | 2 | 0 | 3 | 2,019 |
+
+- Pooled over both seeds nothing moved: right person 55% without a role, 60% peddler, 50% partner.
+- Per seed it did: seed 1 got better with the peddler (80% vs 20%), seed 2 got worse with both roles
+  (40% and 60% vs 90%). Seed 2's drop is past the noise found in #90 (20 points for 5-run batches).
+- So the bar (Right person and Decisive not worse beyond noise) is **not met on seed 2**.
+- The baseline is fair: between the week 12 runs and these, the only villager-side change is the role
+  overlay (scenario.py, roles.py, the facts pool), and with no role the events match main (stub test).
+  So the swings come from the role itself: the peddler changes the player's public occupation and
+  starting items; the partner also gives Victor a memory of the player.
+- Reading: a small change to who the player is pushes a seed either way (seed 1 up, seed 2 down).
+  That makes the game less predictable per seed, which is fine for play, but it means a role's effect
+  can only be judged over many seeds, not two. Finding #119.
