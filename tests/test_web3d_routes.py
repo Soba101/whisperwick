@@ -24,7 +24,9 @@ def request(path, *, authorized=True, host=True, token='seat'):
     handler.key_cookie_ok = lambda: authorized
     handler.secure = lambda: False
     handler.cookies = lambda: {'ww_game': token}
-    handler.games = SimpleNamespace(open=lambda t: game, get=lambda t: game, choose_roles=False)
+    handler.games = SimpleNamespace(open=lambda t, name=None: game, get=lambda t, name=None: game,
+                                    seat_label=lambda t, name=None: "Seat 1 of 5",
+                                    choose_roles=False)
     handler.headers = {}
     handler.wfile = BytesIO()
     result = {'headers': {}}

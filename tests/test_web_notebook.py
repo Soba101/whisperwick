@@ -165,7 +165,8 @@ def test_state_supplies_a_stable_notes_key_without_exposing_the_cookie():
     def state(token):
         handler.headers = {"Host": "localhost", "Cookie": f"ww_game={token}"}
         game = SimpleNamespace(token=token, player=SimpleNamespace(snapshot=lambda _: {}))
-        handler.games = SimpleNamespace(get=lambda supplied: game if supplied == token else None)
+        handler.games = SimpleNamespace(
+            get=lambda supplied, name=None: game if supplied == token else None)
         handler.do_GET()
         assert reply[-1][0] == 200
         return reply[-1][1]["game_id"]

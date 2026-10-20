@@ -36,7 +36,7 @@ def play(
     allow_host: Annotated[
         list[str] | None, typer.Option(help="--web: extra Host name to accept (needs --key).")
     ] = None,
-    max_games: Annotated[int, typer.Option(help="--web: games running at once.")] = 3,
+    max_games: Annotated[int, typer.Option(min=1, help="--web: games running at once.")] = 5,
 ) -> None:
     """Play Wren in the village (terminal or --web), or run a player script. Needs a model."""
     try:
