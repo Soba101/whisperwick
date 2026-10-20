@@ -128,3 +128,18 @@ def stream_talk(web: bool = False, env_path: Path = ENV_PATH) -> bool:
     if value not in ("on", "off"):
         raise ValueError(f'WHISPERWICK_STREAM_TALK must be "on" or "off", got {value!r}')
     return web and value == "on"
+
+
+def llm_temperature(env_path: Path = ENV_PATH) -> float:
+    """Sampling temperature for villager calls (LLM_TEMPERATURE). Runs have used 0.7 since week 2.
+    Week 14 E measures a higher one; the after-run judge always uses 0."""
+    raw = get("LLM_TEMPERATURE", env_path)
+    if raw is None:
+        return 0.7
+    try:
+        value = float(raw)
+    except ValueError:
+        value = -1.0
+    if not 0 <= value <= 2:
+        raise ValueError(f"LLM_TEMPERATURE must be a number from 0 to 2, got {raw!r}")
+    return value

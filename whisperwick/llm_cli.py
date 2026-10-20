@@ -59,6 +59,7 @@ def run_with_llm(
         group_turns = settings.group_turns()
         stream_talk = settings.stream_talk(isinstance(player, WebPlayer))
         settings.recall_rank()  # Validate recall ranking before creating the db.
+        temperature = settings.llm_temperature()
     except ValueError as e:
         typer.echo(str(e), err=True)
         raise typer.Exit(1) from e
@@ -71,8 +72,11 @@ def run_with_llm(
         typer.echo(llm_run.progress_line(w.clock.label(), stats, time.monotonic() - started))
 
     client = make_client(server, base_url, model)
+    client.temperature = temperature  # both clients read it on every call
     if server == "llama-server":
         model = f"{model} via llama-server"  # the sidecar says which server was used
+    if temperature != 0.7:
+        model = f"{model} at temperature {temperature}"  # so a run's sidecar shows the change
     # Hourly progress would clutter a human's screen, so terminal and web play skip it.
     on_hour = None if isinstance(player, TerminalPlayer | WebPlayer) else progress
     stats = {"player_rejected": []} if player else {}
