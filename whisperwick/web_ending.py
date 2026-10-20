@@ -15,8 +15,12 @@ ROLE_HTML = """
     <option value="random">Random crime</option>
     <option value="number">Enter a crime number</option>
   </select>
-  <input id="crime-number" aria-label="Crime number" inputmode="numeric" hidden>
+  <input id="crime-number" aria-label="Crime number" inputmode="numeric" hidden
+    placeholder="e.g. 3941189073">
   <button id="start-game">Start the day</button><p id="start-error"></p>
+  <!-- The number is a seed: it fixes the starting facts, never what the villagers do. -->
+  <p class="crime-hint">Every crime has a number, shown at the top while you play. Same number,
+    same crime: share it so a friend can play the same mystery.</p>
 </div>
 """
 

@@ -14,6 +14,7 @@ CSS = """
 body { font:15px/1.6 system-ui,sans-serif; background:var(--bg); color:var(--text);
   margin:0; padding:var(--s6); }
 body.modal-open { overflow:hidden; }
+.crime-hint { width:100%; margin:var(--s2) 0 0; color:var(--muted); font-size:13px; }
 h1,h2,h3 { font-family:Fraunces,"Iowan Old Style",Georgia,serif; line-height:1.2; }
 h1 { font-size:32px; margin:0; } h2 { font-size:21px; margin:0 0 var(--s3); }
 h3 { font-size:18px; margin:0 0 var(--s2); }
