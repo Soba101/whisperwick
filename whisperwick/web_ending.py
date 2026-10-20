@@ -70,7 +70,9 @@ document.addEventListener('keydown', e => {
     (document.activeElement === $('close') ? $('dismiss') : $('close')).focus();
   }
 });
-guide(true);
+// Open the guide only once the server says a game is running. Opening it at load hid
+// the role picker behind it, and closing it showed an empty 2D page (playtest 2026-10-21).
+let guideShown = false;
 
 let picking = false;
 function drawRolePicker(s) {
@@ -87,6 +89,7 @@ function drawRolePicker(s) {
     $('role').focus();
   }
   picking = active;
+  if (!active && !guideShown) { guideShown = true; guide(true); }
   return active;
 }
 $('crime-mode').onchange = () => {

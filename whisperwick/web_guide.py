@@ -66,7 +66,7 @@ GUIDE_CSS = """
 """
 
 GUIDE = f"""
-<div id="intro" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+<div id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="guide-title">
  <div class="guide-card">
   <div class="guide-content">
    <div class="guide-head"><h1 id="guide-title">How to play</h1>
