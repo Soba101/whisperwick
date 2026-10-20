@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from whisperwick.invite_files import atomic_write, locked, now, rows, valid_name, write_rows
+from whisperwick.invite_requests import ticket_hash
 
 
 def key_hash(key: str) -> str:
@@ -69,11 +70,27 @@ class Players:
             # The raw key is kept too (2026-10-21) so the owner can copy a live link again from
             # the admin page. Same protection as the owner key file: data/, owner-only, never
             # committed. Login still checks the hash.
-            players.append({"name": name, "key_hash": key_hash(key), "key": key, "created": now(),
-                            "last_seen": None, "games": 0, "revoked": False})
+            player = {"name": name, "key_hash": key_hash(key), "key": key, "created": now(),
+                      "last_seen": None, "games": 0, "revoked": False}
+            if approve and match.get("ticket_hash"):
+                # The requester's browser holds this ticket; their next visit signs them in.
+                player["ticket_hash"] = match["ticket_hash"]
+            players.append(player)
             self.write(players)
             write_rows(path, [r for r in waiting if r is not match])
             return key
+
+    def claim(self, code: str | None) -> str | None:
+        """The approved player's key for this request ticket, or None."""
+        if not code:
+            return None
+        digest = ticket_hash(code)
+        with locked(self.folder):
+            for p in self.read():
+                if not p["revoked"] and p.get("key") and hmac.compare_digest(
+                        p.get("ticket_hash", ""), digest):
+                    return p["key"]
+        return None
 
     def revoke(self, name: str) -> str:
         with locked(self.folder):

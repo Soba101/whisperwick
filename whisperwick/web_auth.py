@@ -11,6 +11,8 @@ KEY_COOKIE = "ww_key"
 GAME_COOKIE = "ww_game"
 # A separate admin key (2026-10-21): a shared play link must never open /admin.
 ADMIN_COOKIE = "ww_admin"
+# The "come back later" ticket from the request form; swapped for a key once approved.
+TICKET_COOKIE = "ww_ticket"
 LOCAL_NAMES = ("127.0.0.1", "localhost")
 
 

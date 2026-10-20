@@ -44,7 +44,8 @@ def test_duplicates_update_note_without_name_enumeration(setup):
         result = request(store, games, "/request", {"name": name, "note": note}, waiting=waiting)
         assert (result["code"], result["body"]) == (200, b"Request sent")
     entry, = rows(waiting.path)
-    assert set(entry) == {"time", "name", "note"} and entry["note"] == "New"
+    # The ticket is stored only as a hash (2026-10-21: "come back later" sign-in).
+    assert set(entry) == {"time", "name", "note", "ticket_hash"} and entry["note"] == "New"
     assert request(store, games, "/request", {"name": "A" * 40})["body"] == b"Request sent"
 
 

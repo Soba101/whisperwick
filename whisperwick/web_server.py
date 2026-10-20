@@ -16,7 +16,7 @@ from whisperwick import feedback, web_auth
 from whisperwick.crime.selection import crime_number
 from whisperwick.invite_files import atomic_write, locked
 from whisperwick.invite_players import Players
-from whisperwick.invite_requests import Requests
+from whisperwick.invite_requests import Requests, clean_code
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
 from whisperwick.web_access import Access
@@ -41,6 +41,9 @@ class Handler(Access, AdminRoutes, ReadRoutes, BaseHTTPRequestHandler):
         for c in cookies or []:
             self.send_header("Set-Cookie", c)
         self.send_header("Content-Type", kind)
+        # Popped, so a kept-alive connection never repeats it on the next answer.
+        for name, value in self.__dict__.pop("extra_headers", {}).items():
+            self.send_header(name, value)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
@@ -87,12 +90,26 @@ class Handler(Access, AdminRoutes, ReadRoutes, BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/admin"):
             return self.admin_post(path)  # owner check comes first inside
-        if path == "/request":
+        if path in ("/request", "/request/code"):
             if not self.requests.allow():
                 return self.send(429, b"Too many requests. Please try again later.", "text/plain")
             body = self.read_body()
-            code, message = (400, "bad request") if body is None else self.requests.save(body)
-            return self.send(code, message.encode(), "text/plain; charset=utf-8")
+            if path == "/request/code":
+                # Another device: typing the code puts the same ticket in this browser.
+                ticket = clean_code(body.get("code")) if body else None
+                if ticket is None:
+                    return self.send(400, b"That code does not look right.", "text/plain")
+                cookie = web_auth.cookie_header(web_auth.TICKET_COOKIE, ticket, self.secure())
+                return self.send(200, b"Code saved", "text/plain; charset=utf-8", [cookie])
+            status, message, ticket = (400, "bad request", None) if body is None \
+                else self.requests.save(body)
+            if ticket is None:
+                return self.send(status, message.encode(), "text/plain; charset=utf-8")
+            # The ticket goes in an HttpOnly cookie, and once in a header for the page to show
+            # as the code. It is never in a URL or a log.
+            cookie = web_auth.cookie_header(web_auth.TICKET_COOKIE, ticket, self.secure())
+            self.extra_headers = {"X-Request-Code": "-".join((ticket[:4], ticket[4:7], ticket[7:]))}
+            return self.send(status, message.encode(), "text/plain; charset=utf-8", [cookie])
         if not self.key_cookie_ok():
             return self.send_json(403, {"error": "key needed"})
         body = self.read_body()

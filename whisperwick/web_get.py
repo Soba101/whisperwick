@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 from whisperwick import web3d_assets, web_auth
 from whisperwick.web_page import render_page
-from whisperwick.web_request_page import REQUEST_PAGE
+from whisperwick.web_request_page import request_page
 
 
 class ReadRoutes:
@@ -29,6 +29,30 @@ class ReadRoutes:
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
 
+    def come_back(self, path: str) -> None:
+        """No key: an approved request ticket signs in; otherwise say where the request is."""
+        ticket = self.cookies().get(web_auth.TICKET_COOKIE)
+        key = self.players.claim(ticket) if self.players and ticket else None
+        if key:
+            # Approved: swap the ticket for the player's key, then load the page as usual.
+            done = web_auth.cookie_header(web_auth.TICKET_COOKIE, "", self.secure())
+            self.send_response(302)
+            self.send_header("Location", path)
+            self.send_header("Set-Cookie", web_auth.cookie_header(web_auth.KEY_COOKIE, key,
+                                                                  self.secure()))
+            self.send_header("Set-Cookie", done + "; Max-Age=0")
+            self.send_header("Content-Length", "0")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Referrer-Policy", "no-referrer")
+            return self.end_headers()
+        if not ticket:
+            status = ""
+        elif self.requests.waiting(ticket):
+            status = "waiting"
+        else:
+            status = "closed"
+        return self.send(403, request_page(status).encode(), "text/html; charset=utf-8")
+
     def do_GET(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
@@ -48,7 +72,7 @@ class ReadRoutes:
             return self.redirect(url.path, cookie)
         if not self.key_cookie_ok():
             if url.path in ("/", "/3d"):
-                return self.send(403, REQUEST_PAGE.encode(), "text/html; charset=utf-8")
+                return self.come_back(url.path)
             return self.send_json(403, {"error": "key needed"})
         token = self.cookies().get(web_auth.GAME_COOKIE)
         if url.path == "/3d" and query.get("fixture") == ["1"]:
