@@ -4,26 +4,30 @@ It binds to 127.0.0.1, so only this computer can reach it directly (a tunnel may
 a public name to it, see web_auth for the key and Host rules). It never touches the world:
 GET /state reads the caller's cached picture, and the POSTs only queue a request that
 the engine then judges like any other. The page is never trusted to decide anything.
-Each browser has its own game (see web_games).
+Each named player has one game; anonymous local browsers stay separate (see web_games).
 """
 
-import hashlib
 import json
 import socketserver
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
-from whisperwick import feedback, web3d_assets, web_auth
+from whisperwick import feedback, web_auth
 from whisperwick.crime.selection import crime_number
+from whisperwick.invite_files import atomic_write, locked
+from whisperwick.invite_players import Players
+from whisperwick.invite_requests import Requests
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
+from whisperwick.web_access import Access
 from whisperwick.web_games import Game, GameManager
-from whisperwick.web_page import plain_page, render_page
+from whisperwick.web_get import ReadRoutes
+from whisperwick.web_page import plain_page
 
 MAX_BODY = 20_000  # bytes; a message is at most a few hundred characters
 
 
-class Handler(BaseHTTPRequestHandler):
+class Handler(Access, ReadRoutes, BaseHTTPRequestHandler):
     games: GameManager  # set on the subclass made by make_server
     key: str | None
     hosts: set[str]
@@ -38,6 +42,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", kind)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
 
@@ -61,70 +67,15 @@ class Handler(BaseHTTPRequestHandler):
     def game_cookie(self, game: Game) -> list[str]:
         return [web_auth.cookie_header(web_auth.GAME_COOKIE, game.token, self.secure())]
 
-    def key_cookie_ok(self) -> bool:
-        return web_auth.key_ok(self.key, self.cookies().get(web_auth.KEY_COOKIE))
-
-    def do_GET(self) -> None:
-        if not self.host_ok():
-            return self.send_json(403, {"error": "bad host"})
-        url = urlparse(self.path)
-        query = parse_qs(url.query)
-        if not self.key_cookie_ok():
-            # The link with the key sets the cookie, then drops the key from the address bar.
-            if url.path in ("/", "/3d") and web_auth.key_ok(self.key, query.get("key", [""])[0]):
-                cookie = web_auth.cookie_header(web_auth.KEY_COOKIE, self.key, self.secure())
-                self.send_response(302)
-                self.send_header("Location", url.path)
-                self.send_header("Set-Cookie", cookie)
-                self.send_header("Content-Length", "0")
-                return self.end_headers()
-            if url.path in ("/", "/3d"):
-                return self.send_text(403, "Ask for the link with the key.")
-            return self.send_json(403, {"error": "key needed"})
-        token = self.cookies().get(web_auth.GAME_COOKIE)
-        if url.path == "/3d" and query.get("fixture") == ["1"]:
-            return self.send(200, *web3d_assets.asset("index.html"))
-        if url.path in ("/", "/3d"):
-            # Roles are picked on the 2D page (week 13); after picking, /3d reloads into 3D.
-            if self.games.choose_roles and self.games.get(token) is None:
-                return self.send(200, render_page().encode(), "text/html; charset=utf-8")
-            game = self.games.open(token)  # a new browser starts its own game here
-            if game is None:
-                return self.send_text(503, "All seats are taken, try again later.")
-            cookies = self.game_cookie(game) if game.token != token else None
-            body = (web3d_assets.asset("index.html")[0] if url.path == "/3d"
-                    else render_page().encode())
-            return self.send(200, body, "text/html; charset=utf-8", cookies)
-        if url.path.startswith("/web3d/"):
-            found = web3d_assets.asset(url.path.removeprefix("/web3d/"))
-            if found:
-                return self.send(200, *found)
-        if url.path == "/state":
-            game = self.games.get(token)
-            if game is None and self.games.choose_roles:
-                choice = {"select_role": True, "default_role": self.games.default_role}
-                if self.games.choose_crimes:
-                    choice["default_crime"] = self.games.default_crime
-                return self.send_json(200, choice)
-            if game is None:
-                return self.send_json(200, {"gone": True})  # the page then reloads itself
-            try:
-                since = max(0, int(query.get("since", ["0"])[0]))
-            except ValueError:
-                since = 0
-            state = game.player.snapshot(since)
-            # Notes need a game key without making the HttpOnly cookie readable.
-            state["game_id"] = hashlib.sha256(game.token.encode()).hexdigest()
-            return self.send_json(200, state)
-        self.send_json(404, {"error": "not found"})
-
     def read_body(self) -> dict | None:
         """The JSON body. JSON content type is required, so a plain cross-site form cannot post."""
         if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
             return None
         try:
             size = int(self.headers.get("Content-Length", "0"))
-            body = json.loads(self.rfile.read(size)) if 0 < size <= MAX_BODY else {}
+            if not 0 < size <= MAX_BODY:
+                return None
+            body = json.loads(self.rfile.read(size))
         except ValueError:
             return None
         return body if isinstance(body, dict) else None
@@ -132,15 +83,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
+        path = urlparse(self.path).path
+        if path == "/request":
+            if not self.requests.allow():
+                return self.send(429, b"Too many requests. Please try again later.", "text/plain")
+            body = self.read_body()
+            code, message = (400, "bad request") if body is None else self.requests.save(body)
+            return self.send(code, message.encode(), "text/plain; charset=utf-8")
         if not self.key_cookie_ok():
             return self.send_json(403, {"error": "key needed"})
         body = self.read_body()
         if body is None:
             return self.send_json(400, {"error": "bad request"})
-        path = urlparse(self.path).path
         token = self.cookies().get(web_auth.GAME_COOKIE)
         if path == "/choose":
-            self.games.discard(token)
+            self.games.discard(token, self.player_name)
             return self.send_json(200, {"ok": True})
         if path == "/newgame":
             role = body.get("role") or None
@@ -154,11 +111,12 @@ class Handler(BaseHTTPRequestHandler):
                         crime_number(crime)
                 except ValueError as e:
                     return self.send_json(400, {"error": str(e)})
-            game = self.games.replace(token, role, crime)
+            game = self.games.replace(token, role, crime, self.player_name)
             if game is None:
                 return self.send_json(503, {"error": "All seats are taken, try again later."})
+            self.game_started(game)
             return self.send_json(200, {"ok": True}, self.game_cookie(game))
-        game = self.games.get(token)
+        game = self.games.get(token, self.player_name)
         if game is None:
             return self.send_json(409, {"error": "no game here, reload the page"})
         if path == "/feedback":
@@ -202,14 +160,21 @@ class LocalServer(ThreadingHTTPServer):
 
 
 def make_server(
-    games: GameManager, port: int, key: str | None = None, allow_hosts: tuple[str, ...] = ()
+    games: GameManager, port: int, key: str | None = None, allow_hosts: tuple[str, ...] = (),
+    players: Players | None = None, requests: Requests | None = None,
 ) -> ThreadingHTTPServer:
     """A server on 127.0.0.1 only. Port 0 picks a free port (tests use that)."""
+    players = players or Players(feedback.DEFAULT_PATH.parent)
+    requests = requests or Requests(players.folder)
+    if allow_hosts:
+        with locked(players.folder):
+            atomic_write(players.folder / "invite-host.json", json.dumps(allow_hosts[0]))
     server = LocalServer(("127.0.0.1", port), Handler)
     # The real port is only known after binding (port 0), and the Host rule needs it.
     real_port = server.server_address[1]
     hosts = web_auth.allowed_hosts(real_port, allow_hosts)
-    handler = type("PlayHandler", (Handler,), {"games": games, "key": key or None, "hosts": hosts})
+    handler = type("PlayHandler", (Handler,), {"games": games, "key": key or None, "hosts": hosts,
+                                             "players": players, "requests": requests})
     server.RequestHandlerClass = handler
     server.daemon_threads = True  # open page polls must not keep the process alive
     return server

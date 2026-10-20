@@ -12,6 +12,7 @@ from whisperwick import (
     eval_command,
     event_trace_command,
     feedback,
+    invite_command,
     judge_command,
     llm_run,
     outcome_command,
@@ -32,6 +33,11 @@ app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.
 
 app.add_typer(screen_command.app, name="screen")
 app.command()(play)
+app.command()(invite_command.requests)
+app.command()(invite_command.invite)
+app.command()(invite_command.decline)
+app.command()(invite_command.players)
+app.command()(invite_command.revoke)
 app.command("wishes")(wishes.wishes)
 app.command()(feedback.feedback)
 app.command("spread")(spread_command.spread_command)

@@ -5,6 +5,7 @@ never innerHTML. The guide says only plain facts about the start: no plot, no hi
 """
 
 import json
+from html import escape
 from importlib.resources import files
 
 from whisperwick.web_ending import ENDING_HTML, ENDING_JS, ROLE_HTML
@@ -66,11 +67,14 @@ BODY = ROLE_HTML + GUIDE + f"""
 """
 
 
-def render_page() -> str:
+def render_page(name: str = "owner", seat: str = "Seat 1 of 5") -> str:
+    welcome = f"<p>Welcome, {escape(name)} · {escape(seat)}</p>"
+    body = BODY.replace('<h1>Choose your role</h1>', '<h1>Choose your role</h1>' + welcome)
+    body = body.replace('<h1>Whisperwick</h1>', '<h1>Whisperwick</h1>' + welcome)
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}{FEEDBACK_CSS}</style></head><body>{BODY}"
+        f"<title>Whisperwick</title><style>{CSS}{GUIDE_CSS}{FEEDBACK_CSS}</style></head><body>{body}"
         f"<script>const HINTS = {json.dumps(HINTS)};{JS}{ENDING_JS}{NOTEBOOK_JS}"
         f"{FEEDBACK_JS}setupFeedback('2d');</script>"
         "</body></html>"
@@ -82,5 +86,5 @@ def plain_page(text: str) -> str:
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>Whisperwick</title></head><body><p>{text}</p></body></html>"
+        f"<title>Whisperwick</title></head><body><p>{escape(text)}</p></body></html>"
     )

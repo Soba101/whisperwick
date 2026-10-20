@@ -34,7 +34,7 @@ def post(game, body, *, authorized=True, host=True, seat=True):
     h.host_ok = lambda: host
     h.key_cookie_ok = lambda: authorized
     h.cookies = lambda: {"ww_game": game.token}
-    h.games = SimpleNamespace(get=lambda token: game if seat else None)
+    h.games = SimpleNamespace(get=lambda token, name=None: game if seat else None)
     raw = json.dumps(body).encode()
     h.headers = {"Content-Type": "application/json", "Content-Length": str(len(raw))}
     h.rfile, h.wfile = BytesIO(raw), BytesIO()
@@ -56,6 +56,7 @@ def test_saving_is_private_and_has_server_context(game):
     assert len(lines) == 1
     entry = json.loads(lines[0])
     assert all(entry[key] == value for key, value in body.items())
+    assert entry["player"] == "owner"
     assert entry["game_id"] == hashlib.sha256(game.token.encode()).hexdigest()
     assert entry["crime"] == SC.crime_seed and entry["role"] == SC.role_id
     assert entry["clock"] == game.player.view["clock"]

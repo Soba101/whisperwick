@@ -10,6 +10,8 @@ import typer
 
 from whisperwick.crime import generate
 from whisperwick.crime.selection import crime_number
+from whisperwick.invite_players import Players
+from whisperwick.invite_requests import Requests
 from whisperwick.llm_cli import llm_settings, run_with_llm
 from whisperwick.player_web import WebPlayer
 from whisperwick.roles import apply_role
@@ -25,20 +27,21 @@ def launcher(
     numbers = itertools.count(1)  # db_for(n) gives each game a file, so runs never mix
 
     def launch(
-        role: str | None = None, crime: str | None = None
+        role: str | None = None, crime: str | None = None, player_name: str = "owner"
     ) -> tuple[WebPlayer, threading.Thread]:
         base = sc if crime is None else generate(crime_number(crime))
         chosen = apply_role(base, role, seed)
         if chosen.crime_seed is not None:
             typer.echo(f"Crime #{chosen.crime_seed}")
         player, db = WebPlayer(chosen), db_for(next(numbers))
+        player.name = player_name
         player.feedback_path = Path(db).parent / "feedback.jsonl"
 
         def game() -> None:
             error = None
             try:
                 # The hooks make lines and the "who is thinking" label appear at once.
-                run_with_llm(chosen, scenario, db, seed, minutes, player, "web",
+                run_with_llm(chosen, scenario, db, seed, minutes, player, player_name,
                              on_event=player.on_event, on_turn=player.on_turn)  # fmt: skip
             except Exception as e:  # shown on the page, so a crash is not a silent stall
                 error = f"the game stopped: {e}"
@@ -77,7 +80,9 @@ def start(
         choose_crimes=crime is not None,
         default_crime=crime or "random",
     )
-    return make_server(manager, port, key, allow_hosts), manager
+    # Requests and keys live beside feedback, including with a custom --db folder.
+    folder = Path(db_for(0)).parent
+    return make_server(manager, port, key, allow_hosts, Players(folder), Requests(folder)), manager
 
 
 def serve(

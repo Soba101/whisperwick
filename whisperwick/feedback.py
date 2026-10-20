@@ -3,6 +3,7 @@
 import hashlib
 import json
 import threading
+from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
@@ -47,6 +48,7 @@ def save(game, body: dict) -> tuple[int, dict]:
         context = {"crime": player.sc.crime_seed, "role": player.sc.role_id,
                    "clock": player.view.get("clock", "")}
     entry = {"time": datetime.now(UTC).isoformat(),
+             "player": game.name,
              "game_id": hashlib.sha256(game.token.encode()).hexdigest(), **context, **fields}
     path = getattr(player, "feedback_path", DEFAULT_PATH)
     with _LOCK:
@@ -75,3 +77,20 @@ def feedback(
     # JSON lines preserve text boundaries and every saved metadata field.
     for line in list(reversed(entries))[:last]:
         typer.echo(line)
+
+
+def recent(path: Path, count: int = 10) -> list[dict]:
+    """Read only the newest entries into memory, newest first."""
+    with _LOCK:
+        if not path.exists():
+            return []
+        entries = deque(maxlen=count)
+        with path.open(encoding="utf-8") as stream:
+            for line in stream:
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue  # A damaged or interrupted line must not hide the rest.
+                if isinstance(entry, dict):
+                    entries.append(entry)
+    return list(reversed(entries))
