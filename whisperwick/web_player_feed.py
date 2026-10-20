@@ -46,9 +46,13 @@ class WebPlayerFeed:
     def _show_look(self, world: World, seen: dict) -> None:
         """Wren's own look. A look is not a logged event, so without this line the feed
         showed nothing and the button seemed broken (playtest, 3D page). Lock held."""
+        line = f"{story.hhmm(world.clock.tick)}  " + narrator.scene(world, seen, self.sc.seed)
+        if self.feed and self.feed[-1] == line:
+            # Same minute, same place, nothing new: a word-for-word repeat read as a
+            # duplicate in play (2026-10-21), so say plainly that nothing changed.
+            line = f"{story.hhmm(world.clock.tick)}  You look around again. Nothing has changed."
         self.scene_lines.add(len(self.feed))
-        self.feed.append(f"{story.hhmm(world.clock.tick)}  "
-                         + narrator.scene(world, seen, self.sc.seed))
+        self.feed.append(line)
 
     def _show_arrival(self, world: World) -> None:
         """Include the starting place. Repeated refreshes must not repeat the scene."""

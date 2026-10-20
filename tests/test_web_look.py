@@ -53,5 +53,6 @@ def test_arrival_and_look_are_display_only_and_flags_follow_pagination():
     p._refresh(w)
     look = Intent(actor=PLAYER_ID, action="look")
     p.report(look, do_look(w, look))
-    assert len(p.feed) == 4 and p.feed[-1] == p.feed[-2]
+    # A look right after arrival repeats nothing word for word; it says nothing changed.
+    assert len(p.feed) == 4 and p.feed[-1].endswith("Nothing has changed.")
     assert w.state_hash() == before
