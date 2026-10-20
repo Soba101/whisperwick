@@ -107,3 +107,25 @@ eval in data/w14t-eval-s1.txt and -s2.txt.
 - Reading: a higher temperature does not make the game better on these measures and makes Hal less
   reliable on the easy seed. Recommendation: keep 0.7. "More creative" is better reached through the
   week 14 generated crimes and characters than through sampling.
+
+## Results: live check on generated crimes (2026-10-21, #109)
+Crimes 1-10, one run each, `none` player, memory on, 3 days, main at efc29d3 (data/w15c-*, eval in data/w15c-eval.txt).
+
+| Crime | Killer | Victim | Accomplice | Hal holds at the end | GuardStall h |
+|---|---|---|---|---|---:|
+| 1 | Bob | Alice | - | Bob (right) | 26 |
+| 2 | Alice | Mayor | Victor | Alice (right) | 9 |
+| 3 | Bob | Mayor | - | Bob (right) | 16 |
+| 4 | Bob | Sarah | Mayor | Bob (right) | 2 |
+| 5 | Mayor | Sarah | - | Bob (wrong) | 9 |
+| 6 | Mayor | Alice | - | Mayor (right) | 1 |
+| 7 | Sarah | Bob | - | nobody | 48 |
+| 8 | Bob | Sarah | - | Bob (right) | 4 |
+| 9 | Victor | Sarah | - | Victor (right) | 1 |
+| 10 | Mayor | Alice | - | Mayor (right) | 1 |
+
+- Right person 8/10, decisive (GuardStall < 6 h) 5/10. The Victor benchmark (#90): 11/20 right, 11/20 decisive.
+- Reported, not judged (a different test, one run per crime): generated crimes look no harder for Hal, maybe easier.
+- Bob is the killer in 4 of 10, by chance: over 1,000 generated crimes each of the five candidates is drawn
+  187-209 times, and 237 have an accomplice (bar: about 1 in 4).
+- Accomplices were never held (crimes 2 and 4): Hal stops at the killer.
