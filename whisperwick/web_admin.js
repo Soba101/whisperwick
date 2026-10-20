@@ -14,16 +14,21 @@ function clearLink() {
 window.addEventListener('pagehide', clearLink);
 document.getElementById('dismiss').onclick = clearLink;
 document.getElementById('copy').onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(linkValue.value);
-    copyStatus.textContent = 'Copied.';
-  } catch (error) {
-    // Clipboard access may be unavailable on local HTTP or denied by the browser.
-    linkValue.focus();
-    linkValue.select();
-    linkValue.setSelectionRange(0, linkValue.value.length);
-    copyStatus.textContent = 'Link selected. Use your device’s Copy command.';
+  // Show the ending so the owner can check the pasted link is this one, not an older one.
+  const done = 'Copied the link ending in …' + linkValue.value.slice(-6) + '. Check it when you paste.';
+  linkValue.focus();
+  linkValue.select();
+  linkValue.setSelectionRange(0, linkValue.value.length);
+  // The old command runs inside the click itself, which Safari allows more reliably
+  // than the async clipboard API (2026-10-21: a copy silently kept the old clipboard).
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+  if (!copied) {
+    try { await navigator.clipboard.writeText(linkValue.value); copied = true; }
+    catch (error) { copied = false; }
   }
+  // Clipboard access may be unavailable on local HTTP or denied by the browser.
+  copyStatus.textContent = copied ? done : 'Link selected. Use your device’s Copy command.';
 };
 
 async function refresh() {

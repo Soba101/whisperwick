@@ -54,8 +54,12 @@ class Players:
             raise ValueError("The name owner is reserved.")
         with locked(self.folder):
             players = self.read()
-            if any(p["name"].casefold() == name.casefold() for p in players):
-                raise ValueError("Player already exists; revoke does not issue a new key.")
+            same = [p for p in players if p["name"].casefold() == name.casefold()]
+            if any(not p["revoked"] for p in same):
+                raise ValueError("Player already exists; revoke them first to issue a new link.")
+            # A revoked name can be invited again (2026-10-21): the old key stays dead because
+            # its row is replaced by a row with a new hash.
+            players = [p for p in players if p not in same]
             path = self.folder / "requests.jsonl"
             waiting = rows(path)
             match = next((r for r in waiting if r["name"].casefold() == name.casefold()), None)

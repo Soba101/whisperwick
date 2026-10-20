@@ -129,3 +129,15 @@ def test_server_remembers_default_host_and_keeps_local_cookie_rules(store, monke
     key = store.invite("Alice")
     result = request(store, games, "/?key=" + key, host="127.0.0.1:8000")
     assert result["code"] == 302 and "Secure" not in result["headers"]["Set-Cookie"]
+
+
+def test_a_revoked_name_can_be_invited_again_and_the_old_key_stays_dead(tmp_path):
+    store = Players(tmp_path)
+    old = store.invite("Alice")
+    with pytest.raises(ValueError, match="revoke them first"):
+        store.invite("alice")
+    store.revoke("Alice")
+    new = store.invite("Alice")
+    assert new != old
+    assert store.authenticate(old) is None and store.authenticate(new) == "Alice"
+    assert [p["name"] for p in store.read()].count("Alice") == 1
