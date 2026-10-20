@@ -137,6 +137,7 @@ def run_with_llm(
     if sc.role_id:
         data.update(role=sc.role_id, private_fact=sc.private_fact, player_title=sc.player_title)
     data.update(extra)
+    data["wishes"] = world.wishes
     data["group_turns"] = group_turns
     # The seed lets `eval` group runs that differ only in the player script.
     data["seed"] = sc.seed if seed is None else seed

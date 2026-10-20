@@ -5,7 +5,7 @@ Never both. A used consumable has neither, but keeps its record for logs.
 Only the engine moves items (see item_actions.py).
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Item(BaseModel):
@@ -17,6 +17,20 @@ class Item(BaseModel):
     consumable: bool = False  # the engine may remove it through use
     use_verb: str | None = None  # scenario wording, e.g. "drinks"; never model output
 
+    hidden: bool = False  # hidden ground items are visible only to people who know
+    known_by: list[str] = Field(default_factory=list)
+
+    def saved(self) -> dict:
+        """Keep old saves and snapshots byte-for-byte when hiding was never used."""
+        data = self.model_dump()
+        if not self.hidden and not self.known_by:
+            data.pop("hidden")
+            data.pop("known_by")
+        return data
+
+    def visible_to(self, viewer: str | None) -> bool:
+        return not self.hidden or viewer in self.known_by
+
 
 def check_items(items, locations, npcs, log) -> None:
     """Reject broken placement, allowing logged consumables to stay absent on load."""
@@ -25,6 +39,10 @@ def check_items(items, locations, npcs, log) -> None:
     # A logged use explains an absent consumable when loading a saved world.
     used_ids = {e.data.get("item") for e in log.all() if e.type == "use"}
     for item in items:
+        if item.hidden and item.location is None:
+            raise ValueError(f"{item.id}: only ground items may be hidden")
+        if any(n not in npcs for n in item.known_by):
+            raise ValueError(f"{item.id}: unknown person in known_by")
         used = item.consumable and item.id in used_ids
         # Exactly one of location / holder: an item is never in two places or none.
         # Exception: a used-up consumable keeps only its record (no place at all).

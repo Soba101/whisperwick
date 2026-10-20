@@ -62,9 +62,11 @@ def do_take(world, intent: Intent) -> ActionResult:
     item = world.items.get(intent.item or "")
     if item is None:
         return reject(f"unknown item {intent.item}")
-    if item.location != world.npcs[intent.actor].location:
+    if (item.location != world.npcs[intent.actor].location
+            or not item.visible_to(intent.actor)):
         return reject(f"{item.id} is not here")
     item.holder, item.location = intent.actor, None
+    item.hidden, item.known_by = False, []
     return _log(world, intent, item)
 
 

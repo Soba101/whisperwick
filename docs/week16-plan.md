@@ -76,3 +76,8 @@ Villagers only in this first build; the player gets it once the format has been 
 - Build A and D first. B's hide and search come through D (villagers can make them); follow and locks
   wait for the wish list. C is its own measured week.
 - Gestures and made actions are for villagers only in this build.
+
+## A + D implementation
+
+The engine interface and visibility rules are documented in [week16-actions.md](week16-actions.md).
+The original event snapshot is unchanged. Live benchmark runs and Donovan's play session remain open.

@@ -6,9 +6,8 @@ and records an Event. This stops a model's hallucinations from ever
 becoming "truth".
 """
 
-import hashlib
-import json
 import random
+from copy import deepcopy
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -17,8 +16,9 @@ from whisperwick.actions import HANDLERS, ActionResult, Intent, reject
 from whisperwick.claims import claim_problem
 from whisperwick.clock import Clock
 from whisperwick.custody import held_problem
-from whisperwick.events import Event, EventLog
+from whisperwick.events import EventLog
 from whisperwick.items import Item, check_items
+from whisperwick.world_save import WorldSave
 
 
 class Location(BaseModel):
@@ -39,7 +39,7 @@ class NPC(BaseModel):
     held_by: str | None = None
 
 
-class World:
+class World(WorldSave):
     def __init__(
         self,
         locations: list[Location],
@@ -59,6 +59,11 @@ class World:
         self.authority = list(authority or [])
         self.clock = clock
         self.log = log
+        # The log owns definitions. Wishes are diagnostics, never world facts.
+        from whisperwick.made_actions import rebuild
+
+        self.made_actions = rebuild(log.all())
+        self.wishes = []
         # The world's own random generator. Anything random (the stub agent now,
         # e.g. theft success later) must use this, so it is saved with the world.
         self.rng = random.Random(seed)
@@ -101,9 +106,10 @@ class World:
         """IDs of the dead at a location, sorted."""
         return sorted(n.id for n in self.npcs.values() if not n.alive and n.location == location_id)
 
-    def items_at(self, location_id: str) -> list[str]:
+    def items_at(self, location_id: str, viewer: str | None = None) -> list[str]:
         """IDs of items lying on the ground at a location, sorted."""
-        return sorted(i.id for i in self.items.values() if i.location == location_id)
+        return sorted(i.id for i in self.items.values()
+                      if i.location == location_id and i.visible_to(viewer))
 
     def items_held(self, actor_id: str) -> list[str]:
         """IDs of items an NPC is carrying, sorted."""
@@ -119,6 +125,13 @@ class World:
         # Always re-validate, even an Intent object: one could have been changed
         # after it was built, or built without checks (model_construct).
         raw = intent.model_dump(warnings=False) if isinstance(intent, Intent) else intent
+        if isinstance(raw, dict):
+            actor, action = raw.get("actor"), raw.get("action")
+            if (isinstance(actor, str) and actor != "player" and actor in self.npcs
+                    and self.npcs[actor].alive and isinstance(action, str)
+                    and action not in HANDLERS and action not in self.made_actions.get(actor, {})):
+                self.wishes.append({"tick": self.clock.tick, "actor": actor,
+                                    "action": action, "intent": deepcopy(raw)})
         try:
             intent = Intent.model_validate(raw)
         except ValidationError as e:
@@ -131,6 +144,10 @@ class World:
         if not self.npcs[intent.actor].alive:
             return reject(f"{intent.actor} is dead")
         handler = HANDLERS.get(intent.action)
+        if handler is None and intent.action in self.made_actions.get(intent.actor, {}):
+            from whisperwick.made_actions import do_made
+
+            handler = do_made
         if handler is None:
             return reject(f"unknown action {intent.action}")
         # A claim must be well formed and only ever rides on a talk. Checked here, before
@@ -164,44 +181,3 @@ class World:
         results = [self.act(i) for i in sorted(intents, key=actor_key)]
         self.clock.advance()
         return results
-
-    # ---- Save, load and fingerprint ----------------------------------------
-
-    def to_dict(self) -> dict[str, Any]:
-        """The full world state as plain data. Sorted, so the same world = same dict."""
-        return {
-            "tick": self.clock.tick,
-            "locations": [self.locations[k].model_dump() for k in sorted(self.locations)],
-            "npcs": [self.npcs[k].model_dump() for k in sorted(self.npcs)],
-            "items": [self.items[k].model_dump() for k in sorted(self.items)],
-            "authority": sorted(self.authority),
-            "events": [e.model_dump() for e in self.log.all()],
-            # Saving the generator's exact position makes resumed runs identical.
-            "rng": self.rng.getstate(),
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any], db_path: str = ":memory:") -> "World":
-        """Rebuild a world from to_dict() output. Used for save/load."""
-        log = EventLog(db_path)
-        for raw in data["events"]:
-            # Re-appending in order gives the same ids (1, 2, 3, ...) as before.
-            log.append(Event.model_validate({**raw, "id": None}))
-        world = cls(
-            [Location.model_validate(x) for x in data["locations"]],
-            [NPC.model_validate(x) for x in data["npcs"]],
-            Clock(data["tick"]),
-            log,
-            # Older saves have no items key.
-            items=[Item.model_validate(x) for x in data.get("items", [])],
-            authority=data.get("authority", []),
-        )
-        # JSON turns the state's tuples into lists; setstate needs tuples back.
-        version, internal, gauss = data["rng"]
-        world.rng.setstate((version, tuple(internal), gauss))
-        return world
-
-    def state_hash(self) -> str:
-        """A short fingerprint of the whole world. Equal worlds = equal hashes."""
-        text = json.dumps(self.to_dict(), sort_keys=True)
-        return hashlib.sha256(text.encode()).hexdigest()[:16]

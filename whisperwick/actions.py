@@ -6,62 +6,16 @@ Handlers here are the only code that changes NPC state.
 """
 
 import re
-from dataclasses import dataclass
-from typing import Any
 
-from pydantic import BaseModel, ConfigDict
-
+from whisperwick.action_types import (  # noqa: F401 (public action API)
+    CLAIM_KINDS,
+    MAX_MESSAGE_CHARS,
+    ActionResult,
+    Claim,
+    Intent,
+    reject,
+)
 from whisperwick.events import Event
-
-# Longest thing an NPC may say in one turn. Stops runaway LLM output later.
-MAX_MESSAGE_CHARS = 500
-
-# What a claim can say about a person. The one place to add a new kind.
-CLAIM_KINDS = ("accuses", "defends")
-
-
-class Claim(BaseModel):
-    """A structured statement about one person, carried by a talk.
-
-    Only claims (never free text) will change beliefs, so they must be well formed.
-    The kind and subject are checked by the engine in claims.py, not here, so a bad
-    one becomes a clear rejection reason instead of a parse error.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    kind: str  # one of CLAIM_KINDS
-    subject: str  # a person id, e.g. "npc_hal"
-
-
-class Intent(BaseModel):
-    """One proposed action. Week 2's JSON schema for the LLM is built from this."""
-
-    # Reject unknown fields. A model inventing fields is a bug we want to see.
-    model_config = ConfigDict(extra="forbid")
-
-    actor: str  # who wants to act, e.g. "npc_bob"
-    # "move" | "talk" | "look" | "take" | "drop" | "give" | "show" | "use" | "arrest" | "release"
-    action: str
-    # A location id (move) or an npc id (talk, give, show, arrest, release).
-    target: str | None = None
-    message: str | None = None  # what to say (talk), or the reason (arrest, release)
-    item: str | None = None  # an item id (take, drop, give, show, use)
-    claim: Claim | None = None  # "accuses X" or "defends X" (talk only)
-
-
-@dataclass
-class ActionResult:
-    """What the engine tells the agent after it tries something."""
-
-    ok: bool
-    reason: str = ""  # why it failed, in plain words (agents will read this)
-    event: Event | None = None  # the event that was logged, if it changed the world
-    observation: dict[str, Any] | None = None  # what the agent sees (look only)
-
-
-def reject(reason: str) -> ActionResult:
-    return ActionResult(False, reason)
 
 
 def do_move(world, intent: Intent) -> ActionResult:
@@ -159,7 +113,7 @@ def do_look(world, intent: Intent) -> ActionResult:
         # Dead NPCs are not "people". They show up here, so a body can be found.
         "bodies": world.bodies_at(here),
         # Only items on the ground. What people carry stays private until shown.
-        "items": world.items_at(here),
+        "items": world.items_at(here, intent.actor),
         "holding": world.items_held(intent.actor),
         # People here who are held, so a villager can see custody with its own eyes.
         "held": [n for n in world.npcs_at(here) if world.npcs[n].held_by is not None],
@@ -180,3 +134,9 @@ HANDLERS.update({"take": do_take, "drop": do_drop, "give": do_give, "show": do_s
 from whisperwick.custody import do_arrest, do_release  # noqa: E402
 
 HANDLERS.update({"arrest": do_arrest, "release": do_release})
+
+# New villager actions use the same gate as the original handlers.
+from whisperwick.gestures import do_gesture  # noqa: E402
+from whisperwick.made_actions import do_make  # noqa: E402
+
+HANDLERS.update({"gesture": do_gesture, "make": do_make})

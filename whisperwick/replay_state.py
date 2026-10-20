@@ -28,11 +28,32 @@ def layout(scenario: Scenario) -> dict[str, tuple[float, float]]:
 
 def start_state(scenario: Scenario) -> dict:
     """Where everyone is before the first event, and nobody is held."""
-    return {"positions": {n.id: n.location for n in scenario.npcs}, "held": {}}
+    return {"positions": {n.id: n.location for n in scenario.npcs}, "held": {},
+            "items": {i.id: i.model_dump() for i in scenario.items}}
 
 
 def apply_event(state: dict, e: Event) -> None:
     """Change the state by one event. Only moves and custody change who is where."""
+    if e.type == "make":
+        from copy import deepcopy
+
+        definition = deepcopy(e.data["definition"])
+        actions = state.setdefault("made_actions", {}).setdefault(e.actor, {})
+        actions[definition["name"]] = definition
+    for ident, fields in e.data.get("changes", {}).get("npcs", {}).items():
+        if "location" in fields:
+            state["positions"][ident] = fields["location"]
+    if e.data.get("changes", {}).get("items"):
+        for ident, fields in e.data["changes"]["items"].items():
+            state.setdefault("items", {}).setdefault(ident, {}).update(fields)
+    # Ordinary item events and made patches share one replay inventory.
+    if e.type in ("take", "drop", "give", "use"):
+        item = state["items"][e.data["item"]]
+        item["location"] = e.location if e.type == "drop" else None
+        item["holder"] = (e.actor if e.type == "take" else
+                          e.data["to"] if e.type == "give" else None)
+        if e.type == "take":
+            item.update(hidden=False, known_by=[])
     if e.type == "move":
         state["positions"][e.actor] = e.data["to"]
     elif e.type == "arrest":
