@@ -37,7 +37,7 @@ def test_gesture_is_seen_remembered_and_changes_only_the_log(text):
 
 
 @pytest.mark.parametrize("text", [
-    "", " ", "a" * 81, "Bob nods\nBob smiles",
+    "", " ", "a" * 121, "Bob nods\nBob smiles",
     "Bob takes a stone", "Bob took a stone", "Bob is taking a stone",
     "Bob gives a stone", "Bob gave a stone", "Bob is giving a stone",
     "Bob opens the door", "Bob opened the door", "Bob is opening the door",
@@ -49,7 +49,8 @@ def test_gesture_is_seen_remembered_and_changes_only_the_log(text):
     "Bob hands Victor a stone", "Bob walks to the market", "Bob kills Victor",
     "Bob removes a stone", "Bob passes a stone",
     "Bob drops a stone", "Bob puts a stone down", "Bob picks a stone up",
-    "Bob glances at item_boots", "Bob glances at muddy boots", "Bob eyes the boots",
+    # Victor's boots are in view at the market, so only the raw id is refused (2026-10-21).
+    "Bob glances at item_boots",
     "Bob nods at Alice", "Bob nods at npc_alice", "Bob nods at the mayor",
 ])
 def test_bad_gesture_is_a_normal_atomic_rejection(text):
@@ -64,4 +65,45 @@ def test_player_cannot_gesture_and_prompt_has_only_plain_descriptions():
     w = fresh_world()
     assert not w.act({"actor": "player", "action": "gesture", "text": "nods"}).ok
     text = build_messages(w, "npc_bob")[0]["content"]
-    assert "gesture (text" in text and "make (name" in text
+    assert "gesture (message" in text and "make (name" in text
+
+
+# 2026-10-21 live runs: models wrote gestures into `message` and often wrote speech.
+def test_gesture_in_message_field_is_accepted():
+    w = fresh_world()
+    words = "crosses arms and stares at the ground"
+    result = w.act({"actor": "npc_bob", "action": "gesture", "message": words})
+    assert result.ok and result.event.data["text"] == words
+
+
+@pytest.mark.parametrize("words", [
+    "Hm. New face. What do you want, stranger?", "I am not done yet.",
+    'mutters "go away"', "You there.",
+])
+def test_speech_is_not_a_gesture(words):
+    result = fresh_world().act({"actor": "npc_bob", "action": "gesture", "message": words})
+    assert not result.ok and "use talk" in result.reason
+
+
+def test_wiping_hands_is_not_handing_something_over():
+    w = fresh_world()
+    wipe = {"actor": "npc_bob", "action": "gesture", "message": "wipes soot off his hands"}
+    assert w.act(wipe).ok
+    assert not w.act({"actor": "npc_bob", "action": "gesture", "message": "hands over a coin"}).ok
+
+
+def test_pointing_at_an_item_in_view_is_a_gesture():
+    w = fresh_world()
+    here = w.npcs["npc_bob"].location
+    seen = w.items_at(here, "npc_bob") + [i for n in w.npcs_at(here) for i in w.items_held(n)]
+    gone = [i for i in w.items if i not in seen]
+    if seen:
+        name = w.items[seen[0]].name
+        point = {"actor": "npc_bob", "action": "gesture", "message": f"points at the {name}"}
+        assert w.act(point).ok
+    if gone:
+        name = w.items[gone[0]].name
+        assert not w.act({"actor": "npc_bob", "action": "gesture",
+                          "message": f"points at the {name}"}).ok
+    wave = {"actor": "npc_bob", "action": "gesture", "message": "waves hand dismissively"}
+    assert w.act(wave).ok

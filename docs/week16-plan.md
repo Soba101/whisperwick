@@ -16,7 +16,7 @@ model refused nothing in the last 30 runs (week 13 and week 14 E1). The lever is
 A villager may write a short action in its own words ("Alice paces by the window", "Bob wipes his hands").
 - The engine logs it as a `gesture` event seen by people in the same place, like talk. No state changes.
 - Refused when it claims a physical result the engine did not record (taking, opening, hitting, hiding,
-  moving something or someone): a short code check on verbs and item names, plus a cap of ~80 characters.
+  moving something or someone): a short code check on verbs and item names, plus a cap of 120 characters (80 at first; raised 2026-10-21 after live runs).
   Refused gestures are rejections like any other, so villagers see why.
 - Witnesses remember gestures like anything else they saw; they decide what a gesture means.
 - Shown in both feeds and as a small animation cue in 3D.
@@ -81,3 +81,12 @@ Villagers only in this first build; the player gets it once the format has been 
 
 The engine interface and visibility rules are documented in [week16-actions.md](week16-actions.md).
 The original event snapshot is unchanged. Live benchmark runs and Donovan's play session remain open.
+
+## Fix after the first live runs (2026-10-21)
+The first check batch (data/w16a-*, stopped after 3 runs) showed villagers almost stopped talking (106 talk
+lines in a run vs about 1,200) and a quarter of actions were refused. Cause: models put gestures in
+`message` (talk's field), so nearly all were "empty"; many gestures were speech; checks were too strict
+("hands" read as handing over, any item named even when in view). Fixed: gestures read `message`,
+gestures with words are refused ("use talk"), items in view may be named, raw ids are refused, the cap is
+120 characters. A short live game after the fix: talk back to normal, 9% refused, mostly over-long gestures
+before the cap change. The check batch reruns as data/w16b-*.

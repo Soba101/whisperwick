@@ -1,10 +1,9 @@
 """Plain action descriptions and schema pieces. No advice about choosing actions."""
 
-from whisperwick.gestures import MAX_GESTURE_CHARS
 from whisperwick.made_shapes import EFFECTS, NEEDS, PARAMS
 
 ACTION_TEXT = (
-    " gesture (text = a gesture with no physical result, at most 80 characters)."
+    " gesture (message = a gesture with no words and no physical result, at most 120 characters)."
     " make (name, params = a subset of item/person/exit, needs, does;"
     " optional use = {item/person/exit ids})."
     " Needs: holds_item, item_here, item_hidden_here, person_here, at_place:<location id>."
@@ -25,7 +24,6 @@ def properties(world, items, people, exits):
     args = {key: {"enum": ids} for key, ids in
             (("item", items), ("person", people), ("exit", exits)) if ids}
     return {
-        "text": {"type": ["string", "null"], "maxLength": MAX_GESTURE_CHARS},
         "name": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{0,39}$"},
         "params": {"type": ["array", "null"], "items": {"enum": list(PARAMS)}},
         "needs": {"type": ["array", "null"], "items": {"enum": [

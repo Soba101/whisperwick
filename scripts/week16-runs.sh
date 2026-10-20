@@ -23,7 +23,7 @@ done
 
 run_one() {
   # $1 name, $2 seed
-  local base="$DATA/w16a-$1"
+  local base="$DATA/w16b-$1"
   local reason
   # Skip only runs that run-complete.py accepts, so the batch can be restarted.
   if python3 -I "$HERE/run-complete.py" "$base.json" $DAYS > /dev/null; then
@@ -48,4 +48,4 @@ run_one() {
 for job in "${jobs[@]}"; do
   run_one ${=job}
 done
-echo "ALL DONE $(date)" > "$DATA/w16a-runs.done"
+echo "ALL DONE $(date)" > "$DATA/w16b-runs.done"
