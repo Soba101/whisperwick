@@ -39,7 +39,8 @@ def request(path, *, authorized=True, host=True, token='seat'):
 
 
 def test_pages_share_identical_visible_state_and_seat():
-    for path in ('/', '/3d'):
+    # 3D is the main view; once a game exists the 2D page is reached with ?view=2d.
+    for path in ('/?view=2d', '/3d'):
         r = request(path, token=None)
         assert r['code'] == 200
         cookie = SimpleCookie(r['headers']['Set-Cookie'])
@@ -94,7 +95,7 @@ def test_voice_assets_are_3d_only():
         assert response['code'] == 200
         assert response['headers']['Content-Type'].startswith('text/javascript')
         assert request('/web3d/' + name, authorized=False)['code'] == 403
-    original = request('/')['body'].decode()
+    original = request('/?view=2d')['body'].decode()
     assert original == render_page()
     assert 'voice-toggle' not in original and 'transformers' not in original
     assert 'https://' not in original and 'http://' not in original

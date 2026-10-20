@@ -29,7 +29,7 @@ def test_routes_auth_assets_and_shared_state(server):
     code, html = c.request('/3d')
     assert code == 200 and b'three@0.160.0' in html
     before = c.until(lambda s: s['awaiting'])
-    assert c.request('/')[0] == 200
+    assert c.request('/?view=2d')[0] == 200  # 3D is the default; 2D is one click away
     assert c.state() == before  # Switching views cannot create a second world or expose more.
     assert len(manager.games) == 1
     for name, mime in web3d_assets.ASSETS.items():

@@ -1,6 +1,7 @@
 """`play --web`: one game loop per visitor in a background thread, the page served from here."""
 
 import itertools
+import os
 import threading
 import time
 from collections.abc import Callable
@@ -82,7 +83,10 @@ def start(
     )
     # Requests and keys live beside feedback, including with a custom --db folder.
     folder = Path(db_for(0)).parent
-    return make_server(manager, port, key, allow_hosts, Players(folder), Requests(folder)), manager
+    # The admin key is read from the environment only, so it never appears in a process list.
+    admin_key = os.environ.get("WHISPERWICK_ADMIN_KEY") or None
+    return make_server(manager, port, key, allow_hosts, Players(folder), Requests(folder),
+                       admin_key), manager
 
 
 def serve(

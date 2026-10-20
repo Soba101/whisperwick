@@ -22,16 +22,19 @@ def manager(**options):
 
 def request(store, games, path="/", body=None, *, key=None, token=None, waiting=None,
             host="play.example", kind="application/json", raw=None, length=None,
-            headers: dict | None = None):
+            headers: dict | None = None, admin_key=None, admin=None):
     h = Handler.__new__(Handler)
     h.players, h.requests = store, waiting or Requests(store.folder)
     h.games, h.key, h.path = games, "owner-secret", path
     h.hosts = web_auth.allowed_hosts(8000, ("play.example",))
+    h.admin_key = admin_key  # None keeps the owner key as the admin key
     cookies = {}
     if key is not None:
         cookies[web_auth.KEY_COOKIE] = key
     if token is not None:
         cookies[web_auth.GAME_COOKIE] = token
+    if admin is not None:
+        cookies[web_auth.ADMIN_COOKIE] = admin
     raw = raw if raw is not None else json.dumps(body).encode() if body is not None else None
     h.headers = {"Host": host, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items()),
                  "Content-Type": kind, "Content-Length": str(length if length is not None

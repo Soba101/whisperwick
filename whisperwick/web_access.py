@@ -9,8 +9,12 @@ class Access:
     players: Players | None = None
     requests: Requests | None = None
     player_name: str | None = None
+    admin_key: str | None = None  # WHISPERWICK_ADMIN_KEY; unset keeps the owner key as admin
 
     def owner_cookie_ok(self) -> bool:
+        """May this browser manage invites? With an admin key, only its own cookie counts."""
+        if self.admin_key:
+            return web_auth.key_ok(self.admin_key, self.cookies().get(web_auth.ADMIN_COOKIE))
         # Local play without a key does not imply permission to manage invitations.
         return bool(self.key and web_auth.key_ok(
             self.key, self.cookies().get(web_auth.KEY_COOKIE)))

@@ -19,24 +19,33 @@ class ReadRoutes:
         seat = self.games.seat_label(token, self.player_name)
         return render_page(self.player_name or "owner", seat, admin=self.owner_cookie_ok())
 
+    def redirect(self, where: str, cookie: str | None = None) -> None:
+        self.send_response(302)
+        self.send_header("Location", where)
+        if cookie:
+            self.send_header("Set-Cookie", cookie)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.end_headers()
+
     def do_GET(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
         url = urlparse(self.path)
+        query = parse_qs(url.query)
+        admin_try = query.get("key", [""])[0]
+        if url.path == "/admin" and self.admin_key and web_auth.key_ok(self.admin_key, admin_try):
+            # Same as the play link: set the cookie, then drop the key from the address bar.
+            cookie = web_auth.cookie_header(web_auth.ADMIN_COOKIE, admin_try, self.secure())
+            return self.redirect("/admin", cookie)
         if url.path == "/admin" or url.path.startswith("/admin/"):
             return self.admin_get(url.path)  # non-owners get a plain 404 there
-        query = parse_qs(url.query)
         supplied = query.get("key", [""])[0]
         if url.path in ("/", "/3d") and supplied and self.identity(supplied):
             # The link with the key sets the cookie, then drops the key from the address bar.
             cookie = web_auth.cookie_header(web_auth.KEY_COOKIE, supplied, self.secure())
-            self.send_response(302)
-            self.send_header("Location", url.path)
-            self.send_header("Set-Cookie", cookie)
-            self.send_header("Content-Length", "0")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Referrer-Policy", "no-referrer")
-            return self.end_headers()
+            return self.redirect(url.path, cookie)
         if not self.key_cookie_ok():
             if url.path in ("/", "/3d"):
                 return self.send(403, REQUEST_PAGE.encode(), "text/html; charset=utf-8")
@@ -49,6 +58,9 @@ class ReadRoutes:
             if self.games.choose_roles and self.games.get(token, self.player_name) is None:
                 return self.send(200, self.start_page(token).encode(), "text/html; charset=utf-8")
             previous = self.games.get(token, self.player_name)
+            # 3D is the main view (2026-10-21); the 2D page stays one click away (?view=2d).
+            if url.path == "/" and previous is not None and query.get("view") != ["2d"]:
+                return self.redirect("/3d")
             # a new browser starts its own game here
             game = self.games.open(token, self.player_name)
             if game is None:

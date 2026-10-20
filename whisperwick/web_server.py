@@ -165,6 +165,7 @@ class LocalServer(ThreadingHTTPServer):
 def make_server(
     games: GameManager, port: int, key: str | None = None, allow_hosts: tuple[str, ...] = (),
     players: Players | None = None, requests: Requests | None = None,
+    admin_key: str | None = None,
 ) -> ThreadingHTTPServer:
     """A server on 127.0.0.1 only. Port 0 picks a free port (tests use that)."""
     players = players or Players(feedback.DEFAULT_PATH.parent)
@@ -177,7 +178,8 @@ def make_server(
     real_port = server.server_address[1]
     hosts = web_auth.allowed_hosts(real_port, allow_hosts)
     handler = type("PlayHandler", (Handler,), {"games": games, "key": key or None, "hosts": hosts,
-                                             "players": players, "requests": requests})
+                                             "players": players, "requests": requests,
+                                             "admin_key": admin_key or None})
     server.RequestHandlerClass = handler
     server.daemon_threads = True  # open page polls must not keep the process alive
     return server

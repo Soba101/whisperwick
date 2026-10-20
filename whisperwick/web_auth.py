@@ -9,6 +9,8 @@ from http.cookies import SimpleCookie
 
 KEY_COOKIE = "ww_key"
 GAME_COOKIE = "ww_game"
+# A separate admin key (2026-10-21): a shared play link must never open /admin.
+ADMIN_COOKIE = "ww_admin"
 LOCAL_NAMES = ("127.0.0.1", "localhost")
 
 
