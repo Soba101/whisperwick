@@ -68,7 +68,7 @@ class Players:
             write_rows(path, [r for r in waiting if r is not match])
             return key
 
-    def revoke(self, name: str) -> None:
+    def revoke(self, name: str) -> str:
         with locked(self.folder):
             players = self.read()
             player = next((p for p in players if p["name"].casefold() == name.casefold()), None)
@@ -76,6 +76,7 @@ class Players:
                 raise ValueError("No such player.")
             player["revoked"] = True
             self.write(players)
+            return player["name"]  # the stored spelling, for stopping that player's game
 
     def visit(self, name: str, new_game: bool = False) -> None:
         with locked(self.folder):

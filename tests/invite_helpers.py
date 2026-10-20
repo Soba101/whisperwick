@@ -21,7 +21,8 @@ def manager(**options):
 
 
 def request(store, games, path="/", body=None, *, key=None, token=None, waiting=None,
-            host="play.example", kind="application/json", raw=None, length=None):
+            host="play.example", kind="application/json", raw=None, length=None,
+            headers: dict | None = None):
     h = Handler.__new__(Handler)
     h.players, h.requests = store, waiting or Requests(store.folder)
     h.games, h.key, h.path = games, "owner-secret", path
@@ -35,6 +36,7 @@ def request(store, games, path="/", body=None, *, key=None, token=None, waiting=
     h.headers = {"Host": host, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items()),
                  "Content-Type": kind, "Content-Length": str(length if length is not None
                                                              else len(raw or b""))}
+    h.headers.update(headers or {})
     h.rfile, h.wfile = BytesIO(raw or b""), BytesIO()
     result = {"headers": {}}
     h.send_response = lambda code: result.update(code=code)

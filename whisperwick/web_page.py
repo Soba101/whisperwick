@@ -67,8 +67,10 @@ BODY = ROLE_HTML + GUIDE + f"""
 """
 
 
-def render_page(name: str = "owner", seat: str = "Seat 1 of 5") -> str:
-    welcome = f"<p>Welcome, {escape(name)} · {escape(seat)}</p>"
+def render_page(name: str = "owner", seat: str = "Seat 1 of 5", admin: bool = False) -> str:
+    # Only the owner's page links to the admin page; other players never see it.
+    link = ' · <a href="/admin">Admin</a>' if admin else ""
+    welcome = f"<p>Welcome, {escape(name)} · {escape(seat)}{link}</p>"
     body = BODY.replace('<h1>Choose your role</h1>', '<h1>Choose your role</h1>' + welcome)
     body = body.replace('<h1>Whisperwick</h1>', '<h1>Whisperwick</h1>' + welcome)
     return (

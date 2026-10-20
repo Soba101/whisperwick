@@ -130,8 +130,10 @@ def serve(
         hint = f"whisperwick play --web --port {port + 1}"
         typer.echo(f"Port {port} is in use ({e.strerror}). Try: {hint}")
         raise typer.Exit(1) from e
-    link = f"http://127.0.0.1:{server.server_address[1]}/" + (f"?key={key}" if key else "")
-    typer.echo(f"Play Wren at {link}  (Ctrl-C to stop)")
+    # The log file would keep the key, so the line never prints it.
+    link = f"http://127.0.0.1:{server.server_address[1]}/"
+    hint = " (add ?key=YOUR_KEY once)" if key else ""
+    typer.echo(f"Play Wren at {link}{hint}  (Ctrl-C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

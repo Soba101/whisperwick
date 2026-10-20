@@ -157,6 +157,11 @@ class GameManager:
             # Use the same stop path as leaving a game or replacing a browser.
             self._discard(token, None)
 
+    def stop_player(self, name: str) -> None:
+        """Stop every game of this player (access revoked), which frees their seat."""
+        with self.lock:
+            self._drop_name(name)
+
     def close_all(self) -> list[threading.Thread]:
         """Stop every game (server closing). Returns the threads so a test can join them."""
         with self.lock:

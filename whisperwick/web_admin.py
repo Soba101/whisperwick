@@ -57,7 +57,10 @@ class AdminRoutes:
                 elif path == "/admin/decline":
                     self.requests.decline(name)
                 else:
-                    self.players.revoke(name)
+                    stored = self.players.revoke(name)
+                    # A revoked key is refused on the next request, but its game would
+                    # keep a seat until it idles out.
+                    self.games.stop_player(stored)
         except ValueError as e:
             return self.send_json(400, {"error": str(e)})
         except OSError:

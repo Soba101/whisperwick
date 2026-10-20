@@ -25,6 +25,11 @@ def text(value, empty: str = "—") -> str:
     return escape(str(value)) if value is not None and value != "" else empty
 
 
+def when(value) -> str:
+    # Saved times are ISO in UTC; minutes are enough to read on a phone.
+    return text(value[:16].replace("T", " ") + " UTC", "Never") if value else "Never"
+
+
 def button(action: str, name: str, label: str, field: str = "name") -> str:
     return (f'<button type="button" data-action="{action}" data-{field}="{text(name)}">'
             f'{label}</button>')
@@ -37,10 +42,10 @@ def section(title: str, entries: list[str], empty: str, extra: str = "") -> str:
 
 def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict],
                  players: list[dict], feedback: list[dict]) -> str:
-    seats = [f'<h3>{text(g["name"])}</h3><p>Role: {text(g["role"])} · '
+    seats = [f'<h3>{text(g["name"])}</h3><p>Role: {text(g["role"], "Wren (original)")} · '
              f'Crime: {text(g["crime"])} · {text(g["clock"], "Time not available")}</p>'
              + button("stop", g["id"], "Stop", "id") for g in games]
-    waiting = [f'<h3>{text(r["name"])}</h3><p class="details">{text(r["time"])}</p>'
+    waiting = [f'<h3>{text(r["name"])}</h3><p class="details">{when(r["time"])}</p>'
                f'<p>{text(r["note"], "No note")}</p><div class="actions">'
                + button("approve", r["name"], "Approve")
                + button("decline", r["name"], "Decline") + '</div>' for r in requests]
@@ -51,13 +56,13 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
                    '<div class="actions">' + button("revoke", p["name"], "Yes, revoke")
                    + '<button type="button" data-cancel>Cancel</button></div></div>')
         people.append(f'<h3>{text(p["name"])}</h3><p class="details">'
-                      f'Last seen: {text(p["last_seen"], "Never")} · Games: {text(p["games"])}<br>'
+                      f'Last seen: {when(p["last_seen"])} · Games: {text(p["games"])}<br>'
                       f'Playing now: {"Yes" if p["name"] in playing else "No"} · '
                       f'Revoked: {"Yes" if p["revoked"] else "No"}</p>'
                       + ('' if p["revoked"] else '<button type="button" class="danger" '
                          'data-confirm>Revoke</button>' + confirm))
     entries = [f'<h3>{text(f.get("player"), "Unknown player")}</h3>'
-               f'<p class="details">{text(f.get("time"))} · {text(f.get("page"))} · '
+               f'<p class="details">{when(f.get("time"))} · {text(f.get("page"))} · '
                f'Rating: {text(f.get("rating"))} · Crime: {text(f.get("crime"))} · '
                f'Role: {text(f.get("role"))} · {text(f.get("clock"))}</p>'
                f'<p>{text(", ".join(f.get("tags", [])), "No tags")}</p>'

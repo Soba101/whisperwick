@@ -20,6 +20,7 @@ from whisperwick.invite_requests import Requests
 from whisperwick.player_web import WAIT_CHOICES, intent_from
 from whisperwick.roles import ROLE_IDS
 from whisperwick.web_access import Access
+from whisperwick.web_admin import AdminRoutes
 from whisperwick.web_games import Game, GameManager
 from whisperwick.web_get import ReadRoutes
 from whisperwick.web_page import plain_page
@@ -27,7 +28,7 @@ from whisperwick.web_page import plain_page
 MAX_BODY = 20_000  # bytes; a message is at most a few hundred characters
 
 
-class Handler(Access, ReadRoutes, BaseHTTPRequestHandler):
+class Handler(Access, AdminRoutes, ReadRoutes, BaseHTTPRequestHandler):
     games: GameManager  # set on the subclass made by make_server
     key: str | None
     hosts: set[str]
@@ -84,6 +85,8 @@ class Handler(Access, ReadRoutes, BaseHTTPRequestHandler):
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
         path = urlparse(self.path).path
+        if path.startswith("/admin"):
+            return self.admin_post(path)  # owner check comes first inside
         if path == "/request":
             if not self.requests.allow():
                 return self.send(429, b"Too many requests. Please try again later.", "text/plain")

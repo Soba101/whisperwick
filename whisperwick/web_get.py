@@ -12,16 +12,19 @@ from whisperwick.web_request_page import REQUEST_PAGE
 class ReadRoutes:
     def welcome(self, token) -> str:
         seat = self.games.seat_label(token, self.player_name)
-        return f"<span>Welcome, {escape(self.player_name or 'owner')} · {seat}</span>"
+        link = ' · <a href="/admin">Admin</a>' if self.owner_cookie_ok() else ""
+        return f"<span>Welcome, {escape(self.player_name or 'owner')} · {seat}{link}</span>"
 
     def start_page(self, token) -> str:
         seat = self.games.seat_label(token, self.player_name)
-        return render_page(self.player_name or "owner", seat)
+        return render_page(self.player_name or "owner", seat, admin=self.owner_cookie_ok())
 
     def do_GET(self) -> None:
         if not self.host_ok():
             return self.send_json(403, {"error": "bad host"})
         url = urlparse(self.path)
+        if url.path == "/admin" or url.path.startswith("/admin/"):
+            return self.admin_get(url.path)  # non-owners get a plain 404 there
         query = parse_qs(url.query)
         supplied = query.get("key", [""])[0]
         if url.path in ("/", "/3d") and supplied and self.identity(supplied):
