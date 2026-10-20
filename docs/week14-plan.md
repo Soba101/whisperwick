@@ -87,3 +87,23 @@ Donovan decides afterwards whether either one is adopted for play.
 - Open world (#102, parked).
 - Narrator (Q8, after this).
 - Changing the measured benchmark: the Victor scenario stays fixed for comparisons.
+
+## Results: E1, sampling temperature 1.0 (2026-10-20, #104)
+10 runs (`none`, no role, memory on, 3 days), seeds 1-2 x 5, week 13 code plus LLM_TEMPERATURE only
+(checkout ../whisperwick-w14e). Baseline: week 12 noise runs at 0.7 (w12n, 10 per seed). Data: data/w14t-*,
+eval in data/w14t-eval-s1.txt and -s2.txt.
+
+| Seed | Temperature | Right | Wrong | Nobody | Mixed | Decisive | Median requests | Invented-object lines per 1,000 talk |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0.7 (10) | 2 | 1 | 5 | 2 | 3 | 1,313 | 2 |
+| 1 | 1.0 (5) | 2 | 1 | 1 | 1 | 3 | 1,361 | 19 |
+| 2 | 0.7 (10) | 9 | 1 | 0 | 0 | 8 | 1,638 | 3 |
+| 2 | 1.0 (5) | 3 | 1 | 1 | 0 | 2 | 1,500 | 5 |
+
+- Seed 2 got worse beyond noise: right person 90% to 60%, decisive 80% to 40%. Seed 1 about the same.
+- Rejected actions did not rise (about 4-5% at both).
+- Invented objects (#83: bag, book, clean boots, patrol logs, constable) are counted by word match in
+  talk. At 1.0 one seed 1 run spiralled (75 lines); the rest are close to 0.7.
+- Reading: a higher temperature does not make the game better on these measures and makes Hal less
+  reliable on the easy seed. Recommendation: keep 0.7. "More creative" is better reached through the
+  week 14 generated crimes and characters than through sampling.
