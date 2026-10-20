@@ -1,4 +1,4 @@
-# Week 16 plan (draft 2026-10-20): more things villagers can do
+# Week 16 plan (approved 2026-10-20: A + D first): more things villagers can do
 
 Rules carry over: the world is physics only; villagers decide what they believe, want and do;
 no director, no formulas deciding opinions, no hints in prompts. Hal's arrests stay his own.
@@ -36,21 +36,43 @@ Villagers keep the right to never use them (week 12 B: items were barely used; t
   target meaning "everyone here", as `show` already does. The prompt states the option plainly,
   without suggesting when to use it.
 
+### D. Villagers make their own actions, checked and merged live (approved)
+Like a pull request: a villager writes a new action, the engine runs the checks, and if all pass the
+action exists from then on. Same turn: one reply can make an action and use it at once. The checks are
+plain code (milliseconds), so nobody waits for another reply.
+1. **Format, not free code.** `make` with: a name; parameters (item, person, exit); `needs` from a fixed
+   list (holds item, item here, item hidden here, person here, at place); `does` from a fixed list of
+   physical effects (put a held item here, hide a held item here, reveal hidden items here, take an item
+   here, move self through an exit). Nothing else is accepted.
+2. **Checks (the CI).** Valid format; every piece from the lists; a dry run on a copy of the world must
+   succeed; afterwards nothing was created or destroyed, nobody but the maker moved, nobody died or was
+   held or released, no secret field changed, and the only changes are the ones the action declares.
+3. **Merge.** A passing action is logged as a `make` event, so replays rebuild it identically. It is the
+   maker's own action from then on (shared with others later, if wanted). A failing one is a rejection
+   with the reason, like any other.
+4. **Hidden items** come with D: a hidden item is left out of every look, prompt, narrator line and page
+   for anyone who did not hide it or reveal it.
+5. **Wish list.** Unknown actions a villager tries are saved with what it wanted (sidecar, not the event
+   log), so we can see which new physics (locks, fire) villagers reach for. A person decides those.
+6. **Prompt.** The action list gains `make` and the villager's own made actions, described plainly,
+   never suggesting when or why to make one.
+Villagers only in this first build; the player gets it once the format has been seen in play.
+
 ## Not in this week
 - The model deciding outcomes ("I pick the lock" judged by a model): breaks the main rule and determinism.
 - Week 14 E2 (uncensored model): skipped, nothing to fix (see #104). Revisit only if play shows refusals.
 - Open world (#102), backlog #108-#118.
 
 ## Checks
-- VERIFY.md after A and B: determinism with gestures and the new actions on the stub agent; old
-  scenarios unchanged when nobody uses them; save/load keeps `hidden` and locks.
+- VERIFY.md after A and D: determinism with gestures and made actions on the stub agent; old
+  scenarios unchanged when nobody uses them; save/load keeps `hidden` and made actions.
 - Unit tests: every refused gesture pattern; hidden items never appear in a plain look or any prompt of
-  someone who did not see them hidden or search; follow fails when the target is out of sight.
+  someone who did not hide or reveal them; every CI check refuses a crafted bad action.
 - Live: Victor benchmark, seeds 1-2 x 5 (the #90 count), against w12n. Report how often villagers use each
   new action, invented-object talk (#83 words), Right person and Decisive. Not worse beyond noise = keep.
 - Donovan plays once and says whether the village feels more alive.
 
-## Open questions for you
-1. A, B and C all, or A and B first (my suggestion), with C as its own measured week?
-2. In B, which of the four actions? My order: hide + search together, then follow, then locks.
-3. Gestures in the player's action bar too, or villagers only for now?
+## Order and answers (2026-10-20)
+- Build A and D first. B's hide and search come through D (villagers can make them); follow and locks
+  wait for the wish list. C is its own measured week.
+- Gestures and made actions are for villagers only in this build.
