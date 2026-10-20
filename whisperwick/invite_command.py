@@ -48,7 +48,8 @@ def players() -> None:
     """List players and their usage, without exposing key hashes."""
     store = Players(feedback.DEFAULT_PATH.parent)
     with locked(store.folder):
-        for player in store.read():
+        # Only live links, as on the admin page.
+        for player in (p for p in store.read() if not p["revoked"]):
             typer.echo(json.dumps({k: v for k, v in player.items() if k != "key_hash"}))
 
 

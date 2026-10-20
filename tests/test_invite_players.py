@@ -141,3 +141,11 @@ def test_a_revoked_name_can_be_invited_again_and_the_old_key_stays_dead(tmp_path
     assert new != old
     assert store.authenticate(old) is None and store.authenticate(new) == "Alice"
     assert [p["name"] for p in store.read()].count("Alice") == 1
+
+
+def test_revoke_removes_the_player_so_only_live_links_are_listed(tmp_path):
+    store = Players(tmp_path)
+    key = store.invite("Bob")
+    store.revoke("Bob")
+    assert store.authenticate(key) is None
+    assert all(p["name"] != "Bob" for p in store.read())

@@ -78,8 +78,9 @@ class Players:
             player = next((p for p in players if p["name"].casefold() == name.casefold()), None)
             if player is None:
                 raise ValueError("No such player.")
-            player["revoked"] = True
-            self.write(players)
+            # Removing the row removes its key hash, so the link can never work again, and
+            # the list shows only live links (2026-10-21). The name is free to invite again.
+            self.write([p for p in players if p is not player])
             return player["name"]  # the stored spelling, for stopping that player's game
 
     def visit(self, name: str, new_game: bool = False) -> None:

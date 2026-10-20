@@ -51,16 +51,16 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
                + button("decline", r["name"], "Decline") + '</div>' for r in requests]
     people = []
     playing = {g["name"] for g in games}
-    for p in players:
+    # Only live links are listed; older files may still hold revoked rows.
+    for p in (p for p in players if not p["revoked"]):
         confirm = (f'<div class="confirm" hidden><p>Revoke access for {text(p["name"])}?</p>'
                    '<div class="actions">' + button("revoke", p["name"], "Yes, revoke")
                    + '<button type="button" data-cancel>Cancel</button></div></div>')
         people.append(f'<h3>{text(p["name"])}</h3><p class="details">'
                       f'Last seen: {when(p["last_seen"])} · Games: {text(p["games"])}<br>'
-                      f'Playing now: {"Yes" if p["name"] in playing else "No"} · '
-                      f'Revoked: {"Yes" if p["revoked"] else "No"}</p>'
-                      + ('' if p["revoked"] else '<button type="button" class="danger" '
-                         'data-confirm>Revoke</button>' + confirm))
+                      f'Playing now: {"Yes" if p["name"] in playing else "No"}</p>'
+                      '<button type="button" class="danger" data-confirm>Revoke</button>'
+                      + confirm)
     entries = [f'<h3>{text(f.get("player"), "Unknown player")}</h3>'
                f'<p class="details">{when(f.get("time"))} · {text(f.get("page"))} · '
                f'Rating: {text(f.get("rating"))} · Crime: {text(f.get("crime"))} · '
