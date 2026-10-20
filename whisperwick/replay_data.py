@@ -8,18 +8,25 @@ import json
 
 from whisperwick.claims import claim_words
 from whisperwick.events import Event
+from whisperwick.gestures import gesture_line
+from whisperwick.made_text import step_lines
 from whisperwick.replay_state import layout
 from whisperwick.scenario import Scenario
 from whisperwick.story import names_from
 
-SHOWN = {"talk", "move", "take", "drop", "give", "show", "arrest", "release"}
+SHOWN = {"talk", "move", "take", "drop", "give", "show", "arrest", "release", "gesture", "make"}
 
 
 def event_row(e: Event, names: dict[str, str]) -> dict:
     """One event, trimmed to what the feed and the replay use."""
     row = {"id": e.id, "tick": e.tick, "type": e.type, "actor": e.actor, "loc": e.location}
     d = e.data
-    if e.type == "talk":
+    if e.type == "gesture":
+        row["text"] = gesture_line(d["text"], names.get(e.actor, e.actor), e.actor)
+    elif "steps" in d:
+        row["text"] = "; ".join(step_lines(e, names))
+        row["moves"] = [r["to"] for r in d["steps"] if r["effect"] == "move_self_exit"]
+    elif e.type == "talk":
         row["to"], row["text"] = d["to"], d["message"]
         if claim := d.get("claim"):
             tag = claim_words(claim, names.get(claim["subject"], claim["subject"]))
@@ -55,7 +62,7 @@ def build_data(
             {"id": n.id, "name": n.name, "loc": n.location, "alive": n.alive} for n in scenario.npcs
         ],
         "names": names,
-        "events": [event_row(e, names) for e in events if e.type in SHOWN],
+        "events": [event_row(e, names) for e in events if e.type in SHOWN or "steps" in e.data],
         "thoughts": thoughts or [],
     }
 

@@ -31,7 +31,7 @@ def view_lines(world: World) -> list[str]:
     ]
     if bodies := world.bodies_at(here):
         lines.append(f"Bodies: {names(bodies)}")
-    lines.append(f"On the ground: {names(world.items_at(here))}")
+    lines.append(f"On the ground: {names(world.items_at(here, PLAYER_ID))}")
     lines.append(f"You carry: {names(world.items_held(PLAYER_ID))}")
     return lines
 
@@ -51,7 +51,7 @@ def player_lines(world: World, events: list, claims: bool = True) -> list[str]:
         # A copy without the tag: the logged event itself is never changed.
         mine = [e.model_copy(update={"data": {k: v for k, v in e.data.items() if k != "claim"}})
                 for e in mine]  # fmt: skip
-    return [line for e in mine if (line := story.format_event(e, names))]
+    return [line for e in mine if (line := story.format_event(e, names, PLAYER_ID))]
 
 
 class TerminalPlayer(PlayerSource):

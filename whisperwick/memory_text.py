@@ -6,6 +6,8 @@ Split out of memory.py to keep that file small. memory.py re-exports these names
 from whisperwick.claims import claim_words
 from whisperwick.clock import Clock
 from whisperwick.events import Event
+from whisperwick.gestures import gesture_line
+from whisperwick.made_text import step_lines
 from whisperwick.world import World
 
 # Item events. Each pairs the event type with the verb used in the sentence.
@@ -69,6 +71,13 @@ def describe(event: Event, world: World, viewer_id: str | None) -> str:
     prefix = f"{when} at {event.location}:"
     me = event.actor == viewer_id
     who = "You" if me else name_of(world, event.actor)
+    if event.type == "gesture":
+        words = gesture_line(event.data["text"], name_of(world, event.actor), event.actor)
+        return f"{prefix} {words}"
+    if "steps" in event.data:
+        names = {n: name_of(world, n) for n in world.npcs}
+        names.update({i: loc.name for i, loc in world.locations.items()})
+        return f"{prefix} " + "; ".join(step_lines(event, names, viewer_id))
     if event.type == "talk":
         to = event.data["to"]
         target = "you" if to == viewer_id else name_of(world, to)

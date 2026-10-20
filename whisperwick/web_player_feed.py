@@ -24,12 +24,21 @@ class WebPlayerFeed:
                     self.speech_stream[event.actor] = draft["sequence"]
                 if event.data.get("to") == PLAYER_ID:
                     self.reply_to = {"id": event.actor, "sequence": len(self.feed)}
-            if lines and event.type in {"give", "take", "show", "use"}:
+            if lines and event.type in {"give", "take", "show", "use", "gesture"}:
                 self.interactions[event.actor] = {"id": event.actor, "sequence": len(self.feed)}
             if event.type == "move" and event.actor == PLAYER_ID:
                 self.reply_to = None  # A new room starts a new conversation.
             if lines and event.type == "move":
                 self.motions[event.actor] = web_scene.walk(world, event, len(self.feed))
+            for step in event.data.get("steps", []):
+                if PLAYER_ID not in step["witnesses"]:
+                    continue
+                if step["effect"] == "move_self_exit":
+                    move = event.model_copy(update={"data": step})
+                    self.motions[event.actor] = web_scene.walk(world, move, len(self.feed))
+                else:
+                    self.interactions[event.actor] = {"id": event.actor,
+                                                      "sequence": len(self.feed)}
             self.lines_by[event.actor] = self.lines_by.get(event.actor, 0) + len(lines)
             if lines and event.actor != PLAYER_ID:
                 self.others += 1  # something Wren can see that someone else did or said

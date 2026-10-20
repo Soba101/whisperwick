@@ -19,6 +19,7 @@ from whisperwick import (
     screen_command,
     spread_command,
     story,
+    wishes,
 )
 from whisperwick.clock import Clock
 from whisperwick.events import Event
@@ -31,6 +32,7 @@ app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.
 
 app.add_typer(screen_command.app, name="screen")
 app.command()(play)
+app.command("wishes")(wishes.wishes)
 app.command()(feedback.feedback)
 app.command("spread")(spread_command.spread_command)
 

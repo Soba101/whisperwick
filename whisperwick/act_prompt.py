@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from whisperwick import belief_text
 from whisperwick.llm_intent import exits_and_people, item_lines
+from whisperwick.made_prompt import ACTION_TEXT, own_actions
 from whisperwick.memory_view import memory_block
 from whisperwick.repeat_guard import ActionHistory
 from whisperwick.world import World
@@ -53,14 +54,16 @@ def build_messages(
         " take/drop (item = an item id), give (item + target = a person id),"
         " show (item, target = a person id, or null for everyone here)."
         " use (item = an item id)."
+        + ACTION_TEXT
         + (" recall (message = words to search your own memory for)." if recall else ""),
+        *own_actions(world, npc_id),
         *belief_text.custody_lines(world, npc_id),
         f"Time: {world.clock.label()}.",
         f"You are at {here.id} ({here.name}).",
         "Exits: " + ", ".join(f"{e} ({world.locations[e].name})" for e in exits),
         "People here: "
         + (", ".join(people_label(world, p) for p in people) or "nobody"),
-        "Items on the ground here: " + item_lines(world, world.items_at(here.id)),
+        "Items on the ground here: " + item_lines(world, world.items_at(here.id, npc_id)),
         "You carry: " + item_lines(world, world.items_held(npc_id)),
     ]  # fmt: skip
     # A body is not a person you can talk to, but you can see it. Say so plainly.

@@ -4,16 +4,18 @@ Split out of llm_agent.py to keep that file small (#30). Pure functions over the
 """
 
 from whisperwick.actions import MAX_MESSAGE_CHARS
+from whisperwick.made_prompt import properties
 from whisperwick.world import World
 
-ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use"]
+ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use", "gesture", "make"]
 # Only villagers the scenario names as authority are offered these.
 AUTHORITY_ACTIONS = ["arrest", "release"]
 
 
 def actions_for(world: World, npc_id: str) -> list[str]:
     """The actions this villager may choose: arrest and release only for authority."""
-    return [*ACTIONS, *AUTHORITY_ACTIONS] if npc_id in world.authority else list(ACTIONS)
+    base = [*ACTIONS, *AUTHORITY_ACTIONS] if npc_id in world.authority else list(ACTIONS)
+    return [*base, *sorted(world.made_actions.get(npc_id, {}))]
 
 
 def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
@@ -27,7 +29,7 @@ def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:
 def usable_items(world: World, npc_id: str) -> list[str]:
     """Ids of items on the ground here plus items this NPC holds. Sorted, no repeats."""
     here = world.npcs[npc_id].location
-    return sorted({*world.items_at(here), *world.items_held(npc_id)})
+    return sorted({*world.items_at(here, npc_id), *world.items_held(npc_id)})
 
 
 def item_lines(world: World, ids: list[str]) -> str:
@@ -64,6 +66,7 @@ def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
             # handle flat enums better. Each is null unless the words openly do that.
             "accuses": {"enum": [*sorted(world.npcs), None]},
             "defends": {"enum": [*sorted(world.npcs), None]},
+            **properties(world, usable_items(world, npc_id), people, exits),
         },
         "required": ["action", "target", "item", "message", "accuses", "defends"],
         "additionalProperties": False,

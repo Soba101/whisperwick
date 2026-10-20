@@ -40,6 +40,10 @@ def build_messages(world, a, b, personalities):
     # Participation is enough; actors are deliberately absent from their witness list.
     shared = [e for e in world.log.all()
               if {a, b} <= {e.actor, *e.witnesses}]
+    # A multi-step event can have different audiences for each piece.
+    shared = [e.model_copy(update={"data": {**e.data, "steps": [
+        r for r in e.data["steps"] if {a, b} <= {e.actor, *r["witnesses"]}
+    ]}}) if "steps" in e.data else e for e in shared]
     lines.append("Shared events:")
     # Recent shared events keep the prompt small as the world log grows.
     lines.extend(f"Event {e.id}: {describe(e, world, None)}" for e in shared[-20:])

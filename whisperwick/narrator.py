@@ -74,6 +74,8 @@ def _action(event, here: str) -> str | None:
     """Only describe supported events at this place. Never invent occupational work."""
     if event is None or event.location != here:
         return None
+    if event.type == "gesture":
+        return "gesturing: " + event.data["text"]
     # Item names and recipients may be out of sight now. Describe only the gesture.
     return {
         "move": "arriving here",

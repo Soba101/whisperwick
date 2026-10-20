@@ -44,7 +44,7 @@ def you_view(world: World, title: str | None = None) -> dict:
             for n in others
         ],  # fmt: skip
         "bodies": named(world.npcs, world.bodies_at(here)),
-        "ground": named(world.items, world.items_at(here)),
+        "ground": named(world.items, world.items_at(here, PLAYER_ID)),
         "carried": [{**i, "consumable": world.items[i["id"]].consumable}
                     for i in named(world.items, world.items_held(PLAYER_ID))],
         "exits": named(world.locations, sorted(world.locations[here].links)),

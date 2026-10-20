@@ -81,6 +81,6 @@ def build_world(scenario: Scenario, db_path: str = ":memory:", seed: int | None 
     check_references(scenario)
     seed = scenario.seed if seed is None else seed
     # Copy items too, for the same reason.
-    items = [item.model_copy() for item in scenario.items]
+    items = [item.model_copy(deep=True) for item in scenario.items]
     return World(scenario.locations, npcs, clock, EventLog(db_path), seed=seed, items=items,
                  authority=scenario.authority)  # fmt: skip

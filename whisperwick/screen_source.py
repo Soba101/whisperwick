@@ -26,6 +26,17 @@ def intent_reply(event=None):
     reply.update(action=event.type, item=data.get("item"),
                  message=data.get("message", data.get("reason")))
     reply["target"] = data.get("target", data.get("to"))
+    if event.type == "gesture":
+        reply["text"] = data["text"]
+    if "steps" in data:
+        # Replay the proposal, never the engine's saved patches.
+        reply["target"] = None
+        if event.type == "make":
+            reply.update(data["definition"])
+            if "use" in data:
+                reply["use"] = data["use"]
+        else:
+            reply.update(data["use"])
     if event.type == "talk" and data.get("claim"):
         # Saved claims use nested fields while replies use the flat prompt schema.
         claim = data["claim"]

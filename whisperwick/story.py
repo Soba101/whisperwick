@@ -9,7 +9,9 @@ from pathlib import Path
 from whisperwick.claims import claim_words
 from whisperwick.clock import MINUTES_PER_DAY, Clock
 from whisperwick.events import Event, EventLog
+from whisperwick.gestures import gesture_line
 from whisperwick.llm_run import stats_line
+from whisperwick.made_text import step_lines
 from whisperwick.scenario import Scenario
 
 PLACE_WIDTH = 12  # keeps the speaker column lined up in the transcript
@@ -40,8 +42,14 @@ def hhmm(tick: int) -> str:
     return Clock(tick).label().split(" ", 2)[2]
 
 
-def format_event(e: Event, names: dict[str, str]) -> str | None:
+def format_event(e: Event, names: dict[str, str], viewer: str | None = None) -> str | None:
     """One line for a talk, move, item or custody event. Other events (like look) are left out."""
+    if e.type == "gesture":
+        words = gesture_line(e.data["text"], show(names, e.actor), e.actor)
+        return f"{hhmm(e.tick)}  {words}"
+    if "steps" in e.data:
+        lines = step_lines(e, names, viewer)
+        return f"{hhmm(e.tick)}  " + "; ".join(lines) if lines else None
     if e.type == "talk":
         place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "The Inn: Alice"
         who, to = show(names, e.actor), show(names, e.data["to"])
