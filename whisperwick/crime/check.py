@@ -1,6 +1,8 @@
 """Check actual starting evidence, rather than trusting a 'solvable' flag."""
 
-from whisperwick.crime import pools
+import re
+
+from whisperwick.crime import life_pools, pools
 from whisperwick.crime.facts import clue_sources, clues, private_memories
 from whisperwick.scenario import build_world
 
@@ -73,8 +75,43 @@ def check(sc) -> bool:
             for line in lines
         ):
             return False
+        if not lives_ok(sc):
+            return False
         world = build_world(sc)
         world.log.db.close()
         return True
     except (KeyError, ValueError, TypeError):
         return False
+
+
+def lives_ok(sc) -> bool:
+    """Week 17: each villager has one routine, worry and secret; none touches the crime."""
+    for npc in sc.npcs:
+        if npc.id not in pools.CAST:
+            continue
+        lines = sc.evidence.get(npc.id, [])
+        worries = [t for t in lines if t in life_pools.WORRIES]
+        secrets = [t for t in lines if t in life_pools.SECRETS]
+        routines = [t for t in lines if t in life_pools.ROUTINES[npc.occupation]]
+        if len(worries) != 1 or len(secrets) != 1 or len(routines) != 1:
+            return False
+        if touches_crime(sc, worries[0]) or touches_crime(sc, secrets[0]):
+            return False
+    return True
+
+
+def touches_crime(sc, text) -> bool:
+    """True if a line names the victim, killer, weapon, murder place or hour, or the motive.
+
+    The motive is checked word by word (words of 4+ letters), so a worry about "a debt"
+    cannot sit beside the motive "an unpaid debt" even in other words.
+    """
+    s = sc.secrets
+    names = {n.id: n.name for n in sc.npcs}
+    place = next(loc.name for loc in sc.locations if loc.id == s["place"])
+    banned = [names[s["victim"]], names[s["murderer"]], s["weapon"], place,
+              f"{s['hour']:02d}:", *re.findall(r"[a-z]{4,}", s["motive"].lower())]
+    lower = text.lower()
+    # Whole words only, so "deal" does not match "ideal"; the hour matches as "22:".
+    return any(re.search(rf"(?<![a-z]){re.escape(word.lower())}(?![a-z])", lower)
+               for word in banned)
