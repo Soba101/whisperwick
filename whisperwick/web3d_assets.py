@@ -25,6 +25,7 @@ ASSETS = {
     "figures.js": "text/javascript; charset=utf-8",
     "who.js": "text/javascript; charset=utf-8",
     "controls.js": "text/javascript; charset=utf-8",
+    "role.js": "text/javascript; charset=utf-8",
     "panels.js": "text/javascript; charset=utf-8",
     "voice.js": "text/javascript; charset=utf-8",
     "live-talk.js": "text/javascript; charset=utf-8",

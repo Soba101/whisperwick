@@ -153,3 +153,20 @@ def test_web_run_binds_sidecar_before_late_accusation(monkeypatch, tmp_path):
     assert saved["accusation"] == {"target": "npc_victor"}
     assert saved["role"] == "partner" and saved["private_fact"] == sc.private_fact
     p.world.log.db.close()
+
+
+def test_3d_without_a_game_shows_the_village_with_the_role_card():
+    # Week 17: new players pick a role over the 3D village, not on the 2D page.
+    games, calls = manager()
+    page = handler(games, "/3d")[1]
+    assert b'id="role-picker"' in page and b"/web3d/app.js" in page
+    assert b'value="partner"' in page and b"e.g. 3941189073" in page
+    assert calls == [] and games.games == {}
+    # "/" keeps its own 2D picker.
+    home = handler(games, "/")[1]
+    assert b'id="role-picker"' in home and b"/web3d/app.js" not in home
+    # Once a game exists, /3d is the village without the card.
+    assert handler(games, "/newgame", {"role": "peddler"})[0] == 200
+    game = next(iter(games.games.values()))
+    page = handler(games, "/3d", token=game.token)[1]
+    assert b"/web3d/app.js" in page and b'id="role-picker"' not in page

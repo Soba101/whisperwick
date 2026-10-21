@@ -3,6 +3,7 @@ import {Panels} from './panels.js';
 import {Ending} from './ending.js';
 import {setupFeedback} from './feedback.js';
 import {Voice} from './voice.js';
+import {drawRole} from './role.js';
 
 const fixture = new URLSearchParams(location.search).get('fixture') === '1';
 const panels = new Panels();
@@ -46,9 +47,17 @@ async function poll() {
   if (!r.ok) throw new Error('State unavailable');
   const s = await r.json();
   if (s.gone) { location.reload(); return; }
+  if (drawRole(s)) { await backdrop(); return; }  // no game yet: only the role card is live
   if (!s.you?.place) return;
   panels.draw(s); controls.update(s); voice.update(s); ending.update(s); village?.update(s);
   if (fixture) document.getElementById('busy').textContent = 'Fixture preview — no model or game actions';
+}
+// Behind the role card, draw the village's buildings from the packaged preview state.
+// Places only: no people or items, so nothing about any crime shows before it starts.
+async function backdrop() {
+  if (!village || village.spots.size) return;
+  const r = await fetch('/web3d/fixture_state.json');
+  if (r.ok) village.build((await r.json()).places);
 }
 async function loop() {
   try { await poll(); }

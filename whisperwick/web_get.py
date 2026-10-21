@@ -5,6 +5,7 @@ from html import escape
 from urllib.parse import parse_qs, urlparse
 
 from whisperwick import web3d_assets, web_auth
+from whisperwick.web_ending import ROLE_HTML
 from whisperwick.web_page import render_page
 from whisperwick.web_request_page import request_page
 
@@ -18,6 +19,17 @@ class ReadRoutes:
     def start_page(self, token) -> str:
         seat = self.games.seat_label(token, self.player_name)
         return render_page(self.player_name or "owner", seat)
+
+    def village_page(self, token, picking=False) -> bytes:
+        """The 3D page with the welcome line, and the role card while no game exists."""
+        body = web3d_assets.asset("index.html")[0]
+        welcome = self.welcome(token)
+        body = body.replace(b"<strong>Whisperwick</strong>",
+                            ("<strong>Whisperwick</strong>" + welcome).encode())
+        if not picking:
+            return body
+        # Same role card markup as the 2D page, so both pickers offer the same choices.
+        return body.replace(b"<!-- role picker -->", ROLE_HTML.encode())
 
     def redirect(self, where: str, cookie: str | None = None) -> None:
         self.send_response(302)
@@ -78,8 +90,12 @@ class ReadRoutes:
         if url.path == "/3d" and query.get("fixture") == ["1"]:
             return self.send(200, *web3d_assets.asset("index.html"))
         if url.path in ("/", "/3d"):
-            # Roles are picked on the 2D page (week 13); after picking, /3d reloads into 3D.
+            # Roles were picked on the 2D page (week 13). Since week 17 /3d has its own
+            # card, so a new player never lands on 2D first; "/" keeps the 2D picker.
             if self.games.choose_roles and self.games.get(token, self.player_name) is None:
+                if url.path == "/3d":
+                    page = self.village_page(token, picking=True)
+                    return self.send(200, page, "text/html; charset=utf-8")
                 return self.send(200, self.start_page(token).encode(), "text/html; charset=utf-8")
             previous = self.games.get(token, self.player_name)
             # 3D is the main view (2026-10-21); the 2D page stays one click away (?view=2d).
@@ -92,12 +108,8 @@ class ReadRoutes:
             if previous is None:
                 self.game_started(game)
             cookies = self.game_cookie(game) if game.token != token else None
-            body = (web3d_assets.asset("index.html")[0] if url.path == "/3d"
+            body = (self.village_page(game.token) if url.path == "/3d"
                     else self.start_page(game.token).encode())
-            if url.path == "/3d":
-                welcome = self.welcome(game.token)
-                body = body.replace(b"<strong>Whisperwick</strong>",
-                                    ("<strong>Whisperwick</strong>" + welcome).encode())
             return self.send(200, body, "text/html; charset=utf-8", cookies)
         if url.path.startswith("/web3d/"):
             found = web3d_assets.asset(url.path.removeprefix("/web3d/"))

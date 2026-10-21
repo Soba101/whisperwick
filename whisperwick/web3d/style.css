@@ -101,3 +101,18 @@ textarea { width:100%; resize:vertical; background:#fff6e4; } #command label:has
 /* "Something odd?" sits above the feed so a playtester can flag the exact moment. */
 #feed-panel .report { font-size:12px; min-height:32px; padding:6px 10px; margin:0 0 8px; color:#526b5b; }
 .feedback-hint { color:#6b604e; font-size:13px; }
+
+/* Week 17: the role card floats over the village until a game exists. */
+#role-picker { position:fixed; z-index:10; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:min(400px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto;
+  display:flex; flex-direction:column; gap:8px; padding:22px; background:#f8eed8;
+  border:1px solid #c9b89b; border-radius:18px; box-shadow:0 16px 48px #30291f55; }
+#role-picker h1 { font:600 24px 'Fraunces',Georgia,serif; margin:0 0 4px; letter-spacing:-.5px; }
+#role-picker label { margin-top:4px; }
+#role-picker input { font:inherit; background:#fff6e4; color:inherit; border:1px solid #bba987;
+  border-radius:10px; padding:9px 12px; }
+#role-picker input:focus-visible { outline:3px solid #b57c49; outline-offset:3px; }
+#start-game { margin-top:8px; background:#65765a; color:#fff8e8; border-color:#56664c; }
+#start-game:hover:not(:disabled) { background:#56664c; }
+#start-error { color:#a44b35; margin:0; } #start-error:empty { display:none; }
+.crime-hint { font-size:12px; color:#6b604e; margin:0; }
