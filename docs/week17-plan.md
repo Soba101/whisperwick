@@ -1,4 +1,4 @@
-# Week 17 plan (draft 2026-10-21): roles in 3D, and villagers with lives of their own
+# Week 17 plan (approved 2026-10-21: B only in generated crimes, secrets words only, A first): roles in 3D, and villagers with lives of their own
 
 Rules carry over: the world is physics only; villagers decide what they believe, want and do;
 no director, no formulas deciding opinions, no hints in prompts. Hal's arrests stay his own.
