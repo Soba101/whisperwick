@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from whisperwick import belief_text
 from whisperwick.llm_intent import exits_and_people, item_lines
-from whisperwick.made_prompt import ACTION_TEXT, own_actions
+from whisperwick.made_prompt import action_text, own_actions
 from whisperwick.memory_view import memory_block
 from whisperwick.repeat_guard import ActionHistory
 from whisperwick.world import World
@@ -54,7 +54,7 @@ def build_messages(
         " take/drop (item = an item id), give (item + target = a person id),"
         " show (item, target = a person id, or null for everyone here)."
         " use (item = an item id)."
-        + ACTION_TEXT
+        + action_text()
         + (" recall (message = words to search your own memory for)." if recall else ""),
         *own_actions(world, npc_id),
         *belief_text.custody_lines(world, npc_id),

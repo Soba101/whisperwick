@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Week 16 check (#120): gestures and made actions on the Victor benchmark, no role, seeds 1-2 x 5, 3 days.
+# Week 16 check (#120, #122): the Victor benchmark, no role, seeds 1-2 x 5, 3 days. w16c: gestures off (default).
 # Baseline: the week 12 noise runs (data/w12n-*); the use action (#99) also landed since, so it is part of the change.
 # Repeats use the same seed; only model sampling differs.
 # Round-robin order keeps every role and seed represented if the batch is cut short.
@@ -23,7 +23,7 @@ done
 
 run_one() {
   # $1 name, $2 seed
-  local base="$DATA/w16b-$1"
+  local base="$DATA/w16c-$1"
   local reason
   # Skip only runs that run-complete.py accepts, so the batch can be restarted.
   if python3 -I "$HERE/run-complete.py" "$base.json" $DAYS > /dev/null; then
@@ -48,4 +48,4 @@ run_one() {
 for job in "${jobs[@]}"; do
   run_one ${=job}
 done
-echo "ALL DONE $(date)" > "$DATA/w16b-runs.done"
+echo "ALL DONE $(date)" > "$DATA/w16c-runs.done"

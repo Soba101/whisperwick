@@ -2,6 +2,10 @@
 
 from whisperwick.made_shapes import EFFECTS, NEEDS, PARAMS
 
+# Off by default (2026-10-21): with gestures villagers talked a third as much and Hal stopped
+# solving the case (#122). WHISPERWICK_GESTURES=on brings gestures and made actions back.
+ENABLED = False
+
 ACTION_TEXT = (
     " gesture (message = a gesture with no words and no physical result, at most 120 characters)."
     " make (name, params = a subset of item/person/exit, needs, does;"
@@ -12,7 +16,13 @@ ACTION_TEXT = (
 )
 
 
+def action_text() -> str:
+    return ACTION_TEXT if ENABLED else ""
+
+
 def own_actions(world, actor):
+    if not ENABLED:
+        return []
     return [f"Your action: {name} (params: {', '.join(d['params']) or 'none'}; "
             f"needs: {', '.join(d['needs']) or 'none'}; does: {', '.join(d['does'])})."
             for name, d in sorted(world.made_actions.get(actor, {}).items())]
@@ -21,6 +31,8 @@ def own_actions(world, actor):
 def properties(world, items, people, exits):
     """The engine still validates all fields even when a client ignores this schema."""
     # Empty enums can break constrained decoders. Unavailable arguments are omitted.
+    if not ENABLED:
+        return {}  # the schema is then exactly what it was before week 16
     args = {key: {"enum": ids} for key, ids in
             (("item", items), ("person", people), ("exit", exits)) if ids}
     return {

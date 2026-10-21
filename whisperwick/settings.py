@@ -143,3 +143,11 @@ def llm_temperature(env_path: Path = ENV_PATH) -> float:
     if not 0 <= value <= 2:
         raise ValueError(f"LLM_TEMPERATURE must be a number from 0 to 2, got {raw!r}")
     return value
+
+
+def gestures(env_path: Path = ENV_PATH) -> bool:
+    """Week 16 gestures and made actions are off unless WHISPERWICK_GESTURES=on (#122)."""
+    value = get("WHISPERWICK_GESTURES", env_path) or "off"
+    if value not in ("on", "off"):
+        raise ValueError(f'WHISPERWICK_GESTURES must be "on" or "off", got {value!r}')
+    return value == "on"

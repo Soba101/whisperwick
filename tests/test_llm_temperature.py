@@ -19,3 +19,17 @@ def test_bad_temperature_is_refused(tmp_path, monkeypatch, bad):
     monkeypatch.setenv("LLM_TEMPERATURE", bad)
     with pytest.raises(ValueError):
         settings.llm_temperature(tmp_path / ".env")
+
+
+def test_week16_actions_are_off_by_default(tmp_path, monkeypatch):
+    # Gestures crowded out talk in the week 16 check (#122), so they are opt-in.
+    from helpers import fresh_world
+
+    from whisperwick import made_prompt
+    from whisperwick.llm_intent import actions_for
+
+    monkeypatch.delenv("WHISPERWICK_GESTURES", raising=False)
+    assert settings.gestures(tmp_path / ".env") is False
+    made_prompt.ENABLED = False
+    assert "gesture" not in actions_for(fresh_world(), "npc_bob")
+    assert made_prompt.action_text() == "" and made_prompt.properties(None, [], [], []) == {}

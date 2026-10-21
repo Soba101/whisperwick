@@ -3,11 +3,14 @@
 Split out of llm_agent.py to keep that file small (#30). Pure functions over the world.
 """
 
+from whisperwick import made_prompt
 from whisperwick.actions import MAX_MESSAGE_CHARS
 from whisperwick.made_prompt import properties
 from whisperwick.world import World
 
-ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use", "gesture", "make"]
+ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use"]
+# Week 16 actions, offered only when made_prompt.ENABLED (WHISPERWICK_GESTURES=on, #122).
+WEEK16_ACTIONS = ["gesture", "make"]
 # Only villagers the scenario names as authority are offered these.
 AUTHORITY_ACTIONS = ["arrest", "release"]
 
@@ -15,7 +18,9 @@ AUTHORITY_ACTIONS = ["arrest", "release"]
 def actions_for(world: World, npc_id: str) -> list[str]:
     """The actions this villager may choose: arrest and release only for authority."""
     base = [*ACTIONS, *AUTHORITY_ACTIONS] if npc_id in world.authority else list(ACTIONS)
-    return [*base, *sorted(world.made_actions.get(npc_id, {}))]
+    if not made_prompt.ENABLED:
+        return base
+    return [*base, *WEEK16_ACTIONS, *sorted(world.made_actions.get(npc_id, {}))]
 
 
 def exits_and_people(world: World, npc_id: str) -> tuple[list[str], list[str]]:

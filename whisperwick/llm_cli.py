@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from whisperwick import judge_kev, judge_run, llm_run, run_report, settings
+from whisperwick import judge_kev, judge_run, llm_run, made_prompt, run_report, settings
 from whisperwick.agent_log import AgentLog, sidecar_part
 from whisperwick.belief_log import BeliefLog
 from whisperwick.kev_client import MODEL, KevClient
@@ -58,6 +58,7 @@ def run_with_llm(
         slots = settings.llm_slots()
         group_turns = settings.group_turns()
         stream_talk = settings.stream_talk(isinstance(player, WebPlayer))
+        made_prompt.ENABLED = settings.gestures()
         settings.recall_rank()  # Validate recall ranking before creating the db.
         temperature = settings.llm_temperature()
     except ValueError as e:
