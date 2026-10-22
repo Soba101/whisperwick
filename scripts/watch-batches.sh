@@ -5,6 +5,7 @@
 # runs stopped making progress; it logs each and notifies.
 # Usage: scripts/watch-batches.sh [LOG]   (run it in the background with nohup, from the repo)
 LOG=${1:-data/batch-watch.log}
+setopt extendedglob  # for the ~ exclusions in the stall check
 typeset -A seen  # batch log -> INCOMPLETE lines already reported
 first=1          # the first pass only records old failures, so they are not reported again
 stalled=0        # report a stall once, not every minute
@@ -23,7 +24,8 @@ while true; do
   # Stall check: while a batch script runs, the newest run log must grow every 15 minutes
   # (a run prints a line per game hour). Silence means a hung run or no run at all.
   if pgrep -f '[s]cripts/.*-runs\.sh' > /dev/null; then
-    newest=(data/**/w[0-9]*.log(N.om[1]))  # run logs only, not the demo web-play.log
+    # Any run log, whatever its batch prefix; not the demo's web-play.log or the watch and batch logs.
+    newest=(data/**/*.log~*web-play.log~*watch.log~*batch.log(N.om[1]))
     age=$(( $(date +%s) - $(stat -f %m "$newest" 2>/dev/null || echo 0) ))
     if (( age > 900 )); then
       if (( !stalled )); then
