@@ -38,3 +38,26 @@ and wish; nothing tells them to use them.
 2. Should a secret ever have a physical trace (a hidden letter, a stolen coin)? (My suggestion: not yet;
    words only this week, items later if play shows it would help.)
 3. A first, then B? (My suggestion: yes, A is small and helps the playtesters now.)
+
+## Results: live check on generated crimes, week 17 B (2026-10-22, #123)
+Crimes 1-10, one run each, `none` player, memory on, 3 days, main at 92fcda0 (data/w17c/, eval in data/w17c/eval.txt). Same crime numbers as #109, so the murder facts are identical; only the villagers' routines, worries and secrets are new.
+
+| Crime | Killer | #109 Hal holds | Week 17 Hal holds | GuardStall h | Talk lines (#109 / now) |
+|---|---|---|---|---:|---|
+| 1 | Bob | Bob (right) | Victor, Bob (mixed) | 2 | 193 / 1,063 |
+| 2 | Alice | Alice (right) | Alice (right) | 2 | 1,508 / 1,167 |
+| 3 | Bob | Bob (right) | nobody | 24 | 248 / 224 |
+| 4 | Bob | Bob (right) | Mayor (wrong) | 14 | 522 / 514 |
+| 5 | Mayor | Bob (wrong) | Mayor (right) | 8 | 2,323 / 912 |
+| 6 | Mayor | Mayor (right) | Mayor (right) | 0 | 271 / 299 |
+| 7 | Sarah | nobody | nobody | 48 | 79 / 311 |
+| 8 | Bob | Bob (right) | Mayor (wrong) | 24 | 1,694 / 2,299 |
+| 9 | Victor | Victor (right) | Victor (right) | 1 | 1,215 / 2,142 |
+| 10 | Mayor | Mayor (right) | Mayor (right) | 0 | 645 / 654 |
+
+- Right person 5/10 (plus 1 mixed) against 8/10 in #109; Fisher p = 0.35, so not beyond noise with one run per crime. Decisive 5/10, same as #109.
+- Wrong holds rose from 1 to 2, and both new ones are the Mayor while Bob was the killer (crimes 4 and 8).
+- Crime 8 churned: 11 arrests and 10 releases.
+- Rejected actions rose from 3.4% to 5.9% per run (mean). Quiet hours (Stalls) are unchanged: 14 in both batches. Talk per run: 870 in #109, 959 now.
+- Accomplices are still never held.
+- Not measured: invented-object talk (#83); there is no counting script yet. Also not checked: whether villagers ever mention their worries or secrets.
