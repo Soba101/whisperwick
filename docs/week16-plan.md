@@ -108,3 +108,18 @@ the exclamation rule). Baseline: week 12 noise runs (w12n, 10 per seed). Eval in
 - Nobody made an action in 10 runs, and the wish list is empty.
 - Bar (not worse beyond noise) **not met**. Finding #122. Decision for Donovan: keep gestures, limit them, or turn
   them off by default.
+
+## Results: Confirming runs, gestures off (w16c, code d55cd0b)
+10 runs (`none`, no role, memory on, 3 days), seeds 1-2 x 5, data/w16c-*, eval in data/w16c-eval-s*.txt. Baseline w12n (10 per seed).
+
+| Seed | Group | Right | Wrong | Mixed | Nobody | Decisive | Median requests |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1 | w12n (10) | 2 | 1 | - | 5 | 3 | 1,313 |
+| 1 | w16c (5) | 3 | 0 | 0 | 2 | 2 | 1,516 |
+| 2 | w12n (10) | 9 | 1 | - | 0 | 8 | 1,638 |
+| 2 | w16c (5) | 1 | 1 | 1 | 2 | 2 | 1,368 |
+
+- Talk is back: 1,062 talk events per run (w12n 1,147, w16b 378). No gestures. Turning gestures off fixed talk.
+- Seed 1 is as before.
+- Seed 2 is still low with gestures off: right person 1/5 against 9/10 (Fisher p = 0.017). Decisive 2/5 against 8/10 (p = 0.25). So gestures are not the whole cause of the seed 2 drop: something else changed between w12n (870823d) and now (weeks 13-16). New finding.
+- Finding #126.
