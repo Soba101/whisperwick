@@ -139,3 +139,19 @@ Victor benchmark, seed 2, `none`, memory on, 3 days, 5 runs at the last commit o
 - Talk volume is normal in every week, and rejections are 1-8%. Gestures and the earlier talk drop are not the cause.
 - Each week alone is within noise, so this is a slow slide or a change before week 13 (the use action #99 and the spread command landed in the same stretch), not one bad merge.
 - Open: the week 12 baseline may itself be lucky, or the setup drifted (model server, PC). Next check, not run: the week 12 code (870823d) again, seed 2 x 5, today.
+
+## Results: week 12 code rechecked (2026-10-23, #126)
+Victor benchmark, seed 2, `none`, memory on, 3 days, 5 runs on the week 12 code (870823d) with today's PC and model server (data/w12k/, eval in data/w12k/eval.txt). Question: was the 9/10 baseline luck or drift?
+
+| Code | Right | Wrong | Decisive | Talk per run |
+|---|---:|---:|---:|---:|
+| w12n (week 12, earlier) | 9/10 | 1 | 8/10 | 1,147 |
+| week 12 again (w12k) | 4/5 | 1 | 2/5 | 1,015 |
+| weeks 13-15 (s2h) | 7/15 | 2 | 7/15 | 1,250 |
+| w16c (gestures off) | 1/5 | 2 | 2/5 | 1,062 |
+
+- The week 12 code still solves seed 2: 4/5 right (vs 9/10 earlier, p = 1.0). So the setup has not drifted and the baseline was not luck.
+- Pooled week 12 (earlier + now) is 13/15 right; weeks 13-15 are 7/15 (p = 0.05); weeks 13-16 together 8/20 (p = 0.007).
+- Decisive is 2/5 here, lower than 8/10 before; with 5 runs that is within noise, so only Right person is used.
+- Conclusion: a change between week 12 (870823d) and week 13 (03eb04f) hurt seed 2, or a slide began at week 13 and carried on. No week after 13 makes it worse.
+- Next step, not run: bisect the week 12 -> week 13 range (about 25 commits: roles, ending report, 3D, use action #99, spread command), 5 seed 2 runs per step, starting with the middle commit. Not patched, a finding.
