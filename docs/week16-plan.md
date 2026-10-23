@@ -123,3 +123,19 @@ the exclamation rule). Baseline: week 12 noise runs (w12n, 10 per seed). Eval in
 - Seed 1 is as before.
 - Seed 2 is still low with gestures off: right person 1/5 against 9/10 (Fisher p = 0.017). Decisive 2/5 against 8/10 (p = 0.25). So gestures are not the whole cause of the seed 2 drop: something else changed between w12n (870823d) and now (weeks 13-16). New finding.
 - Finding #126.
+
+## Results: seed 2 hunt (2026-10-23, #126)
+Victor benchmark, seed 2, `none`, memory on, 3 days, 5 runs at the last commit of each week (data/s2h/, eval in data/s2h/eval-w*.txt): week 13 `03eb04f`, week 14 `3dcd3fb`, week 15 `8d82028`. Baselines: w12n 9/10 right, 8/10 decisive; w16c (gestures off) 1/5.
+
+| Code | Right | Wrong / mixed | Nobody | Decisive | p vs 9/10 | Talk per run |
+|---|---:|---:|---:|---:|---:|---:|
+| w12n (week 12) | 9/10 | 1 | 0 | 8/10 | - | 1,147 |
+| week 13 | 3/5 | 0 | 2 | 3/5 | 0.24 | 1,210 |
+| week 14 | 2/5 | 0 | 3 | 2/5 | 0.08 | 830 |
+| week 15 | 2/5 | 2 | 1 | 4/5 | 0.08 | 1,712 |
+| w16c | 1/5 | 2 | 2 | 2/5 | 0.017 | 1,062 |
+
+- No single week breaks seed 2. Week 13 is already below week 12 (3/5), and weeks 14, 15 and 16 stay low (2/5, 2/5, 1/5). Pooled weeks 13-15: 7/15 right against 9/10 (p = 0.04).
+- Talk volume is normal in every week, and rejections are 1-8%. Gestures and the earlier talk drop are not the cause.
+- Each week alone is within noise, so this is a slow slide or a change before week 13 (the use action #99 and the spread command landed in the same stretch), not one bad merge.
+- Open: the week 12 baseline may itself be lucky, or the setup drifted (model server, PC). Next check, not run: the week 12 code (870823d) again, seed 2 x 5, today.
