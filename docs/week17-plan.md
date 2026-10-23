@@ -61,3 +61,10 @@ Crimes 1-10, one run each, `none` player, memory on, 3 days, main at 92fcda0 (da
 - Rejected actions rose from 3.4% to 5.9% per run (mean). Quiet hours (Stalls) are unchanged: 14 in both batches. Talk per run: 870 in #109, 959 now.
 - Accomplices are still never held.
 - Not measured: invented-object talk (#83); there is no counting script yet. Also not checked: whether villagers ever mention their worries or secrets.
+
+## Seed 2 bisect, step 1: week 13 merge c3fd849 (#126)
+
+- Right person 3/5 (Victor in r1, r3, r4; nobody in r2 and r5). No wrong holds.
+- Week 12 code: 13/15. Weeks 13-15: 7/15. Fisher p = 0.25 against week 12 and 1.0 against weeks 13-15.
+- Not decisive: 3/5 sits between the two. The week 13 merge may lose some, but five runs cannot show it.
+- Next step needs a choice: more runs at c3fd849, or test 2eab616 (use action) or 6bf30d5 (everyday items).
