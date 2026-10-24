@@ -68,3 +68,10 @@ Crimes 1-10, one run each, `none` player, memory on, 3 days, main at 92fcda0 (da
 - Week 12 code: 13/15. Weeks 13-15: 7/15. Fisher p = 0.25 against week 12 and 1.0 against weeks 13-15.
 - Not decisive: 3/5 sits between the two. The week 13 merge may lose some, but five runs cannot show it.
 - Next step needs a choice: more runs at c3fd849, or test 2eab616 (use action) or 6bf30d5 (everyday items).
+
+## Seed 2 bisect, step 1b: week 13 merge c3fd849 again (#126)
+
+- Five more runs: right person 2/5 (Victor in r2 and r5; Sarah, nobody, nobody in r1, r3, r4).
+- Pooled with step 1: 5/10 right. Week 12 code was 13/15 (Fisher p = 0.075). Weeks 13-15 were 7/15 (p = 1.0).
+- So c3fd849 already behaves like weeks 13-15. The drop most likely sits between 870823d and c3fd849.
+- Next: test 6bf30d5 (everyday items, opt-in), seed 2 x5. High there would put the cause inside the week 13 merge.
