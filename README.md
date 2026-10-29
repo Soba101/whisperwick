@@ -4,11 +4,25 @@ A small village where every villager is an LLM agent.
 Each villager believes its own version of events.
 Only the world engine decides what is actually true.
 
-> Status: **Weeks 1-12 done; 13-15 built, being measured.** Weeks 1-6 built the engine, the player, cited beliefs,
-> arrests and endings, and a playable demo (`whisperwick play --web`, `whisperwick replay`).
-> Weeks 7-12 measured why villagers fail, tried speed ideas and checked run-to-run noise.
-> Weeks 13-15 added player roles and an ending report, random crimes, a 3D view, voice,
-> a narrator line and live talk. See [docs/week15-plan.md](docs/week15-plan.md).
+> Status: **Weeks 1-12 done; 13-17 built, being measured.** Weeks 1-6 built the engine, the player, cited beliefs,
+> arrests and endings, and a playable demo. Weeks 7-12 measured why villagers fail and checked run-to-run noise.
+> Weeks 13-15 added player roles, an ending report, random crimes, a 3D view, voice, a narrator line and live talk.
+> Week 16 added more villager actions. Week 17 added role choice in 3D and villager lives (routines, worries, secrets).
+> Open work: find which change after week 12 made seed 2 fail more often (#126), then harden the public demo (#127).
+> See [docs/week17-plan.md](docs/week17-plan.md).
+
+## What it looks like
+
+![The 3D village with the "Choose your role" card](docs/img/role-picker-3d.png)
+
+The 3D village (`whisperwick play --web`, then open `/3d`). A new player picks a role and a crime
+(random, or a number so a friend can play the same mystery), then starts the day.
+
+![Day 1, 08:00: Bob is found dead, Wren stands in the Market with Victor](docs/img/village-day1.png)
+
+A game in progress: the crime number is at the top, the feed on the right tells you what you
+see and hear, and the buttons below are the things you can do. The village is the same
+physics-only world every time; the villagers decide the rest.
 
 ## The question
 
@@ -44,7 +58,7 @@ uv run whisperwick story data/run-<name>.db   # read the run as a transcript (no
 ```bash
 uv run whisperwick play --days 1                          # you play Wren in the terminal
 uv run whisperwick play --script players/blame_hal.yaml   # a scripted player
-uv run whisperwick play --web                             # play in a web page (notes, what you know)
+uv run whisperwick play --web                             # play in a web page (2D, or /3d for the 3D village)
 ```
 
 Both need a model server (see `.env.example`). Type `help` in the game for commands.
@@ -106,12 +120,17 @@ world.act({"actor": "npc_bob", "action": "talk", "target": "npc_victor", "messag
 # -> ActionResult(ok=True, event=...)    or    ActionResult(ok=False, reason="npc_victor is not here")
 ```
 
-Actions so far: `move`, `talk`, `look`, `take`, `drop`, `give`, `show`.
+Actions so far: `move`, `talk`, `look`, `take`, `drop`, `give`, `show`, `use`, `wait`, plus `gesture` and `make`
+(week 16, see [docs/week16-actions.md](docs/week16-actions.md)). Hal alone can `arrest` and `release`.
 
 ## Layout
 
 ```
 whisperwick/     the engine (clock, events, actions, world, stub agent, CLI)
+whisperwick/web3d/  the 3D village page (figures, voice, ending report)
+whisperwick/crime/  random crimes (killer, victim, accomplices, villager lives)
+scripts/         batch and server helper scripts
+players/         scripted player files
 scenarios/       YAML scenarios, e.g. Murder of the Mayor
 tests/           pytest tests
 docs/            design notes and the proposal
@@ -137,6 +156,8 @@ data/            local SQLite event logs (git-ignored)
 | 13 | Player roles + ending report | Built; check runs in progress (#97), see [week13-plan.md](docs/week13-plan.md) |
 | 14 | Random crimes (any killer, any victim, accomplices) | Built; creative-model check to do (#104), see [week14-plan.md](docs/week14-plan.md) |
 | 15 | Narrator + live talk | Built (#108, #106); latency check to do, see [week15-plan.md](docs/week15-plan.md) |
+| 16 | More villager actions (gesture, make) | Built, see [week16-plan.md](docs/week16-plan.md) |
+| 17 | Role choice in 3D + villager lives | Built; seed 2 drop under study (#126), see [week17-plan.md](docs/week17-plan.md) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, once the villagers work |
 
 Everything runs locally (a local model on an RTX 5090, served by llama-server). No paid APIs.
