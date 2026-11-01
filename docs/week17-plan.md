@@ -75,3 +75,30 @@ Crimes 1-10, one run each, `none` player, memory on, 3 days, main at 92fcda0 (da
 - Pooled with step 1: 5/10 right. Week 12 code was 13/15 (Fisher p = 0.075). Weeks 13-15 were 7/15 (p = 1.0).
 - So c3fd849 already behaves like weeks 13-15. The drop most likely sits between 870823d and c3fd849.
 - Next: test 6bf30d5 (everyday items, opt-in), seed 2 x5. High there would put the cause inside the week 13 merge.
+
+## Seed 2 bisect: steps 2–4, paused (recorded 2026-11-01, #126)
+
+Victor benchmark, seed 2, `none`, memory on, up to 3 days. Saved event logs confirm:
+
+| Code / batch | Hal holds, runs 1–5 | Right |
+|---|---|---|
+| `6bf30d5`, full runs (`data/bis6bf/`) | nobody, Victor, nobody, Victor, nobody | 2/5 |
+| `ceb8d2a`, full runs (`data/bisceb/`) | Victor, nobody, Victor, Victor, nobody | 3/5 |
+| `6bf30d5` + early-stop port (`data/bis6bfs/`) | nobody, nobody, Victor, nobody, Bob | 1/5 |
+
+Pooled `6bf30d5`: **3/10 right**, 1 wrong hold, 6 nobody. No release events occur in these 15 saved runs.
+
+Two-sided Fisher exact tests, recomputed from the counts:
+
+| Comparison against `6bf30d5` (3/10) | Right | p |
+|---|---:|---:|
+| Week 12 (`870823d`, earlier + recheck) | 13/15 | 0.00895 |
+| `ceb8d2a` alone | 3/5 | 0.32867 |
+| Weeks 13–15 | 7/15 | 0.67846 |
+| Week 12 pooled with `ceb8d2a` | 16/20 | 0.01469 |
+
+`870823d..ceb8d2a` changes only documentation and a batch script, so the last comparison pools matching engine code. The low result is present at `6bf30d5`; the responsible change remains unidentified. Five runs at `ceb8d2a` cannot separate it from either side. These repeated exploratory comparisons do not establish causation or rule out setup drift.
+
+Early stop: `--stop-on-arrest` was ported onto the old checkout. Run 3 stopped after 193 elapsed minutes with Victor held; run 5 stopped after 3,338 minutes with Bob held. The other three ran all 4,320 minutes. Correction to the earlier chat: **two** runs stopped early, including a wrong arrest. This saved 5,109 simulated minutes (23.7% of that batch's full horizon), not a measured wall-time saving. Stopped runs measure custody at the first arrest and cannot measure later releases or ClaimGap; pooling with full-run outcomes carries that limit.
+
+**Paused by Donovan.** No further batches are authorized to start. The PC has been shut down by Donovan; leave `data/server-watch.pause` in place. Issue #126 remains open. Possible next experiment, only after resuming: more runs at `ceb8d2a`, with a consistent stopping rule and the server setup recorded. No engine fix was made.
