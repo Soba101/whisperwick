@@ -22,7 +22,8 @@ from whisperwick.web_server import make_server
 
 
 def launcher(
-    sc: Scenario, scenario: Path, db_for: Callable[[int], str], seed: int | None, minutes: int
+    sc: Scenario, scenario: Path, db_for: Callable[[int], str], seed: int | None, minutes: int,
+    stop_on_arrest: bool = False,
 ) -> Callable[..., tuple[WebPlayer, threading.Thread]]:
     """A function that starts one more game: its own player, its own db, its own thread."""
     numbers = itertools.count(1)  # db_for(n) gives each game a file, so runs never mix
@@ -43,7 +44,8 @@ def launcher(
             try:
                 # The hooks make lines and the "who is thinking" label appear at once.
                 run_with_llm(chosen, scenario, db, seed, minutes, player, player_name,
-                             on_event=player.on_event, on_turn=player.on_turn)  # fmt: skip
+                             on_event=player.on_event, on_turn=player.on_turn,
+                             stop_on_arrest=stop_on_arrest)  # fmt: skip
             except Exception as e:  # shown on the page, so a crash is not a silent stall
                 error = f"the game stopped: {e}"
             # The last minute has no quit, so the end is marked here (after the run's summary).
@@ -70,10 +72,11 @@ def start(
     choose_roles: bool = False,
     role: str | None = None,
     crime: str | None = None,
+    stop_on_arrest: bool = False,
 ):
     """Start the server. Games start when visitors arrive. Returns (server, game manager)."""
     manager = GameManager(
-        launcher(sc, scenario, db_for, seed, minutes),
+        launcher(sc, scenario, db_for, seed, minutes, stop_on_arrest),
         max_games,
         idle_seconds,
         choose_roles=choose_roles,
@@ -101,6 +104,7 @@ def serve(
     max_games: int = MAX_GAMES,
     role: str | None = None,
     crime: str | None = None,
+    stop_on_arrest: bool = False,
 ) -> None:
     """Serve until Ctrl-C. A finished game's page stays up so the outcome can be read."""
     if allow_hosts and not key:
@@ -128,6 +132,7 @@ def serve(
             choose_roles=True,
             role=role,
             crime=crime or "random",
+            stop_on_arrest=stop_on_arrest,
         )  # fmt: skip
     except OSError as e:
         # Another program has the port (Docker Desktop holds 8000 on this Mac).

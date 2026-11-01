@@ -4,6 +4,7 @@
 # Round-robin over the weeks keeps each represented if the batch is cut short.
 # One run at a time: two runs on one llama-server are slower in total (#59).
 # Usage: scripts/seed2-step-runs.sh DATA_DIR CHECKOUT TAG  (a worktree at the commit under test, with .env copied in)
+# Set STOP_ON_ARREST=1 to finish each run after its first arrest.
 # One run at a time (#59).
 set -u
 DATA=${1:?give the data directory}
@@ -12,6 +13,8 @@ CHECKOUT=${2:?give the checkout}
 TAG=${3:?give a tag for the commit, used in file names}
 DAYS=3
 HERE=${0:A:h}
+stop_args=()
+[[ ${STOP_ON_ARREST:-0} == 1 ]] && stop_args+=(--stop-on-arrest)
 
 # One job per line: name week.
 jobs=()
@@ -37,7 +40,7 @@ run_one() {
   done
   "$HERE/wait-server.sh"  # never start a run on a dead server
   (cd "$CHECKOUT" && WHISPERWICK_MEMORY=on uv run whisperwick play --script players/none.yaml \
-    --days $DAYS --seed 2 --db "$base.db" > "$base.log" 2>&1)
+    "${stop_args[@]}" --days $DAYS --seed 2 --db "$base.db" > "$base.log" 2>&1)
   if reason=$(python3 -I "$HERE/run-complete.py" "$base.json" $DAYS); then
     echo "done $1 $(date +%H:%M)"
   else

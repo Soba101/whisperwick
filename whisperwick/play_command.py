@@ -37,6 +37,9 @@ def play(
         list[str] | None, typer.Option(help="--web: extra Host name to accept (needs --key).")
     ] = None,
     max_games: Annotated[int, typer.Option(min=1, help="--web: games running at once.")] = 5,
+    stop_on_arrest: Annotated[
+        bool, typer.Option(help="End cleanly after the first arrest minute.")
+    ] = False,
 ) -> None:
     """Play Wren in the village (terminal or --web), or run a player script. Needs a model."""
     try:
@@ -57,7 +60,7 @@ def play(
         db_path = db or llm_run.default_db_path(sc.name)
         return web_play.serve(
             sc, scenario, db_path, seed, days * 24 * 60, port, key, tuple(allow_host or ()),
-            max_games, role=role, crime=crime,
+            max_games, role=role, crime=crime, stop_on_arrest=stop_on_arrest,
         )
     sc = apply_role(sc, role, seed)
     if sc.player_title:
@@ -74,6 +77,7 @@ def play(
         raise typer.Exit(1) from e
     name = getattr(player, "name", "terminal")
     run_with_llm(
-        sc, scenario, db or llm_run.default_db_path(sc.name), seed, days * 24 * 60, player, name
+        sc, scenario, db or llm_run.default_db_path(sc.name), seed, days * 24 * 60, player, name,
+        **({"stop_on_arrest": True} if stop_on_arrest else {}),
     )
 

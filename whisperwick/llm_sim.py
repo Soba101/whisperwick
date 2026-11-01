@@ -59,6 +59,7 @@ def run_llm(
     # The repeat guard's history. Passed in only by the model screen, which reads it live.
     history: ActionHistory | None = None,
     group_turns: bool = False,  # shared conversation calls are opt-in
+    stop_on_arrest: bool = False,
 ) -> tuple[Memories, dict]:
     """Run the world for some minutes. Returns the memories and the stats."""
     memories = memories if memories is not None else Memories()
@@ -154,6 +155,9 @@ def run_llm(
         # Reported last, so the hour's thoughts are already in the stats.
         if on_hour and world.clock.tick % 60 == 0:
             on_hour(world, stats)
+        # Finish the whole minute, including thoughts and progress, before ending cleanly.
+        if stop_on_arrest and world.log.has_event("arrest", tick):
+            break
     if exchanges:
         exchanges.close()
     return memories, stats

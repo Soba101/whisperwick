@@ -44,6 +44,7 @@ def run_with_llm(
     player_name: str | None = None,
     on_event=None,  # optional live-display hooks, passed to run_llm
     on_turn=None,
+    stop_on_arrest: bool = False,
 ) -> None:
     """The LLM run: one progress line per game hour, then a sidecar next to the db.
 
@@ -108,6 +109,7 @@ def run_with_llm(
         agent_log=agent_log,
         on_event=on_event,
         on_turn=on_turn,
+        stop_on_arrest=stop_on_arrest,
     )
     # Read-only interview and final item places. Both go in the sidecar only.
     if sc.crime_seed is None:
@@ -126,12 +128,16 @@ def run_with_llm(
         typer.echo(f"Player steps rejected: {len(stats['player_rejected'])}")
     typer.echo(f"Events: {db}")
     path = llm_run.sidecar_path(db)
-    # Minutes actually played: a quit can end the run early.
+    # Minutes actually played: a quit or an arrest can end the run early.
     played = world.clock.tick - start_tick
     data = llm_run.sidecar_data(
         scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path,
         client,
     )
+    if stop_on_arrest and not stats.get("stopped") and world.log.has_event(
+        "arrest", world.clock.tick - 1
+    ):
+        data["stopped_on"] = "arrest"
     data["authority"] = sc.authority
     if sc.crime_seed is not None:
         data["crime_seed"] = sc.crime_seed

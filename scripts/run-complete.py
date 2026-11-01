@@ -1,5 +1,6 @@
 # Is this run finished? Usage: run-complete.py SIDECAR DAYS
-# Exit 0 only if the sidecar exists, parses, did not stop early, and played every planned minute.
+# Exit 0 only if the sidecar exists, parses, did not abort, and reached its planned end.
+# The first arrest is a planned end when stopped_on says "arrest".
 # A stopped or short run still writes a sidecar, so the sidecar alone proves nothing.
 import json
 import sys
@@ -18,7 +19,9 @@ def why_incomplete(path, days):
     if isinstance(stats, dict) and stats.get("stopped"):
         return f"stopped early ({stats['stopped']})"
     minutes = side.get("minutes")
-    if not isinstance(minutes, (int, float)) or minutes < days * 1440:
+    if not isinstance(minutes, (int, float)) or (
+        minutes < days * 1440 and side.get("stopped_on") != "arrest"
+    ):
         return f"played {minutes} of {days * 1440} minutes"
     return None
 

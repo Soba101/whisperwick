@@ -42,3 +42,24 @@ def test_bad_json(tmp_path):
     p = tmp_path / "bad.json"
     p.write_text("{oops")
     assert check(p).returncode == 1
+
+
+def test_arrest_is_a_complete_short_run(tmp_path):
+    r = check(write(tmp_path, {"minutes": 100, "stats": {}, "stopped_on": "arrest"}))
+    assert r.returncode == 0 and r.stdout == ""
+
+
+def test_arrest_does_not_override_aborted_run(tmp_path):
+    r = check(write(tmp_path, {"minutes": 100, "stats": {"stopped": "20 errors"},
+                               "stopped_on": "arrest"}))
+    assert r.returncode == 1 and "stopped" in r.stdout
+
+
+def test_arrest_still_requires_numeric_minutes(tmp_path):
+    r = check(write(tmp_path, {"minutes": "100", "stopped_on": "arrest"}))
+    assert r.returncode == 1
+
+
+def test_other_stop_reason_does_not_complete_short_run(tmp_path):
+    r = check(write(tmp_path, {"minutes": 100, "stopped_on": "quit"}))
+    assert r.returncode == 1

@@ -77,6 +77,12 @@ class EventLog:
         self.db.commit()
         return event.model_copy(update={"id": cur.lastrowid})
 
+    def has_event(self, event_type: str, tick: int) -> bool:
+        """Check one completed minute without loading the whole log."""
+        return self.db.execute(
+            "SELECT 1 FROM events WHERE tick = ? AND type = ? LIMIT 1", (tick, event_type)
+        ).fetchone() is not None
+
     def all(self) -> list[Event]:
         """Every event, oldest first."""
         rows = self.db.execute(
