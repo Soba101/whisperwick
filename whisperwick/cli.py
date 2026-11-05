@@ -20,14 +20,12 @@ from whisperwick import (
     screen_command,
     spread_command,
     story,
+    stub_run,
     wishes,
 )
-from whisperwick.clock import Clock
-from whisperwick.events import Event
 from whisperwick.llm_cli import judge_client, run_with_llm
 from whisperwick.play_command import play
-from whisperwick.scenario import build_world, load_scenario
-from whisperwick.sim import run as run_sim
+from whisperwick.scenario import load_scenario
 
 app = typer.Typer(help="Whisperwick: a village of agents with their own beliefs.")
 
@@ -43,15 +41,6 @@ app.command()(feedback.feedback)
 app.command("spread")(spread_command.spread_command)
 
 DEFAULT_SCENARIO = Path("scenarios/murder_of_the_mayor.yaml")
-
-
-def describe(e: Event) -> str:
-    """One readable line per event type. Add a branch when adding an action."""
-    if e.type == "move":
-        return f"{e.actor} walks {e.data['from']} -> {e.data['to']}"
-    if e.type == "talk":
-        return f'{e.actor} to {e.data["to"]}: "{e.data["message"]}"'
-    return f"{e.actor} {e.type} {e.data}"
 
 
 @app.callback()
@@ -82,13 +71,7 @@ def run(
     if agent == Agent.llm:
         run_with_llm(sc, scenario, db or llm_run.default_db_path(sc.name), seed, minutes)
         return
-    world = build_world(sc, db or ":memory:", seed=seed)
-    run_sim(world, minutes=minutes)
-
-    for e in world.log.all():
-        seen = ", ".join(e.witnesses) or "nobody"
-        typer.echo(f"{Clock(e.tick).label()}  {describe(e)}  (seen by {seen})")
-    typer.echo(f"\n{len(world.log.all())} events.")
+    stub_run.run(sc, scenario, db, seed, minutes)
 
 
 

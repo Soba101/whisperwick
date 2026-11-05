@@ -8,7 +8,7 @@ sidecar is {}, and anything it lacks shows as "-" (old runs have no interview).
 import json
 from pathlib import Path
 
-from whisperwick import belief_report, compare_outcome, story
+from whisperwick import belief_report, compare_outcome, compare_setup, story
 from whisperwick.clock import Clock
 from whisperwick.events import Event
 from whisperwick.llm_run import rejection_rate, sidecar_path
@@ -132,7 +132,8 @@ def belief_section(runs: list[dict], names: dict[str, str]) -> list[str]:
 
 def format_compare(runs: list[dict], names: dict[str, str]) -> str:
     """The whole report."""
-    out = [*header_rows(runs), "", *suspect_table(runs, names), "", "Votes:"]
+    out = [*header_rows(runs), "", *compare_setup.lines(runs), "",
+           *suspect_table(runs, names), "", "Votes:"]
     out += [f"  {vote_line(r, names)}" for r in runs]
     out += ["", *belief_section(runs, names)]
     out += ["", *compare_outcome.lines(runs, names)]

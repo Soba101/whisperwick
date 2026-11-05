@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from whisperwick import judge_kev, judge_run, llm_run, made_prompt, run_report, settings
+from whisperwick import judge_kev, judge_run, llm_run, made_prompt, run_report, run_setup, settings
 from whisperwick.agent_log import AgentLog, sidecar_part
 from whisperwick.belief_log import BeliefLog
 from whisperwick.kev_client import MODEL, KevClient
@@ -75,6 +75,11 @@ def run_with_llm(
 
     client = make_client(server, base_url, model)
     client.temperature = temperature  # both clients read it on every call
+    # Capture before any model call. Test clients and scripted stubs never probe a server.
+    setup = run_setup.collect_setup(
+        server, model, base_url, temperature=temperature,
+        real_client=isinstance(client, LlamaServerClient | OllamaClient),
+    )
     if server == "llama-server":
         model = f"{model} via llama-server"  # the sidecar says which server was used
     if temperature != 0.7:
@@ -132,7 +137,7 @@ def run_with_llm(
     played = world.clock.tick - start_tick
     data = llm_run.sidecar_data(
         scenario, model, played, stats, sc.secrets, memories, player_name, belief_log.path,
-        client,
+        client, setup=setup,
     )
     if stop_on_arrest and not stats.get("stopped") and world.log.has_event(
         "arrest", world.clock.tick - 1
