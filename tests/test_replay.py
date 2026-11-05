@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 from whisperwick import cli
 from whisperwick.events import Event, EventLog
+from whisperwick.replay_command import replay_html
 from whisperwick.replay_data import build_data
 from whisperwick.replay_page import render_page
 from whisperwick.replay_state import layout, state_at
@@ -93,6 +94,9 @@ def test_cli_writes_the_file(tmp_path):
     for e in events():
         log.append(e)
     log.db.close()
+    before = set(tmp_path.iterdir())
+    page = replay_html(db)
+    assert '"npc_victor"' in page and set(tmp_path.iterdir()) == before
     out = tmp_path / "x.html"
     result = CliRunner().invoke(cli.app, ["replay", str(db), "--out", str(out)])
     assert result.exit_code == 0, result.output

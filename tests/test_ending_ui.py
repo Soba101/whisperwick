@@ -20,6 +20,14 @@ document.body.classList.remove = name => document.body.classes.delete(name);
 function Option(name, id) { this.name = name; this.value = id; }
 Object.defineProperty(Element.prototype, 'options', {get() { return this.children; }});
 const text = n => [n.textContent,...(n.children || []).map(text)].join(' ');
+const links = n => [n,...n.children.flatMap(links)].filter(x => x.tag==='a');
+function checkReplay(host) {
+  const [link] = links(host);
+  assert.equal(link.textContent, 'See the full story');
+  assert.equal(link.attrs.href, '/replay');
+  assert.equal(link.target, '_blank');
+  assert.equal(link.rel, 'noopener');
+}
 """
 SCENE = json.dumps({
     "account": "Victor killed Mayor Aldric in Town Hall.",
@@ -44,6 +52,7 @@ assert.equal($('accusation').hidden, false);
 const state = {{finished:true, ending_scene:{SCENE}}};
 drawEnd(state);
 assert.equal($('end').open, true);
+checkReplay($('ending-content'));
 const content = text($('ending-content'));
 for(const phrase of ['What really happened','What Hal did','You','Free to go',
   "The mayor's cousin",'Bob: 2 talks.']) assert.ok(content.includes(phrase));
@@ -75,6 +84,7 @@ assert.deepEqual(sent,[{{path:'/accuse',body:{{target:'npc_bob'}}}}]);
 const state={{finished:true, ending_scene:{SCENE}}};
 ending.update(state);
 assert.ok(text(ending.dialog).includes('Victor killed'));
+checkReplay(ending.dialog);
 assert.ok(document.body.classes.has('ending-scene'));
 const buttons=ending.dialog.children.at(-1);
 buttons.children.find(n => n.textContent==='Feedback').onclick();

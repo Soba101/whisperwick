@@ -27,4 +27,8 @@ export function renderEnding(host, data) {
   you.append(node('h3','People you talked to'));
   data.talks.forEach(p => you.append(node('p',`${p.name}: ${p.count} talk${p.count===1 ? '' : 's'}.`)));
   if(!data.talks.length) you.append(node('p','You did not talk to anyone.'));
+  // Both ending screens share this link. The server checks the caller's finished game.
+  const replay=node('a','See the full story');
+  replay.setAttribute('href','/replay'); replay.target='_blank'; replay.rel='noopener';
+  host.append(replay);
 }

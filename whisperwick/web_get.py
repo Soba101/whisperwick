@@ -1,10 +1,12 @@
-"""Read routes. They only use cached player pictures, never a world database."""
+"""Read routes use cached player pictures and finished logs, never a world database."""
 
 import hashlib
 from html import escape
 from urllib.parse import parse_qs, urlparse
 
 from whisperwick import web3d_assets, web_auth
+from whisperwick.replay_data import build_data
+from whisperwick.replay_page import render_page as render_replay
 from whisperwick.web_ending import ROLE_HTML
 from whisperwick.web_page import render_page
 from whisperwick.web_request_page import request_page
@@ -87,6 +89,20 @@ class ReadRoutes:
                 return self.come_back(url.path)
             return self.send_json(403, {"error": "key needed"})
         token = self.cookies().get(web_auth.GAME_COOKIE)
+        if url.path == "/replay":
+            game = self.games.get(token, self.player_name)
+            if game is not None:
+                with game.player.cv:
+                    player = game.player
+                    # The ending keeps this game's log. Never select a run from the URL.
+                    if player.finished and player.ending.events is not None:
+                        data = build_data(player.sc, player.ending.events)
+                    else:
+                        data = None
+                if data is not None:
+                    return self.send(200, render_replay(data).encode(), "text/html; charset=utf-8")
+            # Even an empty replay map would reveal unseen people and places during play.
+            return self.send_json(404, {"error": "not found"})
         if url.path == "/3d" and query.get("fixture") == ["1"]:
             return self.send(200, *web3d_assets.asset("index.html"))
         if url.path in ("/", "/3d"):

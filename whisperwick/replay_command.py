@@ -39,8 +39,8 @@ def run_label(db: Path) -> str:
     return ", ".join(str(sidecar[k]) for k in ("player", "model") if sidecar.get(k)) or db.stem
 
 
-def replay_run(db: Path, out: Path | None = None, scenario: Path | None = None) -> Path:
-    """Write the replay page and return its path. Raises FileNotFoundError for a missing file."""
+def replay_html(db: Path, scenario: Path | None = None) -> str:
+    """Build a replay in memory. Raises FileNotFoundError for a missing file."""
     scenario = scenario or DEFAULT_SCENARIO
     for path in (db, scenario):
         if not path.is_file():
@@ -48,6 +48,12 @@ def replay_run(db: Path, out: Path | None = None, scenario: Path | None = None) 
     data = build_data(
         load_scenario(scenario), story.read_events(db), run_label(db), load_thoughts(db)
     )
+    return render_page(data)
+
+
+def replay_run(db: Path, out: Path | None = None, scenario: Path | None = None) -> Path:
+    """Write the replay page and return its path. Raises FileNotFoundError for a missing file."""
+    page = replay_html(db, scenario)
     out = out or db.with_suffix(".replay.html")
-    out.write_text(render_page(data))
+    out.write_text(page)
     return out
