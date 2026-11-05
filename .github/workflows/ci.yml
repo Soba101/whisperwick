@@ -1,0 +1,23 @@
+# Checks every push and pull request: lint, then the full test suite.
+# Tests never call a real model (stub agents only), so no .env or GPU is needed here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # uv installs Python and the locked dependencies, the same way as on the Mac.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      # --frozen: fail if uv.lock is out of date instead of quietly changing it.
+      - run: uv sync --frozen
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen pytest -q
