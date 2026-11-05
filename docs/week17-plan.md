@@ -102,3 +102,35 @@ Two-sided Fisher exact tests, recomputed from the counts:
 Early stop: `--stop-on-arrest` was ported onto the old checkout. Run 3 stopped after 193 elapsed minutes with Victor held; run 5 stopped after 3,338 minutes with Bob held. The other three ran all 4,320 minutes. Correction to the earlier chat: **two** runs stopped early, including a wrong arrest. This saved 5,109 simulated minutes (23.7% of that batch's full horizon), not a measured wall-time saving. Stopped runs measure custody at the first arrest and cannot measure later releases or ClaimGap; pooling with full-run outcomes carries that limit.
 
 **Paused by Donovan.** No further batches are authorized to start. The PC has been shut down by Donovan; leave `data/server-watch.pause` in place. Issue #126 remains open. Possible next experiment, only after resuming: more runs at `ceb8d2a`, with a consistent stopping rule and the server setup recorded. No engine fix was made.
+
+## Seed 2: analysis of the saved runs, no new runs (2026-11-05, #126)
+
+Read-only study of 60 saved seed 2 runs (Victor benchmark, idle player, memory on). Report and scripts: `data/s2-analysis/` (git-ignored).
+
+**1. The engine code did not change from week 12 to `6bf30d5`.** `git diff 870823d 6bf30d5` adds only the opt-in goods scenario, its tests, a batch script and docs. So `870823d`, `ceb8d2a` and `6bf30d5` run the same engine with the same default scenario, and the bisect steps inside that range test noise, not code.
+
+Pooled by engine code (right person = Victor held):
+
+| Engine code | Runs | Right |
+|---|---|---:|
+| Week 12 engine (`w12n` 9/10, `w12k` 4/5, `ceb8d2a` 3/5, `6bf30d5` 3/10) | 30 | 19 |
+| Later code (`c3fd849` 5/10, weeks 13, 14, 15, 16 at 5 each) | 30 | 15 |
+
+- Fisher p = 0.44: **no drop is shown.** The first 10 week 12 runs (9/10) are high against the other 20 runs of the same engine (10/20, p = 0.049).
+- So the earlier "drop since week 12" most likely came from a lucky first baseline, not from a commit. Setup drift is not ruled out: the server settings are not saved with each run.
+
+**2. What separates right runs from the rest (correlation, not cause):**
+
+| Before noon on day 1, or before the first arrest | Right | Not right | p |
+|---|---:|---:|---:|
+| Hal goes to the market | 17/34 | 2/26 | 0.0006 |
+| Hal hears Victor named | 24/34 | 8/26 | 0.004 |
+| At noon Hal names Victor, fairly sure or more | 6/21 | 0/26 | 0.005 |
+
+- 18 of 20 "nobody held" runs keep Hal in the Town Hall all of day 1. He hears a median of 7 talks that day, against 62 in right runs.
+- This is the same pattern as seed 1 (#100): when Hal stays in, he hears too little to decide. It is Hal's own choice and stays a finding. Not patched.
+- No new event kinds (use, gesture, make) occur near Hal in these runs. Mean input tokens per request do not rise after week 12 (1,786 to 1,873 against 1,837).
+
+**Not measured:** Hal's own prompt length and his rejected intents (the agent log keeps only recalls), and the model server's settings per run.
+
+**Next, if batches resume:** stop the bisect. Record the server setup with each run. Treat seed 2 as about 50-60% right for any code, and judge future changes against that pooled rate with at least 10 runs per arm.
