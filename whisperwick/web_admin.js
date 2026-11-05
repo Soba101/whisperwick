@@ -96,6 +96,9 @@ document.addEventListener('click', async event => {
     const revoke = article.querySelector('[data-confirm]');
     revoke.hidden = false;
     revoke.focus();
+  } else if (button.dataset.action === 'clear') {
+    // Emptying the list cannot be undone, so ask first.
+    if (confirm('Clear all waiting requests?')) await act('clear', {}, button);
   } else if (button.dataset.action) {
     const body = button.dataset.action === 'stop' ? {id:button.dataset.id}
                                                  : {name:button.dataset.name};

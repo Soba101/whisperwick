@@ -12,7 +12,7 @@ from whisperwick.web_admin_page import render_admin
 CSRF_TOKEN = secrets.token_urlsafe(32)
 CSRF_HEADER = "X-CSRF-Token"
 ACTIONS = {"/admin/approve", "/admin/decline", "/admin/invite", "/admin/revoke", "/admin/stop",
-           "/admin/reissue"}
+           "/admin/reissue", "/admin/clear"}
 
 
 class AdminRoutes:
@@ -46,6 +46,15 @@ class AdminRoutes:
             return self.send_json(403, {"error": "Reload the admin page and try again."})
         body = self.read_body()
         field = "id" if path == "/admin/stop" else "name"
+        if path == "/admin/clear":
+            # Clear all takes an empty object: there is no name to send.
+            if body != {}:
+                return self.send_json(400, {"error": "bad request"})
+            try:
+                self.requests.clear()
+            except OSError:
+                return self.send_json(500, {"error": "Could not save change. Please try again."})
+            return self.send_json(200, {"ok": True})
         if body is None or set(body) != {field} or not isinstance(body[field], str):
             return self.send_json(400, {"error": "bad request"})
         try:

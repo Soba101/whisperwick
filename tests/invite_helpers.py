@@ -22,11 +22,12 @@ def manager(**options):
 
 def request(store, games, path="/", body=None, *, key=None, token=None, waiting=None,
             host="play.example", kind="application/json", raw=None, length=None,
-            headers: dict | None = None, admin_key=None, admin=None):
+            headers: dict | None = None, admin_key=None, admin=None, peer="127.0.0.1"):
     h = Handler.__new__(Handler)
     h.players, h.requests = store, waiting or Requests(store.folder)
     h.games, h.key, h.path = games, "owner-secret", path
     h.hosts = web_auth.allowed_hosts(8000, ("play.example",))
+    h.client_address = (peer, 50000)
     h.admin_key = admin_key  # None keeps the owner key as the admin key
     cookies = {}
     if key is not None:

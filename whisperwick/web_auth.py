@@ -61,3 +61,18 @@ def cookie_header(name: str, value: str, secure: bool) -> str:
     """
     text = f"{name}={value}; Path=/; HttpOnly; SameSite=Lax"
     return text + "; Secure" if secure else text
+
+
+LOOPBACK = ("127.0.0.1", "::1")
+
+
+def client_id(peer: str, forwarded: str | None) -> str:
+    """Who is calling, for rate limits. Tailscale Funnel proxies from localhost, so a loopback
+    peer means the real client is the LAST X-Forwarded-For value (the proxy appends it).
+    A header from any other peer is client-made, so it is ignored.
+    Not yet checked against the live Funnel link: confirm the header really arrives."""
+    if peer in LOOPBACK and forwarded:
+        last = forwarded.rsplit(",", 1)[-1].strip()
+        if last:
+            return last
+    return peer

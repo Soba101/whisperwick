@@ -1,4 +1,7 @@
-"""Bounded waiting requests. Nothing here grants access or records IP addresses."""
+"""Bounded waiting requests. Nothing here grants access or records IP addresses.
+
+The rate limit keeps client ids in memory only, for at most a minute. Nothing is written to
+disk or to a log."""
 
 import hashlib
 import re
@@ -15,6 +18,11 @@ from whisperwick.invite_files import locked, now, rows, valid_name, write_rows
 # form's limit of 10 tries a minute. Only its hash is stored.
 CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_RE = re.compile(r"[A-HJ-NP-Z2-9]{10}")
+
+
+# Looser ceiling for all clients together, and a cap on how many clients we track.
+OVERALL_LIMIT = 60
+MAX_CLIENTS = 1000
 
 
 def new_code() -> str:
@@ -36,18 +44,35 @@ class Requests:
         self.folder, self.clock = folder, clock
         self.path = folder / "requests.jsonl"
         self.lock = threading.Lock()
-        self.attempts = deque()
+        self.attempts: dict[str, deque] = {}  # per client, in memory only
+        self.overall = deque()  # every allowed POST, any client
 
-    def allow(self) -> bool:
-        # Count every POST attempt, including malformed bodies. No client identity is needed.
+    def allow(self, client: str) -> bool:
+        """Count every POST attempt, including malformed bodies. One client gets 10 a minute,
+        so a script cannot lock out others; everyone together gets 60, so many addresses
+        cannot flood the file."""
         with self.lock:
             tick = self.clock()
-            while self.attempts and self.attempts[0] <= tick - 60:
-                self.attempts.popleft()
-            if len(self.attempts) >= 10:
+            for q in (self.overall, *self.attempts.values()):
+                while q and q[0] <= tick - 60:
+                    q.popleft()
+            # Forget clients with nothing in the window, so memory stays small.
+            self.attempts = {c: q for c, q in self.attempts.items() if q}
+            mine = self.attempts.get(client)
+            if mine is None and len(self.attempts) >= MAX_CLIENTS:
+                # Deny new clients rather than evict old ones: evicting would let a flood of
+                # fresh addresses wipe the counts of the clients being limited.
                 return False
-            self.attempts.append(tick)
+            if len(self.overall) >= OVERALL_LIMIT or (mine is not None and len(mine) >= 10):
+                return False
+            self.attempts.setdefault(client, deque()).append(tick)
+            self.overall.append(tick)
             return True
+
+    def clear(self) -> None:
+        """Owner's one-click empty of the waiting list."""
+        with locked(self.folder):
+            write_rows(self.path, [])
 
     def decline(self, name: str) -> None:
         name = valid_name(name)

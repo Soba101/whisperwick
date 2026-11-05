@@ -36,6 +36,12 @@ def button(action: str, name: str, label: str, field: str = "name") -> str:
             f'{label}</button>')
 
 
+def clear_all(waiting: list[str]) -> str:
+    # One tap to empty a flooded list; the page asks first (see web_admin.js).
+    return ('<div class="actions"><button type="button" class="danger" data-action="clear">'
+            'Clear all</button></div>' if waiting else "")
+
+
 def section(title: str, entries: list[str], empty: str, extra: str = "") -> str:
     content = "".join(f'<article class="entry">{entry}</article>' for entry in entries)
     return f'<section class="card"><h2>{title}</h2>{content or f"<p>{empty}</p>"}{extra}</section>'
@@ -80,7 +86,7 @@ def render_admin(csrf: str, games: list[dict], maximum: int, requests: list[dict
               'autocomplete="off"></label><button>Invite</button></form>')
     content = (section("Seats", seats, "Nobody is playing.", "")
                .replace('<h2>Seats</h2>', f'<h2>Seats</h2><p>{len(games)} of {maximum} in use</p>')
-               + section("Requests", waiting, "No waiting requests.")
+               + section("Requests", waiting, "No waiting requests.", clear_all(waiting))
                + section("Players", people, "No invited players.", invite)
                + section("Recent feedback", entries, "No feedback saved."))
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'

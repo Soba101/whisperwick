@@ -91,7 +91,9 @@ class Handler(Access, AdminRoutes, ReadRoutes, BaseHTTPRequestHandler):
         if path.startswith("/admin"):
             return self.admin_post(path)  # owner check comes first inside
         if path in ("/request", "/request/code"):
-            if not self.requests.allow():
+            client = web_auth.client_id(self.client_address[0],
+                                        self.headers.get("X-Forwarded-For"))
+            if not self.requests.allow(client):
                 return self.send(429, b"Too many requests. Please try again later.", "text/plain")
             body = self.read_body()
             if path == "/request/code":
