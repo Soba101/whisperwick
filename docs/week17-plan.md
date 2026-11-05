@@ -134,3 +134,5 @@ Pooled by engine code (right person = Victor held):
 **Not measured:** Hal's own prompt length and his rejected intents (the agent log keeps only recalls), and the model server's settings per run.
 
 **Next, if batches resume:** stop the bisect. Record the server setup with each run. Treat seed 2 as about 50-60% right for any code, and judge future changes against that pooled rate with at least 10 runs per arm.
+
+**Decision (Donovan, 2026-11-05):** bisect stopped, #126 closed. Seed 2 counts as about 50-60% right for any code. Saving the server setup with each run is #128.
