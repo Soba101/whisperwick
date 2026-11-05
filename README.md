@@ -160,6 +160,22 @@ data/            local SQLite event logs (git-ignored)
 | 17 | Role choice in 3D + villager lives | Built; seed 2 drop under study (#126), see [week17-plan.md](docs/week17-plan.md) |
 | later | **Gate 2** | GO (front-end) / PIVOT / STOP, once the villagers work |
 
+### Status by part
+
+Built means the code and tests exist. Measured means live runs on the real model were scored.
+Stable means the result holds across repeat runs.
+
+| Part | Built | Measured | Playable | Stable |
+|---|---|---|---|---|
+| World engine (actions, events, save/load, replay) | yes | yes (tests, every push) | yes | yes |
+| Villagers solve the original crime (weeks 1-12) | yes | yes, seeds 1-10 | yes | no: seed 2 dropped after week 12 (#126) |
+| Player roles, ending report (week 13) | yes | partly: roles swing outcomes (#119) | yes | no |
+| Random crimes, accomplices (week 14) | yes | partly: accomplices never held (#121) | yes | no |
+| 3D view, voice, narrator, live talk (week 15) | yes | no (latency check to do) | yes | not checked |
+| Gestures, villager-made actions (week 16) | yes | partly: gestures crowd out talk (#122) | yes | no |
+| Role choice in 3D, villager lives (week 17) | yes | no | yes | not checked |
+| Public demo link | yes | no | yes | hardening in progress (#127) |
+
 Everything runs locally (a local model on an RTX 5090, served by llama-server). No paid APIs.
 
 ## License
