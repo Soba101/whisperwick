@@ -11,7 +11,7 @@ from whisperwick.player import PLAYER_ID
 from whisperwick.scenario import load_scenario
 
 # Things a guard does about a case. Talk is left out on purpose: talking in place is the stall.
-ACTS = ("move", "take", "show", "give", "drop", "look", "arrest", "release")
+ACTS = ("move", "take", "show", "give", "drop", "look", "arrest", "release", "patrol")
 
 NO_STALL = {"guard_stall_hours": None, "guard_acts_open": None}
 

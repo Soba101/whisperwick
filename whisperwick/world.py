@@ -18,6 +18,7 @@ from whisperwick.clock import Clock
 from whisperwick.custody import held_problem
 from whisperwick.events import EventLog
 from whisperwick.items import Item, check_items
+from whisperwick.patrol import advance_patrols, patrol_problem
 from whisperwick.world_save import WorldSave
 
 
@@ -59,6 +60,9 @@ class World(WorldSave):
         self.authority = list(authority or [])
         self.clock = clock
         self.log = log
+        # Patrols in progress: actor id -> {"until": tick, "stops": [[tick, place], ...]}.
+        # World state (saved), so a resumed run finishes the same walk. See patrol.py.
+        self.patrols: dict[str, dict] = {}
         # The log owns definitions. Wishes are diagnostics, never world facts.
         from whisperwick.made_actions import rebuild
 
@@ -160,6 +164,10 @@ class World(WorldSave):
         problem = held_problem(self, intent)
         if problem:
             return reject(problem)
+        # Someone mid-patrol is busy walking. Same single gate as custody.
+        problem = patrol_problem(self, intent)
+        if problem:
+            return reject(problem)
         return handler(self, intent)
 
     def move(self, npc_id: str, to: str) -> ActionResult:
@@ -180,4 +188,5 @@ class World(WorldSave):
 
         results = [self.act(i) for i in sorted(intents, key=actor_key)]
         self.clock.advance()
+        advance_patrols(self)  # hops of any patrol that are due this minute
         return results
