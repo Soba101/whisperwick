@@ -44,6 +44,19 @@ like `arrest`. Nothing makes him use it, and no prompt line says he should.
 - Bring your own API key (#116): needs a hosted model screen and a cost estimate first.
 - Gestures stay off (#122).
 
+**Decision (Donovan, 2026-11-06):** A and B both. `patrol` is a physical ability, not a hint.
+Live runs wait: Donovan is using the PC. The week 17 rerun (data/w17d) was stopped at crime 1, day 2.
+
+## Build status (2026-11-06)
+- A built and merged (cc70943). 2D and 3D "What you know" tabs gain: who said what about whom,
+  where you have been, lines that disagree. Contradictions need a clock time in the line ("21:00",
+  "9 pm"); "this morning" is not matched. Not yet looked at in a browser.
+- B built and merged (43d6f75, bbc8b1c). Hal's prompt gains one line: "You can also patrol: walk
+  through every place in turn for one hour." Route: nearest unseen place first (from the Town Hall:
+  Market, Inn, Temple), one hop every 15 minutes, each hop a normal move event. No model turns for
+  Hal during the hour. 1175 tests pass; golden snapshot unchanged.
+- Live check of B (seeds 1 and 2 x10) waits for the PC.
+
 ## Open questions for you
 1. A and B both, or A only? (My suggestion: both, A first because it is small.)
 2. Is `patrol` a fair physical ability or a hint? (My suggestion: fair.)
