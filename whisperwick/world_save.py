@@ -14,7 +14,7 @@ class WorldSave:
 
     def to_dict(self) -> dict[str, Any]:
         """The full world state as plain data. Sorted, so the same world = same dict."""
-        return {
+        state = {
             "tick": self.clock.tick,
             "locations": [self.locations[k].model_dump() for k in sorted(self.locations)],
             "npcs": [self.npcs[k].model_dump() for k in sorted(self.npcs)],
@@ -24,6 +24,10 @@ class WorldSave:
             # Saving the generator's exact position makes resumed runs identical.
             "rng": self.rng.getstate(),
         }
+        # Only present during a patrol, so every other world hashes exactly as before.
+        if self.patrols:
+            state["patrols"] = {k: self.patrols[k] for k in sorted(self.patrols)}
+        return state
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], db_path: str = ":memory:") -> Self:
@@ -46,6 +50,7 @@ class WorldSave:
         # JSON turns the state's tuples into lists; setstate needs tuples back.
         version, internal, gauss = data["rng"]
         world.rng.setstate((version, tuple(internal), gauss))
+        world.patrols = data.get("patrols", {})  # older saves have none
         return world
 
     def state_hash(self) -> str:

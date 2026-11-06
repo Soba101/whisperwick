@@ -13,6 +13,7 @@ from whisperwick.events import Event
 from whisperwick.exchange_queue import Exchanges
 from whisperwick.memory import Memories
 from whisperwick.notebook import Notebooks
+from whisperwick.patrol import advance_patrols
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.player_turn import apply_player_turn
 from whisperwick.recall import Private
@@ -105,6 +106,8 @@ def run_llm(
         for npc in scheduler.due(tick):
             if exchanges and npc in exchanges.blocked:
                 continue
+            if npc in world.patrols:
+                continue  # walking a patrol: no turn until the hour is up
             # Count scheduled turns once, regardless of retries or recall calls.
             reason = scheduler.reasons[npc]
             if on_turn:
@@ -139,6 +142,14 @@ def run_llm(
             )
             break
         world.clock.advance()
+        # Patrol hops that are due now: tell memories and the scheduler like any other event.
+        for hop in advance_patrols(world):
+            memories.observe(hop, world)
+            scheduler.notice(hop)
+            if exchanges:
+                exchanges.observe(hop, own=True)
+            if on_event:
+                on_event(world, hop)
         # Thinking time: every 4 awake hours, and at bedtime. Never in the night.
         now = world.clock.tick
         bedtime = now % MINUTES_PER_DAY == SLEEP_START * 60

@@ -79,6 +79,8 @@ def format_event(e: Event, names: dict[str, str], viewer: str | None = None) -> 
         if e.type == "use":
             place = show(names, e.location) + ":"
         return f"{hhmm(e.tick)}  {place} {who} {verbs[e.type]}"
+    if e.type == "patrol":
+        return f"{hhmm(e.tick)}  {show(names, e.actor)} begins a patrol"
     if e.type in ("arrest", "release"):
         place = (show(names, e.location) + ":").ljust(PLACE_WIDTH + 1)  # "The Inn: Alice"
         verb = "arrests" if e.type == "arrest" else "releases"

@@ -140,3 +140,8 @@ from whisperwick.gestures import do_gesture  # noqa: E402
 from whisperwick.made_actions import do_make  # noqa: E402
 
 HANDLERS.update({"gesture": do_gesture, "make": do_make})
+
+# Patrol, in its own file too: an authority's one-hour walk through every place.
+from whisperwick.patrol import do_patrol  # noqa: E402
+
+HANDLERS["patrol"] = do_patrol

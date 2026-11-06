@@ -14,7 +14,7 @@ from whisperwick.events import Event
 
 # Actions a held person cannot do. Talk, look and show stay open: custody stops
 # your body and your hands, not your voice.
-HELD_BLOCKED = ("move", "take", "drop", "give")
+HELD_BLOCKED = ("move", "take", "drop", "give", "patrol")  # patrol is walking too
 
 
 def held_problem(world, intent: Intent) -> str | None:

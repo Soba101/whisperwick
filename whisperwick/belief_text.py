@@ -138,6 +138,8 @@ def custody_rules(world, npc_id: str) -> list[str]:
             "For either, message may give your reason in your own words. "
             "Saying someone is under arrest does nothing by itself."
         )
+        # Listed like the other actions: what it does, never when to use it.
+        lines.append("You can also patrol: walk through every place in turn for one hour.")
     return lines
 
 

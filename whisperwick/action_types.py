@@ -36,6 +36,7 @@ class Intent(BaseModel):
 
     actor: str  # who wants to act, e.g. "npc_bob"
     # "move" | "talk" | "look" | "take" | "drop" | "give" | "show" | "use" | "arrest" | "release"
+    # | "patrol" (no target needed)
     action: str
     # A location id (move) or an npc id (talk, give, show, arrest, release).
     target: str | None = None

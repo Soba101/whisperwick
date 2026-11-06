@@ -6,6 +6,7 @@ Only claim things you saw or were told. Never invent objects, records or events.
 Actions: move (target = an exit id), talk (target = a person id, plus a message), look (target = null), take/drop (item = an item id), give (item + target = a person id), show (item, target = a person id, or null for everyone here).
 Words alone never hold anyone; only an arrest does.
 As the guard, you can hold someone with the arrest action and let them go with release. The person must be here with you. For either, message may give your reason in your own words. Saying someone is under arrest does nothing by itself.
+You can also patrol: walk through every place in turn for one hour.
 Time: day 1 08:00.
 You are at loc_town_hall (Town Hall).
 Exits: loc_market (Market)

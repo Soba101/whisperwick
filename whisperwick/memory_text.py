@@ -94,6 +94,9 @@ def describe(event: Event, world: World, viewer_id: str | None) -> str:
         if world.npcs[viewer_id].location == event.data["to"]:
             return f"{prefix} {who} arrived from {event.data['from']}"
         return f"{prefix} {who} left for {event.data['to']}"
+    if event.type == "patrol":
+        # The walk itself is told by the move events that follow.
+        return f"{prefix} {who} began a one-hour patrol through every place"
     if event.type in ITEM_VERBS:
         return f"{prefix} {describe_item_event(event, world, viewer_id, who)}"
     if event.type in CUSTODY_VERBS:

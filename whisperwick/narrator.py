@@ -85,6 +85,7 @@ def _action(event, here: str) -> str | None:
         "give": "handing something over",
         "show": "showing an item",
         "use": "using an item",
+        "patrol": "starting a patrol",
         "arrest": "making an arrest",
         "release": "releasing someone from custody",
     }.get(event.type)

@@ -12,7 +12,7 @@ ACTIONS = ["move", "talk", "look", "take", "drop", "give", "show", "use"]
 # Week 16 actions, offered only when made_prompt.ENABLED (WHISPERWICK_GESTURES=on, #122).
 WEEK16_ACTIONS = ["gesture", "make"]
 # Only villagers the scenario names as authority are offered these.
-AUTHORITY_ACTIONS = ["arrest", "release"]
+AUTHORITY_ACTIONS = ["arrest", "release", "patrol"]
 
 
 def actions_for(world: World, npc_id: str) -> list[str]:
