@@ -11,11 +11,14 @@ class Known:
         self.bodies: dict[str, dict] = {}
         self.places: dict[str, dict] = {}
         self.items: dict[str, dict] = {}
+        self.visits: list[dict] = []  # each arrival at a place: where and when
 
     def update(self, view: dict) -> None:
         # Copy values so later views cannot rewrite an earlier sighting by aliasing it.
         place, clock = dict(view["place"]), view["clock"]
         self.places.setdefault(place["id"], place)
+        if not self.visits or self.visits[-1]["place"]["id"] != place["id"]:
+            self.visits.append({"place": place, "clock": clock})
         for person in view["people"]:
             self.people[person["id"]] = {**person, "place": place, "clock": clock}
         for body in view["bodies"]:
@@ -49,5 +52,6 @@ class Known:
                 "bodies": ordered(self.bodies),
                 "places": list(self.places.values()),
                 "items": ordered(self.items),
+                "visits": self.visits,
             }
         )

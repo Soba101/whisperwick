@@ -63,6 +63,9 @@ p { margin:0 0 var(--s3); }
 .notebook-tabs { display:flex; gap:var(--s2); margin-bottom:var(--s4); }
 .notebook-tabs [aria-selected="true"] { background:var(--accent); color:var(--on-accent); }
 .known-section + .known-section { margin-top:var(--s4); }
+/* Two disagreeing lines sit side by side, and stack on a phone. */
+.clash { display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:var(--s2);
+  margin-bottom:var(--s2); }
 .known-row { font-size:13px; padding-block:var(--s1); border-bottom:1px solid var(--line); }
 #notes { display:block; width:100%; resize:vertical; margin-block:var(--s2); }
 #notes-private { display:block; color:var(--muted); }

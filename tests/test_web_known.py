@@ -103,6 +103,7 @@ def test_web_player_updates_knowledge_and_new_games_start_empty():
         "bodies": [],
         "places": [],
         "items": [],
+        "visits": [],
     }
 
 

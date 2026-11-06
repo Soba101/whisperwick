@@ -60,5 +60,19 @@ export class Panels {
     Object.entries(sections).forEach(([title,rows]) => {
       $('known').append(el('h2',title)); (rows.length ? rows : ['None yet.']).forEach(t => $('known').append(el('p',t)));
     });
+    // The journal is built on the server from your own feed only.
+    const j = s.journal; if (!j) return;
+    $('known').append(el('h2','Who said what about whom'));
+    j.about.forEach(a => { $('known').append(el('h3',a.name)); a.lines.forEach(l => $('known').append(el('p',l))); });
+    if (!j.about.length) $('known').append(el('p','None yet.'));
+    $('known').append(el('h2','Where you have been'));
+    j.visits.forEach(v => $('known').append(el('p',v.place.name+', '+v.clock)));
+    $('known').append(el('h2','Lines that disagree'));
+    j.contradictions.forEach(c => {
+      const box = el('div',''); box.className = 'clash';
+      box.append(el('p',c.name+' around '+c.hour+': '+c.a), el('p',c.b));
+      $('known').append(box);
+    });
+    if (!j.contradictions.length) $('known').append(el('p','None yet.'));
   }
 }

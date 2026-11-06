@@ -116,3 +116,5 @@ textarea { width:100%; resize:vertical; background:#fff6e4; } #command label:has
 #start-game:hover:not(:disabled) { background:#56664c; }
 #start-error { color:#a44b35; margin:0; } #start-error:empty { display:none; }
 .crime-hint { font-size:12px; color:#6b604e; margin:0; }
+/* Two disagreeing lines sit side by side, and stack on a phone. */
+.clash { display:grid; grid-template-columns:repeat(auto-fit,minmax(14rem,1fr)); gap:8px; }

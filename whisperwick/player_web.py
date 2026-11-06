@@ -9,7 +9,7 @@ under the lock. That way the page can never see more than Wren could see.
 import threading
 from collections import deque
 
-from whisperwick import web_scene, web_state
+from whisperwick import web_journal, web_scene, web_state
 from whisperwick.actions import ActionResult, Intent
 from whisperwick.player import PLAYER_ID, PlayerSource
 from whisperwick.player_ending import PlayerEnding
@@ -103,6 +103,7 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
                 "known": {**self.known.snapshot(),
                           **({"private_fact": self.sc.private_fact}
                              if self.sc.private_fact else {})},
+                "journal": self._journal(),
                 **self.ending.snapshot(self.known.snapshot()["people"]),
                 "actions": self.actions,
                 "places": self.places,
@@ -119,6 +120,15 @@ class WebPlayer(WebPlayerFeed, PlayerSource):
                 "secret": self.secret if self.ending.accusation is not None else None,
                 "error": self.error,
             }
+
+    def _journal(self) -> dict | None:
+        """Built from the feed and sightings only. World names are just search words."""
+        if self.world is None:
+            return None
+        w = self.world
+        return web_journal.build(
+            self.feed, self.known.snapshot(), {i: n.name for i, n in w.npcs.items()},
+            {i: p.name for i, p in w.locations.items()}, PLAYER_ID)
 
     # ---- called from the run loop thread ----
 

@@ -84,7 +84,29 @@ function drawNotebook(s) {
   $('known-panel').replaceChildren(
     ...(k.private_fact ? [knownSection('Starting fact', [k.private_fact])] : []),
     knownSection('People', people.sort()),
-    knownSection('Places', k.places.map(p => p.name)), knownSection('Items', items));
+    knownSection('Places', k.places.map(p => p.name)), knownSection('Items', items),
+    ...journalSections(s.journal));
+}
+// The journal comes ready-made from the server, built only from your own feed.
+function journalSections(j) {
+  if (!j) return [];
+  const clash = j.contradictions.map(c => {
+    const box = el('div', 'clash');
+    box.append(el('div', 'known-row', c.name + ' around ' + c.hour + ': ' + c.a),
+               el('div', 'known-row', c.b));
+    return box;
+  });
+  const about = el('section', 'known-section');
+  about.appendChild(el('h3', '', 'Who said what about whom'));
+  j.about.forEach(a => {
+    about.appendChild(el('h4', '', a.name));
+    a.lines.forEach(l => about.appendChild(el('div', 'known-row', l)));
+  });
+  if (!j.about.length) about.appendChild(el('div', 'known-row', 'None yet.'));
+  const clashes = knownSection('Lines that disagree', clash.length ? [] : ['None yet.']);
+  clash.forEach(c => clashes.appendChild(c));
+  return [about, knownSection('Where you have been',
+    j.visits.map(v => v.place.name + ', ' + v.clock)), clashes];
 }
 // Initialize notes before polling can render a state.
 loop();
