@@ -60,10 +60,11 @@ def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
         # rejects someone not here ("X is not here") and the retry feeds that back.
         far = sorted(n for n, p in world.npcs.items() if p.alive and n != npc_id)
         targets += [n for n in far if n not in people]
+    acts = [*actions_for(world, npc_id), *(["recall"] if recall else [])]
     return {
         "type": "object",
         "properties": {
-            "action": {"enum": [*actions_for(world, npc_id), *(["recall"] if recall else [])]},
+            "action": {"enum": acts},
             "target": {"enum": [*targets, None]},
             "item": {"enum": [*usable_items(world, npc_id), None]},
             "message": {"type": ["string", "null"], "maxLength": MAX_MESSAGE_CHARS},
@@ -75,4 +76,33 @@ def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
         },
         "required": ["action", "target", "item", "message", "accuses", "defends"],
         "additionalProperties": False,
+        "anyOf": target_branches(acts, exits, [t for t in targets if t not in exits]),
     }
+
+
+# Which kind of target each action takes, read from the engine (#129). Anything not listed
+# here ignores its target, so only null is offered.
+EXIT_ACTIONS = {"move"}  # do_move rejects a null or non-exit target
+PERSON_ACTIONS = {"talk", "give", "arrest", "release"}  # these reject a null target
+OPTIONAL_PERSON_ACTIONS = {"show"}  # a person, or null to show the whole room
+
+
+def target_branches(acts: list[str], exits: list[str], people: list[str]) -> list[dict]:
+    """One anyOf branch per target kind, so a grammar cannot pair talk with a place id.
+
+    Small models sent loc_market to talk (#129). This is form validation only: every
+    action keeps the targets the engine already accepts. Empty enums are skipped
+    because they can break constrained decoders.
+    """
+    kinds = [
+        (EXIT_ACTIONS, exits),
+        (PERSON_ACTIONS, people),
+        (OPTIONAL_PERSON_ACTIONS, [*people, None]),
+        (set(acts) - EXIT_ACTIONS - PERSON_ACTIONS - OPTIONAL_PERSON_ACTIONS, [None]),
+    ]
+    return [
+        {"properties": {"action": {"enum": [a for a in acts if a in names]},
+                        "target": {"enum": ids}}}
+        for names, ids in kinds
+        if ids and any(a in names for a in acts)
+    ]
