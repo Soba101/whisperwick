@@ -61,7 +61,7 @@ def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
         far = sorted(n for n, p in world.npcs.items() if p.alive and n != npc_id)
         targets += [n for n in far if n not in people]
     acts = [*actions_for(world, npc_id), *(["recall"] if recall else [])]
-    return {
+    schema = {
         "type": "object",
         "properties": {
             "action": {"enum": acts},
@@ -76,8 +76,9 @@ def intent_schema(world: World, npc_id: str, recall: bool = False) -> dict:
         },
         "required": ["action", "target", "item", "message", "accuses", "defends"],
         "additionalProperties": False,
-        "anyOf": target_branches(acts, exits, [t for t in targets if t not in exits]),
     }
+    schema["anyOf"] = target_branches(schema, acts, exits, [t for t in targets if t not in exits])
+    return schema
 
 
 # Which kind of target each action takes, read from the engine (#129). Anything not listed
@@ -87,12 +88,15 @@ PERSON_ACTIONS = {"talk", "give", "arrest", "release"}  # these reject a null ta
 OPTIONAL_PERSON_ACTIONS = {"show"}  # a person, or null to show the whole room
 
 
-def target_branches(acts: list[str], exits: list[str], people: list[str]) -> list[dict]:
+def target_branches(base: dict, acts: list[str], exits: list[str], people: list[str]) -> list[dict]:
     """One anyOf branch per target kind, so a grammar cannot pair talk with a place id.
 
     Small models sent loc_market to talk (#129). This is form validation only: every
     action keeps the targets the engine already accepts. Empty enums are skipped
     because they can break constrained decoders.
+    Each branch is a full copy of the base object: llama.cpp's grammar converter builds
+    the grammar from anyOf alone when it is present, so a thin branch would drop every
+    other field's rule.
     """
     kinds = [
         (EXIT_ACTIONS, exits),
@@ -101,8 +105,9 @@ def target_branches(acts: list[str], exits: list[str], people: list[str]) -> lis
         (set(acts) - EXIT_ACTIONS - PERSON_ACTIONS - OPTIONAL_PERSON_ACTIONS, [None]),
     ]
     return [
-        {"properties": {"action": {"enum": [a for a in acts if a in names]},
-                        "target": {"enum": ids}}}
+        {**base, "properties": {**base["properties"],
+                                "action": {"enum": [a for a in acts if a in names]},
+                                "target": {"enum": ids}}}
         for names, ids in kinds
         if ids and any(a in names for a in acts)
     ]
